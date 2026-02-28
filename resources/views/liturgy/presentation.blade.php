@@ -34,12 +34,13 @@
         }
         .slide.active { opacity: 1; z-index: 10; pointer-events: auto; }
         
-        .instruksi-jemaat { margin: auto; font-size: 5vw; color: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 4px 20px rgba(0,0,0,0.8); transition: 0.3s; }
+        .instruksi-jemaat { margin: auto; font-size: 5vw; color: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 4px 20px rgba(0,0,0,0.8); transition: font-size 0.3s ease; }
 
         .judul-sesi { flex-shrink: 0; font-size: 2.2vw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 4px; font-weight: 600; margin-top: 2vh; margin-bottom: 0; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 12px; width: 85%; }
         .judul-custom { color: #63b3ed; border-bottom-color: rgba(99, 179, 237, 0.3); }
         
-        .isi-teks { margin-top: auto; margin-bottom: auto; font-size: 4.6vw; font-weight: 700; line-height: 1.5; text-shadow: 0px 4px 15px rgba(0,0,0,0.9); max-width: 90%; transition: 0.3s; }
+        /* Font size dasar, akan di-override secara dinamis oleh Javascript */
+        .isi-teks { margin-top: auto; margin-bottom: auto; font-size: 4.5vw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4px 15px rgba(0,0,0,0.9); max-width: 90%; transition: font-size 0.4s ease-out; }
         .teks-kuning { color: #ecc94b; }
         
         .welcome-wrapper { margin: auto; }
@@ -59,45 +60,66 @@
 
     @php
     if (!function_exists('autoSplitText')) {
-        function autoSplitText($text, $maxLines = 4, $charsPerLine = 38) {
+        // SMART SPLITTER: Max 3 baris, memisahkan teks peka terhadap tanda baca
+        function autoSplitText($text, $maxLines = 3, $charsPerLine = 45) {
             if (is_array($text)) { $text = $text['content'] ?? ''; }
             if (!is_string($text)) $text = '';
 
+            // Jika ada manual break dari pengguna, hormati manual break tersebut
             if (str_contains($text, '===SLIDE_BREAK===')) return array_filter(array_map('trim', explode('===SLIDE_BREAK===', $text)));
-            $slides = []; $currentSlideText = ''; $currentLines = 0;
+            
+            $slides = []; 
+            $currentSlideText = ''; 
+            $currentLines = 0;
+            
+            // Normalisasi baris baru
             $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $text));
 
             foreach ($lines as $line) {
-                $line = trim($line); if (empty($line)) continue;
-                $estLinesForLine = max(1, ceil(strlen($line) / $charsPerLine));
-                if ($estLinesForLine > 1) {
-                    $sentences = preg_split('/(?<=[.?!])\s+/', $line);
-                    foreach ($sentences as $sentence) {
-                        $sentence = trim($sentence); if (empty($sentence)) continue;
-                        $estLines = max(1, ceil(strlen($sentence) / $charsPerLine));
-                        if ($estLines > $maxLines) {
-                            $words = explode(' ', $sentence); $tempLine = '';
-                            foreach ($words as $word) {
-                                if (strlen($tempLine . ' ' . $word) > $charsPerLine) {
-                                    $currentSlideText .= trim($tempLine) . "\n"; $currentLines++; $tempLine = $word;
-                                    if ($currentLines >= $maxLines) { $slides[] = trim($currentSlideText); $currentSlideText = ''; $currentLines = 0; }
-                                } else { $tempLine .= (empty($tempLine) ? '' : ' ') . $word; }
-                            }
-                            if (!empty($tempLine)) { $currentSlideText .= trim($tempLine) . " "; $currentLines++; }
-                            continue;
-                        }
-                        if ($currentLines + $estLines > $maxLines && !empty(trim($currentSlideText))) {
-                            $slides[] = trim($currentSlideText); $currentSlideText = $sentence . " "; $currentLines = $estLines;
-                        } else { $currentSlideText .= $sentence . " "; $currentLines += $estLines; }
+                $line = trim($line); 
+                if (empty($line)) continue;
+                
+                // Pisahkan berdasarkan tanda baca (.,;?!) yang diikuti spasi untuk menjaga frasa tetap utuh
+                $phrases = preg_split('/([.,;?!]\s+)/', $line, -1, PREG_SPLIT_DELIM_CAPTURE);
+                $combinedPhrases = [];
+                $tempPhrase = '';
+                
+                // Menggabungkan kembali frasa dengan tanda bacanya
+                foreach ($phrases as $p) {
+                    if (preg_match('/^[.,;?!]\s+$/', $p)) {
+                        $tempPhrase .= trim($p);
+                        $combinedPhrases[] = trim($tempPhrase);
+                        $tempPhrase = '';
+                    } else {
+                        $tempPhrase .= $p;
                     }
-                    $currentSlideText = rtrim($currentSlideText) . "\n";
-                } else {
-                    if ($currentLines + 1 > $maxLines && !empty(trim($currentSlideText))) {
-                        $slides[] = trim($currentSlideText); $currentSlideText = $line . "\n"; $currentLines = 1;
-                    } else { $currentSlideText .= $line . "\n"; $currentLines += 1; }
                 }
+                if (!empty(trim($tempPhrase))) {
+                    $combinedPhrases[] = trim($tempPhrase);
+                }
+
+                foreach ($combinedPhrases as $phrase) {
+                    $phrase = trim($phrase); 
+                    if (empty($phrase)) continue;
+                    
+                    // Estimasi baris untuk frasa ini
+                    $estLines = max(1, ceil(strlen($phrase) / $charsPerLine));
+                    
+                    // Jika melebihi batas 3 baris, dorong ke slide baru
+                    if ($currentLines + $estLines > $maxLines && !empty(trim($currentSlideText))) {
+                        $slides[] = trim($currentSlideText);
+                        $currentSlideText = $phrase . " ";
+                        $currentLines = $estLines;
+                    } else {
+                        $currentSlideText .= $phrase . " ";
+                        $currentLines += $estLines;
+                    }
+                }
+                // Tambahkan jeda baris visual pada slide
+                $currentSlideText = trim($currentSlideText) . "\n";
             }
             if (!empty(trim($currentSlideText))) $slides[] = trim($currentSlideText);
+            
             return empty($slides) ? [$text] : $slides;
         }
     }
@@ -217,6 +239,36 @@
             if (overlay) overlay.style.display = 'none';
         }
 
+        // SMART ADAPTIVE FONT SIZING
+        // Akan menyesuaikan ukuran font secara otomatis tergantung panjang/sedikitnya isi konten di slide
+        function adjustAdaptiveText(slide) {
+            const textEl = slide.querySelector('.isi-teks');
+            if (textEl) {
+                // Jangan terapkan adaptive size pada slide sampul lagu (ciri khas: teks kuning & kata 'Menyanyikan')
+                if (!textEl.innerText.includes('Menyanyikan Bait:')) {
+                    const length = textEl.innerText.trim().length;
+                    let size = '4.5vw'; // Standar
+                    
+                    if (length <= 35) {
+                        size = '6.5vw'; // Sangat sedikit, besarkan maksimal
+                    } else if (length <= 75) {
+                        size = '5.2vw'; // Sedikit, agak dibesarkan
+                    } else if (length <= 130) {
+                        size = '4.3vw'; // Normal
+                    } else {
+                        size = '3.5vw'; // Sangat padat, dikecilkan agar muat
+                    }
+                    textEl.style.fontSize = size;
+                }
+            }
+
+            const instruksiEl = slide.querySelector('.instruksi-jemaat');
+            if (instruksiEl) {
+                const length = instruksiEl.innerText.trim().length;
+                instruksiEl.style.fontSize = length < 25 ? '6.5vw' : '4.5vw';
+            }
+        }
+
         function applyLiveDesign(settings) {
             if(!settings) return;
 
@@ -239,8 +291,8 @@
             const shadowValue = `0px 4px 15px rgba(${r}, ${g}, ${b}, ${sIntensity})`;
             const titleShadowValue = `0px 5px 20px rgba(${r}, ${g}, ${b}, ${sIntensity})`;
 
+            // Mengganti warna dan bayangan, TETAPI membiarkan font-size diatur oleh fungsi adaptif di atas
             document.querySelectorAll('.isi-teks, .instruksi-jemaat').forEach(el => {
-                el.style.fontSize = settings.fontSize; 
                 el.style.color = settings.textColor;
                 el.style.textShadow = shadowValue;
             });
@@ -259,9 +311,13 @@
         function showSlide(index) {
             if (index >= slides.length) index = slides.length - 1;
             if (index < 0) index = 0;
+            
             slides.forEach((slide, i) => {
                 slide.classList.remove('active');
-                if (i === index) slide.classList.add('active');
+                if (i === index) {
+                    slide.classList.add('active');
+                    adjustAdaptiveText(slide); // Panggil penyesuai font adaptif saat slide muncul
+                }
             });
             currentSlide = index;
             
@@ -274,6 +330,7 @@
             localStorage.setItem('slide_changed', Date.now());
         }
 
+        // Jalankan untuk inisiasi
         showSlide(currentSlide);
 
         document.addEventListener('keydown', (e) => {
