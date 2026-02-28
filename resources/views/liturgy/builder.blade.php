@@ -43,17 +43,22 @@
             @csrf
             <div class="block-card border-top border-4 border-primary mb-4" style="border-left: none; border-top-color: #2b6cb0 !important;">
                 <input type="text" name="schedule_name" class="form-control form-control-lg border-0 fw-bold fs-3 px-0 mb-3" placeholder="Judul Presentasi Ibadah Kustom" required>
+                
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="small text-secondary fw-medium mb-1">Tanggal Ibadah</label>
                         <input type="date" name="worship_date" class="form-control" required>
                     </div>
                     <div class="col-md-4">
+                        <label class="small text-secondary fw-medium mb-1">Tema / Sub Tema</label>
+                        <input type="text" name="theme" class="form-control" placeholder="Opsional (Cth: Minggu Adven)">
+                    </div>
+                    <div class="col-md-3">
                         <label class="small text-secondary fw-medium mb-1">Pelayan Firman</label>
                         <input type="text" name="preacher_name" class="form-control" placeholder="Nama Pelayan">
                     </div>
-                    <div class="col-md-4">
-                        <label class="small text-secondary fw-medium mb-1">Warna Tema Latar</label>
+                    <div class="col-md-2">
+                        <label class="small text-secondary fw-medium mb-1">Warna Latar</label>
                         <input type="color" name="theme_color" class="form-control form-control-color w-100 p-1" value="#1b2735">
                     </div>
                 </div>
