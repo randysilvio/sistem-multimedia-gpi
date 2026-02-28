@@ -14,6 +14,7 @@
         .form-label-header { font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; margin-bottom: 12px; display: block; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
         .btn-primary-custom { background-color: #2b6cb0; color: white; border: none; }
         .btn-primary-custom:hover { background-color: #2c5282; color: white; }
+        textarea { resize: vertical; } /* Agar textarea bisa ditarik secara manual jika teks panjang */
     </style>
 </head>
 <body>
@@ -56,6 +57,17 @@
                     </div>
                     <div class="card-body bg-light p-4">
 
+                        @if ($errors->any())
+                            <div class="alert alert-danger shadow-sm border-0 border-start border-4 border-danger mb-4">
+                                <strong>Gagal Menyimpan!</strong> Periksa kembali isian Anda:
+                                <ul class="mb-0 mt-1">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         <form action="{{ route('liturgy.store') }}" method="POST">
                             @csrf
                             <input type="hidden" name="liturgy_id" value="{{ $liturgy->id }}">
@@ -63,19 +75,19 @@
                             <div class="row mb-4 bg-white p-4 rounded-3 border" style="border-color: #e2e8f0 !important;">
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-bold text-secondary small text-uppercase">Tanggal Ibadah</label>
-                                    <input type="date" name="worship_date" class="form-control" required>
+                                    <input type="date" name="worship_date" class="form-control" value="{{ old('worship_date') }}" required>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-bold text-secondary small text-uppercase">Tema / Sub Tema</label>
-                                    <input type="text" name="theme" class="form-control" placeholder="Opsional">
+                                    <input type="text" name="theme" class="form-control" placeholder="Opsional" value="{{ old('theme') }}">
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-bold text-secondary small text-uppercase">Pelayan Firman</label>
-                                    <input type="text" name="preacher_name" class="form-control" placeholder="Nama Pelayan">
+                                    <input type="text" name="preacher_name" class="form-control" placeholder="Nama Pelayan" value="{{ old('preacher_name') }}">
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-bold text-secondary small text-uppercase">Warna Liturgis</label>
-                                    <input type="color" name="theme_color" class="form-control form-control-color w-100" value="{{ $liturgy->default_color ?? '#1b2735' }}" title="Warna dasar tema ibadah">
+                                    <input type="color" name="theme_color" class="form-control form-control-color w-100" value="{{ old('theme_color', $liturgy->default_color ?? '#1b2735') }}" title="Warna dasar tema ibadah">
                                 </div>
                             </div>
 
@@ -96,7 +108,7 @@
                                         
                                         @if(str_contains(strtolower($item->title), 'pra-ibadah') || str_contains(strtolower($item->title), 'prosesi'))
                                             <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-2 fw-medium text-dark" placeholder="Judul Prosesi (Opsional)" value="{{ str_replace(' (Opsional)', '', $item->title) }}">
-                                            <textarea name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="4" placeholder="Ketik teks di sini..." {{ $reqRule }}>{{ $val }}</textarea>
+                                            <textarea name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="6" placeholder="Ketik teks di sini..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id.'.content', $val) }}</textarea>
                                             
                                         @elseif(str_contains(strtolower($item->title), 'nyanyian') || str_contains(strtolower($item->title), 'pujian'))
                                             <div class="input-group mb-2">
@@ -114,7 +126,7 @@
                                             <div id="bait-container-{{ $item->id }}">
                                                 <div class="input-group mb-2 shadow-sm position-relative">
                                                     <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                                    <textarea name="dynamic_content[{{ $item->id }}][bait][]" class="form-control" rows="2" placeholder="Ketik lirik secara manual atau ditarik otomatis..." {{ $reqRule }}></textarea>
+                                                    <textarea name="dynamic_content[{{ $item->id }}][bait][]" class="form-control" rows="3" placeholder="Ketik lirik secara manual atau ditarik otomatis..." {{ $reqRule }}></textarea>
                                                 </div>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-light border w-100 fw-medium text-secondary mt-1" onclick="tambahBait({{ $item->id }})">&plus; Tambah Bait Lirik Manual</button>
@@ -127,11 +139,11 @@
                                                 </div>
                                             @endif
                                             
-                                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control {{ str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi') ? 'bg-light text-secondary fw-bold' : '' }}" rows="4" placeholder="Ketik teks secara manual..." {{ $reqRule }}>{{ $val }}</textarea>
+                                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control {{ str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi') ? 'bg-light text-secondary fw-bold' : '' }}" rows="6" placeholder="Ketik teks secara manual..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id, $val) }}</textarea>
                                         @endif
                                         
                                     @else
-                                        <textarea name="dynamic_content[{{ $item->id }}]" class="form-control text-secondary bg-light" rows="2" readonly>{{ $val }}</textarea>
+                                        <textarea name="dynamic_content[{{ $item->id }}]" class="form-control text-secondary bg-light" rows="3" readonly>{{ $val }}</textarea>
                                     @endif
 
                                     <div class="mt-4 pt-3 border-top" style="border-color: #edf2f7 !important;">
@@ -159,7 +171,7 @@
             const html = `
                 <div class="input-group mb-2 shadow-sm position-relative">
                     <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                    <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="2" placeholder="Teks lanjutan..."></textarea>
+                    <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="3" placeholder="Teks lanjutan..."></textarea>
                     <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
@@ -176,7 +188,7 @@
                         <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control fw-medium border-secondary" placeholder="Judul Slide (Misal: Pengumuman)" required>
                     </div>
                     <div>
-                        <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control border-secondary" rows="3" placeholder="Isi konten..." required></textarea>
+                        <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control border-secondary" rows="4" placeholder="Isi konten..." required></textarea>
                     </div>
                 </div>
             `;

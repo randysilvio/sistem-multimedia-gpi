@@ -24,6 +24,7 @@
         
         input:focus, textarea:focus, select:focus { box-shadow: none !important; border-color: #3182ce !important; }
         .block-label { font-size: 0.75rem; letter-spacing: 1px; color: #718096; margin-bottom: 10px; text-transform: uppercase; font-weight: 600;}
+        textarea { resize: vertical; } /* Agar textarea bisa ditarik secara manual jika teks panjang */
     </style>
 </head>
 <body>
@@ -39,27 +40,39 @@
     </nav>
 
     <div class="container builder-container">
+        
+        @if ($errors->any())
+            <div class="alert alert-danger shadow-sm border-0 border-start border-4 border-danger mb-4">
+                <strong>Gagal Menyimpan!</strong> Periksa kembali isian Anda:
+                <ul class="mb-0 mt-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form action="{{ route('liturgy.store_custom') }}" method="POST" id="builderForm">
             @csrf
             <div class="block-card border-top border-4 border-primary mb-4" style="border-left: none; border-top-color: #2b6cb0 !important;">
-                <input type="text" name="schedule_name" class="form-control form-control-lg border-0 fw-bold fs-3 px-0 mb-3" placeholder="Judul Presentasi Ibadah Kustom" required>
+                <input type="text" name="schedule_name" class="form-control form-control-lg border-0 fw-bold fs-3 px-0 mb-3" placeholder="Judul Presentasi Ibadah Kustom" value="{{ old('schedule_name') }}" required>
                 
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="small text-secondary fw-medium mb-1">Tanggal Ibadah</label>
-                        <input type="date" name="worship_date" class="form-control" required>
+                        <input type="date" name="worship_date" class="form-control" value="{{ old('worship_date') }}" required>
                     </div>
                     <div class="col-md-4">
                         <label class="small text-secondary fw-medium mb-1">Tema / Sub Tema</label>
-                        <input type="text" name="theme" class="form-control" placeholder="Opsional (Cth: Minggu Adven)">
+                        <input type="text" name="theme" class="form-control" placeholder="Opsional (Cth: Minggu Adven)" value="{{ old('theme') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="small text-secondary fw-medium mb-1">Pelayan Firman</label>
-                        <input type="text" name="preacher_name" class="form-control" placeholder="Nama Pelayan">
+                        <input type="text" name="preacher_name" class="form-control" placeholder="Nama Pelayan" value="{{ old('preacher_name') }}">
                     </div>
                     <div class="col-md-2">
                         <label class="small text-secondary fw-medium mb-1">Warna Latar</label>
-                        <input type="color" name="theme_color" class="form-control form-control-color w-100 p-1" value="#1b2735">
+                        <input type="color" name="theme_color" class="form-control form-control-color w-100 p-1" value="{{ old('theme_color', '#1b2735') }}">
                     </div>
                 </div>
             </div>
@@ -79,7 +92,7 @@
         <button type="button" class="btn-add" onclick="addBlock('aksi')">Sikap &plus;</button>
         <button type="button" class="btn-add" onclick="addBlock('kosong')">Teks &plus;</button>
         <div style="width: 1px; height: 20px; background: #4a5568; margin: 0 5px;"></div>
-        <button type="button" class="btn-save" onclick="document.getElementById('builderForm').submit()">SIMPAN</button>
+        <button type="submit" form="builderForm" class="btn-save">SIMPAN</button>
     </div>
 
 <script>
@@ -113,7 +126,7 @@
                 <div id="bait-wrapper-${blockCount}">
                     <div class="input-group mb-2 shadow-sm position-relative">
                         <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                        <textarea name="blocks[${blockCount}][content][]" class="form-control bg-light" rows="3" placeholder="Ketik bait pertama..." required></textarea>
+                        <textarea name="blocks[${blockCount}][content][]" class="form-control bg-light" rows="4" placeholder="Ketik bait pertama..." required></textarea>
                     </div>
                 </div>
                 <button type="button" class="btn btn-sm btn-light border w-100 mt-1 fw-medium text-secondary" onclick="addBait(${blockCount})">&plus; Tambah Bait Lanjutan</button>
@@ -128,7 +141,7 @@
                     <input type="text" id="cari-kitab-${blockCount}" class="form-control bg-light" placeholder="Cari ayat (Contoh: Yohanes 3:16)">
                     <button type="button" class="btn btn-secondary fw-medium" onclick="tarikAyat(${blockCount})">Tarik Teks</button>
                 </div>
-                <textarea id="text-kitab-${blockCount}" name="blocks[${blockCount}][content]" class="form-control" rows="4" placeholder="Teks akan ditarik ke sini otomatis..." required></textarea>
+                <textarea id="text-kitab-${blockCount}" name="blocks[${blockCount}][content]" class="form-control" rows="6" placeholder="Teks akan ditarik ke sini otomatis..." required></textarea>
             `;
         } 
         else if (type === 'aksi') {
@@ -149,7 +162,7 @@
                 <div class="block-label text-warning">Votum & Salam</div>
                 <input type="hidden" name="blocks[${blockCount}][type]" value="votum">
                 <input type="text" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" value="Votum dan Salam">
-                <textarea name="blocks[${blockCount}][content]" class="form-control bg-light" rows="3" placeholder="Ketik teks di sini..." required></textarea>
+                <textarea name="blocks[${blockCount}][content]" class="form-control bg-light" rows="4" placeholder="Ketik teks di sini..." required></textarea>
             `;
         } 
         else {
@@ -157,7 +170,7 @@
                 <div class="block-label text-success">Slide Teks Bebas</div>
                 <input type="hidden" name="blocks[${blockCount}][type]" value="polos">
                 <input type="text" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" placeholder="Judul Slide (Contoh: Pengumuman)">
-                <textarea name="blocks[${blockCount}][content]" class="form-control bg-light" rows="3" placeholder="Ketik teks bebas..."></textarea>
+                <textarea name="blocks[${blockCount}][content]" class="form-control bg-light" rows="6" placeholder="Ketik teks bebas..."></textarea>
             `;
         }
 
@@ -176,7 +189,7 @@
         const html = `
             <div class="input-group mb-2 shadow-sm position-relative">
                 <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                <textarea name="blocks[${blockId}][content][]" class="form-control bg-light" rows="3" placeholder="Bait lanjutan..."></textarea>
+                <textarea name="blocks[${blockId}][content][]" class="form-control bg-light" rows="4" placeholder="Bait lanjutan..."></textarea>
                 <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
             </div>
         `;
@@ -208,7 +221,7 @@
                             const html = `
                                 <div class="input-group mb-2 shadow-sm position-relative">
                                     <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                    <textarea name="blocks[${blockId}][content][]" class="form-control bg-light" rows="3">${bait.trim()}</textarea>
+                                    <textarea name="blocks[${blockId}][content][]" class="form-control bg-light" rows="4">${bait.trim()}</textarea>
                                     <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                 </div>
                             `;
