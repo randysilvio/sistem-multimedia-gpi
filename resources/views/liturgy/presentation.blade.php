@@ -177,7 +177,7 @@
                                     </div>
                                 @endif
                                 <div class="isi-teks teks-kuning" style="font-size: 2.2vw; margin-top: 25px; font-weight: 600;">
-                                    Menyanyikan Bait: {{ implode(', ', range(1, count($content['bait']))) }}
+                                    Menyanyikan: {{ implode(', ', range(1, count($content['bait']))) }}
                                 </div>
                             </div>
                         </div>
@@ -189,7 +189,7 @@
                                     <div class="judul-sesi">
                                         {{ str_replace(' (Opsional)', '', $item->title) }} 
                                         @if(!empty($content['judul'])) - {{ $content['judul'] }} @endif 
-                                        <span class="teks-kuning"> - Bait {{ $index + 1 }}</span>
+                                        <span class="teks-kuning"> - {{ $index + 1 }}</span>
                                     </div>
                                     <div class="isi-teks">{!! nl2br(e(is_string($bSlide) ? trim($bSlide) : '')) !!}</div>
                                 </div>
@@ -244,8 +244,8 @@
         function adjustAdaptiveText(slide) {
             const textEl = slide.querySelector('.isi-teks');
             if (textEl) {
-                // Jangan terapkan adaptive size pada slide sampul lagu (ciri khas: teks kuning & kata 'Menyanyikan')
-                if (!textEl.innerText.includes('Menyanyikan Bait:')) {
+                // Jangan terapkan adaptive size pada slide sampul lagu (ciri khas: teks kuning & kata 'Menyanyikan:')
+                if (!textEl.innerText.includes('Menyanyikan:')) {
                     const length = textEl.innerText.trim().length;
                     let size = '4.5vw'; // Standar
                     
