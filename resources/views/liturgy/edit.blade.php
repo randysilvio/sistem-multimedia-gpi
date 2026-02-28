@@ -7,7 +7,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; color: #2d3748; }
         .navbar { background-color: #1a202c !important; }
-        .navbar-brand { font-weight: 600; letter-spacing: 1px; font-size: 1.1rem; }
         .form-control:focus, .form-select:focus { border-color: #3182ce; box-shadow: 0 0 0 0.2rem rgba(49, 130, 206, 0.15); }
         .btn-primary-custom { background-color: #2b6cb0; color: white; border: none; }
         .btn-primary-custom:hover { background-color: #2c5282; color: white; }
@@ -16,8 +15,11 @@
 <body>
     
     <nav class="navbar navbar-dark shadow-sm mb-4 py-3">
-        <div class="container">
-            <a class="navbar-brand text-uppercase" href="#">Sistem Multimedia GPI Papua</a>
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
+                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" height="30" class="me-3">
+                <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">Sistem Multimedia</span>
+            </a>
             <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Kembali ke Galeri</a>
         </div>
     </nav>
@@ -91,16 +93,7 @@
                                     <textarea name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="3">{{ $content['content'] ?? '' }}</textarea>
                                 @endif
                             @else
-                                @if(str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi'))
-                                    <select name="dynamic_content[{{ $item->id }}]" class="form-select bg-light fw-medium text-secondary">
-                                        <option value="(Jemaat Berdiri)" {{ str_contains($content, 'Berdiri') ? 'selected' : '' }}>(Jemaat Berdiri)</option>
-                                        <option value="(Jemaat Duduk)" {{ str_contains($content, 'Duduk') && !str_contains($content, 'Teduh') ? 'selected' : '' }}>(Jemaat Duduk)</option>
-                                        <option value="(Saat Teduh)" {{ str_contains($content, 'Teduh') ? 'selected' : '' }}>(Saat Teduh / Lilin Dipadamkan)</option>
-                                        <option value="(Jemaat Duduk - Calon Sidi Berlutut)" {{ str_contains($content, 'Berlutut') ? 'selected' : '' }}>(Jemaat Duduk - Calon Sidi Berlutut)</option>
-                                    </select>
-                                @else
-                                    <textarea name="dynamic_content[{{ $item->id }}]" class="form-control" rows="4">{{ $content }}</textarea>
-                                @endif
+                                <textarea name="dynamic_content[{{ $item->id }}]" class="form-control {{ str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi') ? 'bg-light text-secondary fw-bold' : '' }}" rows="4">{{ $content }}</textarea>
                             @endif
                         </div>
                     @endforeach

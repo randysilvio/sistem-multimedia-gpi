@@ -10,21 +10,13 @@
         body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; color: #2d3748; } 
         .navbar { background-color: #1a202c !important; }
         .navbar-brand { font-weight: 600; letter-spacing: 1px; font-size: 1.1rem; }
-        
-        .btn-control { background-color: #2b6cb0; color: white; border: none; }
-        .btn-control:hover { background-color: #2c5282; color: white; }
-        
-        .template-card { 
-            width: 160px; height: 200px; border-radius: 6px; border: 1px solid #e2e8f0; 
-            background: #ffffff; cursor: pointer; transition: all 0.2s ease; position: relative;
-        }
+        .template-card { width: 160px; height: 200px; border-radius: 6px; border: 1px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.2s ease; position: relative; }
         .template-card:hover { border-color: #cbd5e0; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transform: translateY(-2px); }
         .card-blank { display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #718096; font-weight: 300; }
         .card-template-img { padding: 15px; height: 100%; display: flex; flex-direction: column; gap: 6px; opacity: 0.6; }
         .line-mockup { background: #e2e8f0; height: 6px; border-radius: 3px; width: 100%; }
         .line-mockup.short { width: 50%; }
         .line-mockup.title { height: 10px; width: 75%; background: #4a5568; margin-bottom: 12px; }
-        
         .table { font-size: 0.9rem; }
         .table thead th { background-color: #edf2f7; color: #4a5568; font-weight: 600; border-bottom: 1px solid #e2e8f0; letter-spacing: 0.5px; }
         .table tbody td { vertical-align: middle; border-bottom: 1px solid #edf2f7; }
@@ -34,8 +26,12 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3">
         <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand text-uppercase m-0" href="#">Sistem Multimedia GPI Papua</a>
+            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('dashboard') }}">
+                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" height="32" class="me-3">
+                <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">Sistem Multimedia</span>
+            </a>
             <div>
+                <a href="{{ route('dashboard') }}" class="btn btn-outline-light btn-sm fw-medium px-3 me-2">Ke Dashboard Utama</a>
                 <a href="{{ route('songs.index') }}" class="btn btn-light btn-sm fw-bold px-4 text-primary" style="letter-spacing: 0.5px;">DATABASE LAGU</a>
             </div>
         </div>
@@ -108,7 +104,7 @@
                                     </td>
                                     <td class="text-secondary">{{ $schedule->preacher_name ?? '-' }}</td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-control btn-sm fw-medium px-3 me-1">Buka Live Control</a>
+                                        <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-sm fw-medium px-3 me-1 text-white" style="background-color: #2b6cb0;">Buka Live Control</a>
                                         <form action="{{ route('liturgy.destroy', $schedule->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus presentasi ini secara permanen?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-light border btn-sm fw-medium px-3 text-danger">Hapus</button>

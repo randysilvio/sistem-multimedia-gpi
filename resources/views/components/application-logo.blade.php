@@ -1,0 +1,1 @@
+<img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" {{ $attributes->merge(['class' => 'h-12 w-auto drop-shadow-sm']) }}>

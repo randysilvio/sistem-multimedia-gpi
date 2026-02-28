@@ -9,7 +9,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; color: #2d3748; }
         .navbar { background-color: #1a202c !important; }
-        .navbar-brand { font-weight: 600; letter-spacing: 1px; font-size: 1.1rem; }
         .form-control:focus, .form-select:focus { border-color: #3182ce; box-shadow: 0 0 0 0.2rem rgba(49, 130, 206, 0.15); }
         .card-edit { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .form-label-header { font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; margin-bottom: 12px; display: block; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
@@ -21,10 +20,13 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm mb-4 py-3">
         <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand text-uppercase m-0" href="#">Sistem Multimedia GPI Papua</a>
+            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
+                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" height="30" class="me-3">
+                <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">Sistem Multimedia</span>
+            </a>
             <div>
                 <a href="{{ route('liturgy.create') }}" class="btn btn-light fw-medium px-4 text-primary me-2">Buat Jadwal Baru</a>
-                <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Galeri Jadwal</a>
+                <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Batal & Kembali</a>
             </div>
         </div>
     </nav>
@@ -142,7 +144,7 @@
                                 </div>
                             @endforeach
 
-                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold mt-4 shadow text-uppercase">Simpan dan Siapkan Penayangan</button>
+                            <button type="submit" class="btn btn-primary-custom btn-lg w-100 py-3 fw-bold mt-4 shadow text-uppercase" style="letter-spacing: 1px;">Simpan dan Siapkan Penayangan</button>
                         </form>
 
                     </div>
@@ -155,10 +157,10 @@
         function tambahBait(itemId) {
             const container = document.getElementById('bait-container-' + itemId);
             const html = `
-                <div class="input-group mb-3 shadow-sm position-relative">
-                    <span class="input-group-text bg-dark text-white fw-bold border-0">Lanjutan</span>
-                    <textarea name="dynamic_content[${itemId}][bait][]" class="form-control border-dark" rows="3" placeholder="Teks lanjutan..."></textarea>
-                    <button type="button" class="btn btn-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="padding: 2px 8px; font-size: 12px;">Hapus</button>
+                <div class="input-group mb-2 shadow-sm position-relative">
+                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
+                    <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="2" placeholder="Teks lanjutan..."></textarea>
+                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
         }
@@ -167,18 +169,14 @@
             const container = document.getElementById('custom-slide-container-' + itemId);
             const slideId = Math.random().toString(36).substr(2, 9);
             const html = `
-                <div class="p-4 mb-3 border border-success border-2 rounded-3 bg-white shadow-sm position-relative">
-                    <span class="badge bg-success mb-3 px-3 py-2 fs-6">Slide Sisipan Tambahan</span>
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" onclick="this.parentElement.remove()"></button>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-success">Judul Slide</label>
-                        <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control border-success fw-bold" placeholder="Misal: Pengumuman Gereja" required>
+                <div class="p-3 mb-3 border border-2 rounded bg-light position-relative" style="border-color: #cbd5e0 !important;">
+                    <span class="badge bg-secondary mb-2">Slide Sisipan Manual</span>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="this.parentElement.remove()"></button>
+                    <div class="mb-2">
+                        <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control fw-medium border-secondary" placeholder="Judul Slide (Misal: Pengumuman)" required>
                     </div>
-                    
                     <div>
-                        <label class="form-label fw-bold text-success">Isi Konten</label>
-                        <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control border-success" rows="4" placeholder="Ketik konten di sini..." required></textarea>
+                        <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control border-secondary" rows="3" placeholder="Isi konten..." required></textarea>
                     </div>
                 </div>
             `;
@@ -208,10 +206,10 @@
                         baits.forEach(bait => {
                             if(bait.trim() !== '') {
                                 const html = `
-                                    <div class="input-group mb-3 shadow-sm position-relative">
-                                        <span class="input-group-text bg-dark text-white fw-bold border-0">Lanjutan</span>
-                                        <textarea name="dynamic_content[${itemId}][bait][]" class="form-control border-dark" rows="3">${bait.trim()}</textarea>
-                                        <button type="button" class="btn btn-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="padding: 2px 8px; font-size: 12px;">Hapus</button>
+                                    <div class="input-group mb-2 shadow-sm position-relative">
+                                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
+                                        <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="3">${bait.trim()}</textarea>
+                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
                             }
@@ -239,16 +237,11 @@
                 .then(data => {
                     if(data.success) {
                         textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text;
-                        textarea.classList.add('border-success', 'border-2');
-                    } else {
-                        alert(data.message);
-                    }
+                        textarea.classList.add('border-primary');
+                    } else { alert(data.message); }
                 })
-                .catch(err => alert('Terjadi kesalahan jaringan. Periksa koneksi internet Anda.'))
-                .finally(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                });
+                .catch(err => alert('Terjadi kesalahan koneksi.'))
+                .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
         }
     </script>
 </body>

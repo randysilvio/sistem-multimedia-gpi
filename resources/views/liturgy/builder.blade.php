@@ -7,6 +7,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; padding-bottom: 120px; color:#2d3748; }
+        .navbar { background-color: #1a202c !important; }
         .builder-container { max-width: 800px; margin: auto; margin-top: 40px; }
         
         .block-card { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-left: 4px solid #cbd5e0; position: relative; transition: 0.2s; }
@@ -27,11 +28,21 @@
 </head>
 <body>
 
+    <nav class="navbar navbar-dark shadow-sm py-3">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
+                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" height="30" class="me-3">
+                <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">Sistem Multimedia</span>
+            </a>
+            <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Batal & Kembali</a>
+        </div>
+    </nav>
+
     <div class="container builder-container">
         <form action="{{ route('liturgy.store_custom') }}" method="POST" id="builderForm">
             @csrf
             <div class="block-card border-top border-4 border-primary mb-4" style="border-left: none; border-top-color: #2b6cb0 !important;">
-                <input type="text" name="schedule_name" class="form-control form-control-lg border-0 fw-bold fs-3 px-0 mb-3" placeholder="Judul Presentasi Ibadah" required>
+                <input type="text" name="schedule_name" class="form-control form-control-lg border-0 fw-bold fs-3 px-0 mb-3" placeholder="Judul Presentasi Ibadah Kustom" required>
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="small text-secondary fw-medium mb-1">Tanggal Ibadah</label>
@@ -51,7 +62,7 @@
             <div id="canvas-area"></div>
             
             <div class="text-center mt-5">
-                <p class="text-muted small">Gunakan toolbar di bawah untuk menyusun urutan ibadah</p>
+                <p class="text-muted small">Gunakan toolbar melayang di bawah untuk menyusun urutan ibadah</p>
             </div>
         </form>
     </div>
