@@ -88,18 +88,35 @@
 
         if (type === 'nyanyian') {
             htmlContent = `
-                <div class="block-label">Blok Nyanyian</div>
+                <div class="block-label text-primary">Blok Nyanyian</div>
                 <input type="hidden" name="blocks[${blockCount}][type]" value="nyanyian">
-                <input type="text" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" placeholder="Judul Lagu (Contoh: KJ 15:1,3)" required>
-                <div id="bait-wrapper-${blockCount}">
-                    <textarea name="blocks[${blockCount}][content][]" class="form-control bg-light mb-2" rows="3" placeholder="Bait pertama..." required></textarea>
+                
+                <div class="input-group mb-2">
+                    <select id="buku-lagu-${blockCount}" class="form-select bg-light" style="max-width: 100px;">
+                        <option value="KJ">KJ</option>
+                        <option value="NKB">NKB</option>
+                        <option value="PKJ">PKJ</option>
+                        <option value="NR">NR</option>
+                        <option value="BEBAS">Lainnya</option>
+                    </select>
+                    <input type="text" id="nomor-lagu-${blockCount}" class="form-control bg-light" placeholder="No. Lagu (Cth: 15)">
+                    <button type="button" class="btn btn-secondary fw-medium px-3" onclick="tarikLaguBuilder(${blockCount}, event)">Tarik Lirik</button>
                 </div>
-                <button type="button" class="btn btn-sm btn-light border mt-1 fw-medium text-secondary" onclick="addBait(${blockCount})">&plus; Tambah Bait Lanjutan</button>
+
+                <input type="text" id="judul-lagu-${blockCount}" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" placeholder="Judul Lagu (Contoh: Nyanyian Jemaat KJ 15)" required>
+                
+                <div id="bait-wrapper-${blockCount}">
+                    <div class="input-group mb-2 shadow-sm position-relative">
+                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
+                        <textarea name="blocks[${blockCount}][content][]" class="form-control bg-light" rows="3" placeholder="Ketik bait pertama..." required></textarea>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-light border w-100 mt-1 fw-medium text-secondary" onclick="addBait(${blockCount})">&plus; Tambah Bait Lanjutan</button>
             `;
         } 
         else if (type === 'alkitab') {
             htmlContent = `
-                <div class="block-label">Blok Bacaan Alkitab</div>
+                <div class="block-label text-info">Blok Bacaan Alkitab</div>
                 <input type="hidden" name="blocks[${blockCount}][type]" value="alkitab">
                 <input type="text" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" placeholder="Judul (Contoh: Pembacaan Firman)" required>
                 <div class="input-group mb-2">
@@ -124,7 +141,7 @@
         } 
         else if (type === 'votum') {
             htmlContent = `
-                <div class="block-label">Votum & Salam</div>
+                <div class="block-label text-warning">Votum & Salam</div>
                 <input type="hidden" name="blocks[${blockCount}][type]" value="votum">
                 <input type="text" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" value="Votum dan Salam">
                 <textarea name="blocks[${blockCount}][content]" class="form-control bg-light" rows="3" placeholder="Ketik teks di sini..." required></textarea>
@@ -132,7 +149,7 @@
         } 
         else {
             htmlContent = `
-                <div class="block-label">Slide Teks Bebas</div>
+                <div class="block-label text-success">Slide Teks Bebas</div>
                 <input type="hidden" name="blocks[${blockCount}][type]" value="polos">
                 <input type="text" name="blocks[${blockCount}][title]" class="form-control fw-bold fs-5 border-0 border-bottom mb-3 px-0 rounded-0" placeholder="Judul Slide (Contoh: Pengumuman)">
                 <textarea name="blocks[${blockCount}][content]" class="form-control bg-light" rows="3" placeholder="Ketik teks bebas..."></textarea>
@@ -151,20 +168,64 @@
 
     function addBait(blockId) {
         const wrapper = document.getElementById(`bait-wrapper-${blockId}`);
-        const textarea = document.createElement('textarea');
-        textarea.name = `blocks[${blockId}][content][]`;
-        textarea.className = 'form-control bg-light mb-2';
-        textarea.rows = 3;
-        textarea.placeholder = "Bait lanjutan...";
-        wrapper.appendChild(textarea);
-        textarea.focus();
+        const html = `
+            <div class="input-group mb-2 shadow-sm position-relative">
+                <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
+                <textarea name="blocks[${blockId}][content][]" class="form-control bg-light" rows="3" placeholder="Bait lanjutan..."></textarea>
+                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+            </div>
+        `;
+        wrapper.insertAdjacentHTML('beforeend', html);
+    }
+
+    function tarikLaguBuilder(blockId, event) {
+        const buku = document.getElementById(`buku-lagu-${blockId}`).value;
+        const nomor = document.getElementById(`nomor-lagu-${blockId}`).value.trim();
+        const judulInput = document.getElementById(`judul-lagu-${blockId}`);
+        const container = document.getElementById(`bait-wrapper-${blockId}`);
+        const btn = event.currentTarget;
+        
+        if(!nomor) return alert('Masukkan nomor lagu terlebih dahulu!');
+        
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Memuat...'; btn.disabled = true;
+
+        fetch(`/api/fetch-lagu?buku=${buku}&nomor=${nomor}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    judulInput.value = buku + " " + nomor + " - " + data.judul;
+                    container.innerHTML = ''; 
+                    
+                    const baits = data.text.split('===SLIDE_BREAK===');
+                    baits.forEach(bait => {
+                        if(bait.trim() !== '') {
+                            const html = `
+                                <div class="input-group mb-2 shadow-sm position-relative">
+                                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
+                                    <textarea name="blocks[${blockId}][content][]" class="form-control bg-light" rows="3">${bait.trim()}</textarea>
+                                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                </div>
+                            `;
+                            container.insertAdjacentHTML('beforeend', html);
+                        }
+                    });
+                } else { 
+                    alert(data.message); 
+                }
+            })
+            .catch(err => alert('Gagal menarik data lagu dari Database.'))
+            .finally(() => { 
+                btn.innerHTML = originalText; 
+                btn.disabled = false; 
+            });
     }
 
     function tarikAyat(blockId) {
         const input = document.getElementById(`cari-kitab-${blockId}`);
         const textarea = document.getElementById(`text-kitab-${blockId}`);
         const query = input.value.trim();
-        if(!query) return alert('Tulis pasalnya terlebih dahulu.');
+        if(!query) return alert('Tulis nama kitab dan pasalnya terlebih dahulu.');
         
         textarea.value = "Memuat data...";
         fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`)
@@ -172,8 +233,11 @@
             .then(data => {
                 if(data.success) {
                     textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text;
-                } else textarea.value = "Gagal: " + data.message;
-            }).catch(() => textarea.value = "Gagal koneksi internet.");
+                } else {
+                    textarea.value = "Gagal: " + data.message;
+                }
+            })
+            .catch(() => textarea.value = "Gagal koneksi internet.");
     }
 </script>
 </body>

@@ -52,6 +52,7 @@
 <body>
 
     <div id="start-overlay" onclick="launchFullscreen()">
+        <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="GPI Papua" style="height: 100px; margin-bottom: 20px;">
         <div class="start-title">Sistem Siap Ditayangkan</div>
         <div class="start-subtitle">Klik area ini untuk mengaktifkan Fullscreen Proyektor</div>
     </div>
@@ -105,6 +106,8 @@
     <div id="presentation">
         <div class="slide active">
             <div class="welcome-wrapper">
+                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" style="height: 18vh; margin: 0 auto 3vh auto; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));">
+                
                 <div class="welcome-title">{{ strtoupper($schedule->liturgy->name) }}</div>
                 <div class="welcome-sub" style="color: {{ $schedule->theme_color == '#ffffff' ? '#ecc94b' : $schedule->theme_color }};">
                     {{ \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y') }}
@@ -127,7 +130,9 @@
                 @if($isInstruksi)
                     @php $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content; @endphp
                     <div class="slide"><div class="instruksi-jemaat">{{ $textInstruksi }}</div></div>
+                
                 @elseif(is_array($content))
+                    
                     @if(isset($content['custom_title']))
                         @php $slidesText = autoSplitText($content['content'] ?? ''); @endphp
                         @foreach($slidesText as $slideTeks)
@@ -136,17 +141,41 @@
                                 <div class="isi-teks">{!! nl2br(e(is_string($slideTeks) ? trim($slideTeks) : '')) !!}</div>
                             </div>
                         @endforeach
+                    
                     @elseif(!empty($content['bait']))
-                        @foreach($content['bait'] as $bait)
+                        
+                        <div class="slide">
+                            <div style="margin: auto; text-align: center;">
+                                <div class="welcome-sub" style="font-size: 2.5vw; margin-bottom: 15px; text-transform: uppercase; color: #cbd5e0; letter-spacing: 2px;">
+                                    {{ str_replace(' (Opsional)', '', $item->title) }}
+                                </div>
+                                @if(!empty($content['judul']))
+                                    <div class="welcome-title" style="font-size: 5.5vw;">
+                                        {{ $content['judul'] }}
+                                    </div>
+                                @endif
+                                <div class="isi-teks teks-kuning" style="font-size: 2.2vw; margin-top: 25px; font-weight: 600;">
+                                    Menyanyikan Bait: {{ implode(', ', range(1, count($content['bait']))) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        @foreach($content['bait'] as $index => $bait)
                             @php $baitSlides = autoSplitText($bait); @endphp
                             @foreach($baitSlides as $bSlide)
                                 <div class="slide">
-                                    <div class="judul-sesi">{{ str_replace(' (Opsional)', '', $item->title) }} @if(!empty($content['judul'])) - {{ $content['judul'] }} @endif</div>
+                                    <div class="judul-sesi">
+                                        {{ str_replace(' (Opsional)', '', $item->title) }} 
+                                        @if(!empty($content['judul'])) - {{ $content['judul'] }} @endif 
+                                        <span class="teks-kuning"> - Bait {{ $index + 1 }}</span>
+                                    </div>
                                     <div class="isi-teks">{!! nl2br(e(is_string($bSlide) ? trim($bSlide) : '')) !!}</div>
                                 </div>
                             @endforeach
                         @endforeach
+                    
                     @endif
+                
                 @else
                     @php $slidesText = autoSplitText($content); @endphp
                     @foreach($slidesText as $slideTeks)
@@ -188,21 +217,17 @@
             if (overlay) overlay.style.display = 'none';
         }
 
-        // FUNGSI APPLY LIVE DESIGN (Menerapkan Pengaturan dari Control Panel)
         function applyLiveDesign(settings) {
             if(!settings) return;
 
-            // 1. Terapkan Font Family
             if(settings.fontFamily) {
                 document.body.style.fontFamily = settings.fontFamily;
             }
 
-            // 2. Terapkan Gradien Latar Belakang
             const bgCenter = settings.bgCenterColor || settings.bgColor || '#1b2735';
             const bgEdge = settings.bgEdgeColor || '#050505';
             document.body.style.background = `radial-gradient(circle at center, ${bgCenter} 0%, ${bgEdge} 100%)`;
 
-            // 3. Konversi HEX Shadow Color menjadi RGBA agar opacity (tebal bayangan) berfungsi
             const sColor = settings.shadowColor || '#000000';
             const sIntensity = settings.textShadow || '0.9';
             let r = 0, g = 0, b = 0;
@@ -214,7 +239,6 @@
             const shadowValue = `0px 4px 15px rgba(${r}, ${g}, ${b}, ${sIntensity})`;
             const titleShadowValue = `0px 5px 20px rgba(${r}, ${g}, ${b}, ${sIntensity})`;
 
-            // 4. Terapkan Style ke Elemen Teks
             document.querySelectorAll('.isi-teks, .instruksi-jemaat').forEach(el => {
                 el.style.fontSize = settings.fontSize; 
                 el.style.color = settings.textColor;
