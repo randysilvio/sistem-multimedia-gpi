@@ -29,18 +29,19 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
             text-align: center; padding: 7vh 6vw; box-sizing: border-box; 
-            opacity: 0; transition: opacity 0.4s ease-in-out; 
+            /* TRANSISI DIPERCEPAT MENJADI 0.15s AGAR SANGAT RESPONSIF */
+            opacity: 0; transition: opacity 0.15s ease-out; 
             z-index: 0; pointer-events: none; 
         }
         .slide.active { opacity: 1; z-index: 10; pointer-events: auto; }
         
-        .instruksi-jemaat { margin: auto; font-size: 5vw; color: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 4px 20px rgba(0,0,0,0.8); transition: font-size 0.3s ease; }
+        .instruksi-jemaat { margin: auto; font-size: 5vw; color: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 4px 20px rgba(0,0,0,0.8); transition: font-size 0.2s ease; }
 
         .judul-sesi { flex-shrink: 0; font-size: 2.2vw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 4px; font-weight: 600; margin-top: 2vh; margin-bottom: 0; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 12px; width: 85%; }
         .judul-custom { color: #63b3ed; border-bottom-color: rgba(99, 179, 237, 0.3); }
         
         /* Font size dasar, akan di-override secara dinamis oleh Javascript */
-        .isi-teks { margin-top: auto; margin-bottom: auto; font-size: 4.5vw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4px 15px rgba(0,0,0,0.9); max-width: 90%; transition: font-size 0.4s ease-out; }
+        .isi-teks { margin-top: auto; margin-bottom: auto; font-size: 4.5vw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4px 15px rgba(0,0,0,0.9); max-width: 90%; transition: font-size 0.2s ease-out; }
         .teks-kuning { color: #ecc94b; }
         
         .welcome-wrapper { margin: auto; }
@@ -176,9 +177,6 @@
                                         {{ $content['judul'] }}
                                     </div>
                                 @endif
-                                <div class="isi-teks teks-kuning" style="font-size: 2.2vw; margin-top: 25px; font-weight: 600;">
-                                    Menyanyikan: {{ implode(', ', range(1, count($content['bait']))) }}
-                                </div>
                             </div>
                         </div>
 
@@ -189,7 +187,6 @@
                                     <div class="judul-sesi">
                                         {{ str_replace(' (Opsional)', '', $item->title) }} 
                                         @if(!empty($content['judul'])) - {{ $content['judul'] }} @endif 
-                                        <span class="teks-kuning"> - {{ $index + 1 }}</span>
                                     </div>
                                     <div class="isi-teks">{!! nl2br(e(is_string($bSlide) ? trim($bSlide) : '')) !!}</div>
                                 </div>
@@ -240,26 +237,22 @@
         }
 
         // SMART ADAPTIVE FONT SIZING
-        // Akan menyesuaikan ukuran font secara otomatis tergantung panjang/sedikitnya isi konten di slide
         function adjustAdaptiveText(slide) {
             const textEl = slide.querySelector('.isi-teks');
             if (textEl) {
-                // Jangan terapkan adaptive size pada slide sampul lagu (ciri khas: teks kuning & kata 'Menyanyikan:')
-                if (!textEl.innerText.includes('Menyanyikan:')) {
-                    const length = textEl.innerText.trim().length;
-                    let size = '4.5vw'; // Standar
-                    
-                    if (length <= 35) {
-                        size = '6.5vw'; // Sangat sedikit, besarkan maksimal
-                    } else if (length <= 75) {
-                        size = '5.2vw'; // Sedikit, agak dibesarkan
-                    } else if (length <= 130) {
-                        size = '4.3vw'; // Normal
-                    } else {
-                        size = '3.5vw'; // Sangat padat, dikecilkan agar muat
-                    }
-                    textEl.style.fontSize = size;
+                const length = textEl.innerText.trim().length;
+                let size = '4.5vw'; // Standar
+                
+                if (length <= 35) {
+                    size = '6.5vw'; // Sangat sedikit, besarkan maksimal
+                } else if (length <= 75) {
+                    size = '5.2vw'; // Sedikit, agak dibesarkan
+                } else if (length <= 130) {
+                    size = '4.3vw'; // Normal
+                } else {
+                    size = '3.5vw'; // Sangat padat, dikecilkan agar muat
                 }
+                textEl.style.fontSize = size;
             }
 
             const instruksiEl = slide.querySelector('.instruksi-jemaat');
