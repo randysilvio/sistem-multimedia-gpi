@@ -132,12 +132,37 @@
                                 @if(!empty($content['judul']))<div class="welcome-title" style="font-size: 5.5vw;">{{ $content['judul'] }}</div>@endif
                             </div>
                         </div>
+                        
+                        @php $verseCounter = 1; @endphp
                         @foreach($content['bait'] as $key => $bait)
-                            @php $baitSlides = autoSplitText($bait); $displayIndex = $key; @endphp
+                            @php 
+                                $baitTextRaw = trim($bait);
+                                if(empty($baitTextRaw)) continue;
+
+                                // Deteksi Reff (dari key atau dari teks)
+                                $isReff = false;
+                                if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
+                                    $isReff = true;
+                                }
+
+                                // Bersihkan tag [REFF] agar lirik bersih
+                                $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
+
+                                $displayIndex = $isReff ? '' : $verseCounter; 
+                                if (!$isReff) $verseCounter++; // Penomoran Bait tidak naik jika itu Reff
+                                
+                                $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
+                                if($isReff) $slideTitle .= ' (Reff)';
+
+                                $baitSlides = autoSplitText($cleanBaitText);
+                            @endphp
+
                             @foreach($baitSlides as $bSlide)
                                 <div class="slide">
-                                    <div class="bait-watermark">{{ $displayIndex }}</div>
-                                    <div class="judul-sesi">{{ str_replace(' (Opsional)', '', $item->title) }} @if(!empty($content['judul'])) - {{ $content['judul'] }} @endif</div>
+                                    @if($displayIndex !== '')
+                                        <div class="bait-watermark">{{ $displayIndex }}</div>
+                                    @endif
+                                    <div class="judul-sesi">{{ $slideTitle }}</div>
                                     <div class="isi-teks">{!! nl2br(e(is_string($bSlide) ? trim($bSlide) : '')) !!}</div>
                                 </div>
                             @endforeach
@@ -248,7 +273,7 @@
                 document.body.style.background = `linear-gradient(90deg, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2}, ${bgCenter})`;
                 document.body.style.backgroundSize = '400% 100%';
                 document.body.style.animation = `gradientBG ${speed}s linear infinite`;
-            } 
+            }
             else if (bgType === 'pattern-grid') {
                 document.body.style.backgroundColor = bgEdge;
                 document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`;

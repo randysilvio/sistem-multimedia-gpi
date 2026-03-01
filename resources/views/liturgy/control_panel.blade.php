@@ -17,10 +17,10 @@
         .form-label-header { font-weight: 600; color: #a0aec0; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 8px; display: block; border-bottom: 1px solid #333; padding-bottom: 4px; }
         textarea.form-control, input.form-control, select.form-control { background: #181818 !important; color: #cbd5e0 !important; border: 1px solid #333 !important; font-size: 0.8rem; border-radius: 4px; padding: 6px 10px;}
         textarea.form-control:focus, input.form-control:focus, select.form-control:focus { border-color: #3182ce !important; box-shadow: none; color: #fff !important; }
-        .input-group-text { background: #2d2d2d !important; color: #a0aec0 !important; border-color: #333 !important; font-size: 0.75rem; border-radius: 4px 0 0 4px; padding: 4px 8px;}
+        .input-group-text { background: #2d2d2d !important; color: #a0aec0 !important; border-color: #333 !important; font-size: 0.75rem; border-radius: 4px 0 0 4px; padding: 4px 8px; min-width: 65px; justify-content: center; font-weight: bold;}
         .custom-slide-box { background: #1e1e1e; border: 1px solid #4a5568; border-radius: 4px; padding: 8px; margin-top: 8px; border-left: 3px solid #4299e1; }
         .btn-add-slide { font-size: 0.7rem; font-weight: 500; border: 1px dashed #4a5568; color: #a0aec0; background: transparent; padding: 5px; width: 100%; border-radius: 4px; transition: 0.2s;}
-        .btn-add-slide:hover { border-color: #cbd5e0; color: #fff; }
+        .btn-add-slide:hover { border-color: #cbd5e0; color: #fff; background: #2d2d2d; }
         .btn-primary-custom { background-color: #2b6cb0; color: white; border: none; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.5px; }
         .btn-primary-custom:hover { background-color: #2c5282; color: white; }
 
@@ -62,7 +62,7 @@
         .per-slide-font-control button:hover { background: #4299e1; border-color: #4299e1; }
         #slide-font-indicator { color: #fcd34d; font-size: 0.75rem; font-weight: bold; min-width: 45px; text-align: center; }
 
-        /* GALERI BAWAH - SIMPLE TEXT LIST (HITAM, BESAR, JELAS) */
+        /* GALERI BAWAH - SIMPLE TEXT LIST */
         .slide-gallery-container { height: 160px; background: #141414; border-top: 1px solid #2d2d2d; overflow-x: auto; overflow-y: hidden; white-space: nowrap; padding: 15px; scroll-behavior: smooth; }
         
         .slide-thumb-simple {
@@ -172,13 +172,36 @@
                         'title' => str_replace(' (Opsional)', '', $item->title),
                         'content' => ($content['judul'] ?? '')
                     ];
+                    
+                    // ===============================================
+                    // REFF DETECTION ALGORITHM (SMART NUMBERING)
+                    // ===============================================
+                    $verseCounter = 1;
                     foreach($content['bait'] as $key => $bait) {
-                        $baitSlides = autoSplitText($bait);
+                        $baitTextRaw = trim($bait);
+                        if(empty($baitTextRaw)) continue;
+
+                        // Deteksi apakah ini Reff dari Key (ref_xxx) atau dari Teks ([REFF] atau awalan Reff)
+                        $isReff = false;
+                        if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
+                            $isReff = true;
+                        }
+
+                        // Buang tag [REFF] bawaan API saat diproyeksikan agar liriknya bersih
+                        $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
+
+                        $displayIndex = $isReff ? '' : $verseCounter; 
+                        if (!$isReff) $verseCounter++; // Penomoran HANYA NAIK jika itu bukan Reff!
+                        
+                        $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
+                        if($isReff) $slideTitle .= ' (Reff)';
+
+                        $baitSlides = autoSplitText($cleanBaitText);
                         foreach($baitSlides as $bSlide) {
                             $allSlides[] = [
                                 'type' => 'song_lyric',
-                                'watermark' => $key,
-                                'title' => str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : ''),
+                                'watermark' => $displayIndex, // Jika reff, watermark ini kosong (tidak tampil)
+                                'title' => $slideTitle,
                                 'content' => $bSlide
                             ];
                         }
@@ -242,7 +265,7 @@
 
                     <div id="video_settings" class="mb-2" style="display: none; background: #1a1a1a; padding: 8px; border-radius: 4px; border: 1px dashed #444;">
                         <input type="text" id="bg_video_url" oninput="updateDesignLive()" class="form-control form-control-sm bg-dark text-white border-secondary mb-1" placeholder="URL Video LOKAL (Cth: /bg.mp4)">
-                        <small class="text-muted d-block" style="font-size:0.6rem; line-height: 1.1;">Taruh file mp4 di dalam folder public/ lalu ketik namanya di atas. Pasti jalan walau offline.</small>
+                        <small class="text-muted d-block" style="font-size:0.6rem; line-height: 1.1;">Taruh file mp4 di dalam folder public/ lalu ketik namanya di atas.</small>
                     </div>
 
                     <div id="anim_speed_wrapper" class="mb-2 px-1" style="display: none;">
@@ -332,23 +355,39 @@
                                     <button type="button" class="btn btn-secondary btn-sm px-2" onclick="tarikLagu({{ $item->id }}, event)">Tarik</button>
                                 </div>
                                 <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-1 fw-medium" placeholder="Judul Lagu" value="{{ is_array($val) ? ($val['judul'] ?? '') : '' }}">
+                                
                                 <div id="bait-container-{{ $item->id }}">
+                                    @php $verseCountForEdit = 1; @endphp
                                     @if(is_array($val) && isset($val['bait']) && is_array($val['bait']))
                                         @foreach($val['bait'] as $key => $baitText)
-                                            <div class="input-group mb-1 position-relative">
-                                                <span class="input-group-text">Bait {{ $key }}</span>
-                                                <textarea name="dynamic_content[{{ $item->id }}][bait][{{ $key }}]" class="form-control" rows="2">{{ $baitText }}</textarea>
-                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.parentElement.remove()" style="font-size: 14px;">&times;</button>
+                                            @php 
+                                                // Deteksi Reff saat me-load form dari DB
+                                                $isReffKey = (is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitText);
+                                                $displayKey = $isReffKey ? 'Reff' : 'Bait ' . $verseCountForEdit;
+                                                if (!$isReffKey) $verseCountForEdit++;
+                                                
+                                                // Bersihkan tag [REFF] bawaan API di kotak textarea agar terlihat bersih
+                                                $cleanTextForEdit = preg_replace('/^\[?REFF\]?\s*/i', '', $baitText);
+                                            @endphp
+                                            <div class="input-group mb-1 position-relative bait-item">
+                                                <span class="input-group-text label-text text-warning">{{ $displayKey }}</span>
+                                                <textarea name="dynamic_content[{{ $item->id }}][bait][{{ $key }}]" class="form-control" rows="2">{{ $cleanTextForEdit }}</textarea>
+                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="hapusBait(this, {{ $item->id }})" style="font-size: 14px;">&times;</button>
                                             </div>
                                         @endforeach
                                     @else
-                                        <div class="input-group mb-1 position-relative">
-                                            <span class="input-group-text">Bait 1</span>
-                                            <textarea name="dynamic_content[{{ $item->id }}][bait][1]" class="form-control" rows="2"></textarea>
+                                        <div class="input-group mb-1 position-relative bait-item">
+                                            <span class="input-group-text label-text text-warning">Bait 1</span>
+                                            <textarea name="dynamic_content[{{ $item->id }}][bait][b_1]" class="form-control" rows="2"></textarea>
                                         </div>
                                     @endif
                                 </div>
-                                <button type="button" class="btn-add-slide mt-1" onclick="tambahBait({{ $item->id }})">&plus; Lirik</button>
+                                
+                                <div class="d-flex gap-1 mt-1">
+                                    <button type="button" class="btn-add-slide w-50" onclick="tambahBait({{ $item->id }}, false)">&plus; Bait Baru</button>
+                                    <button type="button" class="btn-add-slide w-50 text-warning border-warning" style="border-style:dashed;" onclick="tambahBait({{ $item->id }}, true)">&plus; Teks Reff</button>
+                                </div>
+
                             @else
                                 @if(str_contains(strtolower($item->title), 'alkitab') || str_contains(strtolower($item->title), 'bacaan'))
                                     <div class="input-group mb-1"><input type="text" id="input-alkitab-{{ $item->id }}" class="form-control" placeholder="Cari Kitab"><button type="button" class="btn btn-secondary btn-sm px-2" onclick="tarikAlkitab({{ $item->id }}, event)">Tarik</button></div>
@@ -376,7 +415,7 @@
                     </div>
                 @endforeach
                 
-                <button type="submit" onclick="triggerUpdateSync()" class="btn btn-primary-custom w-100 py-3 mt-3 shadow sticky-bottom" style="bottom: 15px;">SIMPAN PERUBAHAN</button>
+                <button type="submit" onclick="triggerUpdateSync()" class="btn btn-primary-custom w-100 py-3 mt-3 shadow sticky-bottom" style="bottom: 15px; font-size: 1rem;">SIMPAN PERUBAHAN</button>
             </form>
         </div>
 
@@ -429,7 +468,6 @@
     @endif
 
     function triggerUpdateSync() {
-        // Form akan tersubmit native, ini hanya untuk memastikan proyektor menangkap sinyal reload
         localStorage.setItem('liturgy_update', Date.now());
     }
 
@@ -449,10 +487,9 @@
         if(slide.type === 'cover') {
             innerHTML = `
                 <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="welcome-img" style="height: 18cqh; margin-bottom: 3cqh; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));">
-                <div class="welcome-title vp-cover-title" style="font-size: 6.5cqw; font-weight: 900; margin-bottom: 1.5cqh; text-transform: uppercase; letter-spacing: 0.3cqw; line-height: 1.1; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">${slide.title}</div>
-                <div class="welcome-sub vp-cover-date" style="font-size: 2.5cqw; color: #cbd5e0; font-weight: 400;">${slide.date}</div>
-                ${slide.theme ? `<div class="welcome-sub vp-cover-theme" style="font-size: 2.5cqw; color: #cbd5e0; margin-top: 2cqh;">TEMA: ${slide.theme}</div>` : ''}
-                ${slide.preacher ? `<div class="welcome-sub vp-cover-preacher" style="font-size: 2.5cqw; color: #cbd5e0; margin-top: 1cqh;">PELAYAN FIRMAN: ${slide.preacher}</div>` : ''}
+                <div class="vp-title-header" style="font-size: 6.5cqw; font-weight: 900; margin-bottom: 1.5cqh; text-transform: uppercase; letter-spacing: 0.3cqw; line-height: 1.1; border:none;">${slide.title}</div>
+                <div style="font-size: 2.5cqw; color: #cbd5e0; font-weight: 400;">${slide.date}</div>
+                ${slide.theme ? `<div style="font-size: 2.5cqw; color: #cbd5e0; margin-top: 2cqh;">TEMA: ${slide.theme}</div>` : ''}
             `;
         }
         else if (slide.type === 'instruksi') {
@@ -462,32 +499,32 @@
         else if (slide.type === 'song_cover') {
             innerHTML = `
                 <div style="margin: auto; text-align: center;">
-                    <div class="welcome-sub vp-song-cover-title" style="font-size: 2.5cqw; margin-bottom: 1.5cqh; text-transform: uppercase; color: #cbd5e0; letter-spacing: 0.2cqw;">${slide.title}</div>
-                    <div class="welcome-title vp-song-cover-content" style="font-size: 5.5cqw; font-weight: 900; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">${slide.content}</div>
+                    <div style="font-size: 2.5cqw; margin-bottom: 1.5cqh; text-transform: uppercase; color: #cbd5e0; letter-spacing: 0.2cqw;">${slide.title}</div>
+                    <div style="font-size: 5.5cqw; font-weight: 900; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">${slide.content}</div>
                 </div>
             `;
         }
         else if (slide.type === 'song_lyric') {
             innerHTML = `
-                <div class="vp-watermark sp-watermark">${slide.watermark}</div>
-                <div class="vp-title-header sp-title-header">${slide.title}</div>
-                <div class="vp-content sp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
+                ${slide.watermark !== '' ? `<div class="vp-watermark">${slide.watermark}</div>` : ''}
+                <div class="vp-title-header">${slide.title}</div>
+                <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
             `;
         }
         else if (slide.type === 'closing') {
-            innerHTML = `<div class="vp-closing welcome-title" style="font-size: 6.5cqw; font-weight: 900; text-transform: uppercase; margin: auto; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">TUHAN YESUS<br><span class="sp-text-kuning">MEMBERKATI</span></div>`;
+            innerHTML = `<div style="font-size: 6.5cqw; font-weight: 900; text-transform: uppercase; margin: auto; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">TUHAN YESUS<br><span class="sp-text-kuning">MEMBERKATI</span></div>`;
         }
         else { 
             innerHTML = `
-                <div class="vp-title-header sp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>
-                <div class="vp-content sp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
+                <div class="vp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>
+                <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
             `;
         }
 
         return `<div class="sp-container">${innerHTML}</div>`;
     }
 
-    // 2. LOGIKA BACKGROUND DINAMIS (FULL COLOR & PATTERNS)
+    // 2. LOGIKA BACKGROUND DINAMIS
     function toggleBgSettings() {
         const type = document.getElementById('bg_type').value;
         document.getElementById('video_settings').style.display = (type === 'video') ? 'block' : 'none';
@@ -555,7 +592,7 @@
             } 
             else if (settings.bgType === 'pattern-dots') {
                 el.style.backgroundColor = settings.bgEdgeColor;
-                el.style.backgroundImage = `radial-gradient(${settings.bgCenterColor} 2px, transparent 2px)`;
+                el.style.backgroundImage = `radial-gradient(${settings.bgCenterColor} 3px, transparent 3px)`;
                 el.style.backgroundSize = '4cqw 4cqw';
             } 
             else if (settings.bgType === 'pattern-stripes') {
@@ -694,9 +731,8 @@
             let displayContent = slide.content || '';
             
             if(slide.type === 'cover') { displayTitle = 'SAMPUL DEPAN'; displayContent = slide.title + ' - ' + slide.date; }
-            if(slide.type === 'song_lyric') { displayTitle = slide.title + ' (Bait ' + slide.watermark + ')'; }
+            if(slide.type === 'song_lyric') { displayTitle = slide.title + (slide.watermark ? ' (Bait ' + slide.watermark + ')' : ''); }
 
-            // Potong teks agar tidak kepanjangan di thumbnail
             let shortContent = displayContent.replace(/<[^>]*>?/gm, '').substring(0, 90);
             if(displayContent.length > 90) shortContent += '...';
 
@@ -710,43 +746,83 @@
         });
     }
 
-    // 7. FUNGSI FORM LOGIC
-    function getNextVerseNumber(containerId) {
-        const container = document.getElementById(containerId); let maxNum = 0;
-        container.querySelectorAll('textarea').forEach(ta => {
-            if(ta.name.includes('[bait]')) { const match = ta.name.match(/\[bait\]\[(\d+)\]/); if(match && parseInt(match[1]) > maxNum) maxNum = parseInt(match[1]); }
+    // 7. FUNGSI FORM LOGIC DENGAN SMART REFF HANDLING
+    function reindexBait(container) {
+        let bCount = 1;
+        container.querySelectorAll('.bait-item').forEach(el => {
+            let label = el.querySelector('.label-text');
+            if (label && !label.innerText.includes('Reff')) {
+                label.innerText = 'Bait ' + bCount;
+                bCount++;
+            }
         });
-        return maxNum === 0 ? 1 : maxNum + 1;
     }
-    function tambahBait(itemId) {
-        const containerId = 'bait-container-' + itemId; const nextNum = getNextVerseNumber(containerId);
-        const html = `<div class="input-group mb-1 position-relative"><span class="input-group-text">Bait ${nextNum}</span><textarea name="dynamic_content[${itemId}][bait][${nextNum}]" class="form-control" rows="2"></textarea><button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.parentElement.remove()" style="font-size: 14px;">&times;</button></div>`;
-        document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
+
+    function hapusBait(btn, itemId) {
+        const container = btn.closest('#bait-container-' + itemId);
+        btn.closest('.bait-item').remove();
+        reindexBait(container);
     }
+
+    function tambahBait(itemId, isReff) {
+        const container = document.getElementById('bait-container-' + itemId);
+        const uniqueKey = isReff ? 'ref_' + Date.now().toString().slice(-5) : 'b_' + Date.now().toString().slice(-5);
+        const labelText = isReff ? 'Reff' : 'Bait'; // Nomor diurus oleh reindexBait
+
+        const html = `
+            <div class="input-group mb-1 position-relative bait-item">
+                <span class="input-group-text label-text text-warning">${labelText}</span>
+                <textarea name="dynamic_content[${itemId}][bait][${uniqueKey}]" class="form-control" rows="2"></textarea>
+                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="hapusBait(this, ${itemId})" style="font-size: 14px;">&times;</button>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        reindexBait(container);
+    }
+
     function tambahSlideKhusus(itemId) {
         const container = document.getElementById('custom-slide-container-' + itemId); const slideId = Math.random().toString(36).substr(2, 9);
         const html = `<div class="custom-slide-box"><input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control form-control-sm mb-1 fw-medium text-info" placeholder="Judul Sisipan"><textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control form-control-sm" rows="1" placeholder="Isi teks..."></textarea><button type="button" class="btn btn-sm text-danger mt-1 p-0" style="font-size:0.7rem;" onclick="this.parentElement.remove()">Hapus</button></div>`;
         container.insertAdjacentHTML('beforeend', html); container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
     function tarikLagu(itemId, event) {
         const buku = document.getElementById(`buku-lagu-${itemId}`).value; const nomor = document.getElementById(`nomor-lagu-${itemId}`).value.trim();
         const judulInput = document.querySelector(`input[name="dynamic_content[${itemId}][judul]"]`); const container = document.getElementById(`bait-container-${itemId}`);
         const btn = event.currentTarget;
         if(!nomor) return alert('Masukkan nomor lagu!');
         const originalText = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
+        
         fetch(`/api/fetch-lagu?buku=${buku}&nomor=${nomor}`).then(res => res.json()).then(data => {
             if(data.success) {
                 judulInput.value = data.judul; container.innerHTML = ''; 
-                const baits = data.text.split('===SLIDE_BREAK==='); let verseNum = 1;
-                baits.forEach(bait => {
-                    if(bait.trim() !== '') {
-                        const html = `<div class="input-group mb-1 position-relative"><span class="input-group-text">Bait ${verseNum}</span><textarea name="dynamic_content[${itemId}][bait][${verseNum}]" class="form-control" rows="2">${bait.trim()}</textarea><button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.parentElement.remove()" style="font-size: 14px;">&times;</button></div>`;
-                        container.insertAdjacentHTML('beforeend', html); verseNum++;
+                const baits = data.text.split('===SLIDE_BREAK==='); 
+                
+                baits.forEach((bait, idx) => {
+                    let baitRaw = bait.trim();
+                    if(baitRaw !== '') {
+                        // Deteksi otomatis jika teks diawali dengan "Reff" atau jika itu bawaan dari API ([REFF])
+                        let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref') || baitRaw.toLowerCase().startsWith('korus');
+                        
+                        // Bersihkan teks tag [REFF] bawaan API agar tidak muncul di dalam textarea
+                        let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
+                        
+                        let uniqueKey = isReff ? 'ref_' + idx : 'b_' + idx;
+                        let labelText = isReff ? 'Reff' : 'Bait';
+
+                        const html = `
+                            <div class="input-group mb-1 position-relative bait-item">
+                                <span class="input-group-text label-text ${isReff ? 'text-warning' : ''}">${labelText}</span>
+                                <textarea name="dynamic_content[${itemId}][bait][${uniqueKey}]" class="form-control" rows="3">${cleanBait}</textarea>
+                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="hapusBait(this, ${itemId})" style="font-size: 14px;">&times;</button>
+                            </div>`;
+                        container.insertAdjacentHTML('beforeend', html); 
                     }
                 });
+                reindexBait(container); // Susun ulang nomor bait
             } else { alert(data.message); }
         }).catch(err => alert('Gagal menarik data lagu.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
+
     function tarikAlkitab(itemId, event) {
         const inputField = document.getElementById('input-alkitab-' + itemId); const textarea = document.getElementById('textarea-' + itemId);
         const btn = event.currentTarget; const query = inputField.value.trim();
