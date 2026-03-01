@@ -3,73 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Multimedia - GPI Papua</title>
+    <title>Galeri Presentasi - GPI Papua</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style> 
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; color: #2d3748; } 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; } 
         
-        .navbar { background-color: #1a202c !important; }
-        .navbar-brand { font-weight: 600; letter-spacing: 1px; font-size: 1.1rem; }
+        .navbar { background-color: #0f172a !important; }
+        .navbar-brand { font-weight: 700; letter-spacing: 1px; font-size: 1.1rem; }
+        .section-label { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .section-label::after { content: ""; flex: 1; height: 1px; background-color: #e2e8f0; }
         
-        /* Gaya untuk area template card scroll menyamping */
-        .template-scroll-container {
-            display: flex;
-            gap: 1.25rem;
-            overflow-x: auto;
-            padding-bottom: 15px;
-            scrollbar-width: thin;
-        }
-        .template-scroll-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        .template-scroll-container::-webkit-scrollbar-thumb {
-            background-color: #cbd5e0;
-            border-radius: 10px;
-        }
+        /* SCROLL CONTAINER */
+        .template-scroll-container { display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 20px; padding-top: 5px; scrollbar-width: thin; }
+        .template-scroll-container::-webkit-scrollbar { height: 8px; }
+        .template-scroll-container::-webkit-scrollbar-track { background: transparent; }
+        .template-scroll-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
 
+        /* KARTU TEMPLATE ELEGAN */
         .template-card { 
-            flex: 0 0 160px; /* Lebar card tetap 160px */
-            height: 210px; 
-            border-radius: 10px; 
+            flex: 0 0 220px; 
+            height: 160px; 
+            border-radius: 12px; 
             border: 1px solid #e2e8f0; 
             background: #ffffff; 
             cursor: pointer; 
-            transition: all 0.2s ease; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative; 
-            padding: 12px; 
             display: flex; 
             flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            text-decoration: none !important;
+            text-decoration: none !important; 
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 20px;
         }
         .template-card:hover { 
-            border-color: #3182ce; 
-            box-shadow: 0 8px 20px rgba(49,130,206,0.08); 
-            transform: translateY(-3px); 
-        }
-        .card-blank { font-size: 3.5rem; color: #cbd5e0; font-weight: 300; margin-bottom: 5px; }
-        
-        /* Desain garis abstrak pada template card */
-        .mockup-container { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-bottom: auto; opacity: 0.7;}
-        .line-mockup { background: #edf2f7; height: 6px; border-radius: 3px; width: 100%; }
-        .line-mockup.title { height: 10px; width: 75%; background: #3182ce; opacity: 0.5; margin-bottom: 10px; }
-        .line-mockup.short { width: 60%; }
-        
-        .template-name {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #4a5568;
-            text-align: center;
-            line-height: 1.3;
-            margin-top: auto;
+            border-color: #3b82f6; 
+            box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.15); 
+            transform: translateY(-4px); 
         }
 
-        .table { font-size: 0.9rem; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .table thead th { background-color: #f8fafc; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; padding-top: 12px; padding-bottom: 12px;}
-        .btn-control { background-color: #2b6cb0; color: white; border: none; font-weight: 500;}
-        .btn-control:hover { background-color: #2c5282; color: white; }
+        /* WATERMARK LOGO */
+        .watermark-logo {
+            position: absolute;
+            right: -25px;
+            bottom: -25px;
+            height: 120px;
+            opacity: 0.04;
+            z-index: 0;
+            pointer-events: none;
+            filter: grayscale(100%);
+            transition: transform 0.4s ease;
+        }
+        .template-card:hover .watermark-logo { transform: scale(1.1) rotate(-5deg); }
+
+        .t-card-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .t-card-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+        .t-card-title { font-size: 1.05rem; font-weight: 800; color: #1e293b; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .card-action { font-size: 0.75rem; font-weight: 600; color: #3b82f6; display: flex; align-items: center; justify-content: space-between; }
+        
+        .delete-btn { color: #ef4444; border: none; background: transparent; padding: 0; font-size: 0.75rem; font-weight: 600; cursor: pointer; z-index: 10; position: relative; }
+        .delete-btn:hover { text-decoration: underline; }
+
+        /* KARTU SPESIAL */
+        .template-card.create-new { background: #f8fafc; border: 2px dashed #cbd5e1; }
+        .template-card.create-new:hover { background: #eff6ff; border-color: #3b82f6; }
+        .template-card.create-new .t-card-title { color: #3b82f6; }
+        
+        .template-card.create-template { background: #f0fdf4; border: 2px dashed #a7f3d0; }
+        .template-card.create-template:hover { background: #ecfdf5; border-color: #10b981; }
+        .template-card.create-template .t-card-title { color: #10b981; }
+
+        .table { font-size: 0.9rem; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .table thead th { background-color: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; padding-top: 15px; padding-bottom: 15px;}
+        .table tbody td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f8fafc; }
+        .btn-control { background-color: #2b6cb0; color: white; border: none; font-weight: 600; }
+        .btn-control:hover { background-color: #1e40af; color: white; }
     </style>
 </head>
 <body>
@@ -82,32 +93,51 @@
             </a>
             <div>
                 <a href="{{ route('dashboard') }}" class="btn btn-outline-light btn-sm fw-medium px-3 me-2">Ke Dashboard</a>
-                <a href="{{ route('songs.index') }}" class="btn btn-light btn-sm fw-bold px-4 text-primary">DATABASE LAGU</a>
+                <a href="{{ route('songs.index') }}" class="btn btn-light btn-sm fw-bold px-4 text-primary">Database Lagu</a>
             </div>
         </div>
     </nav>
 
-    <div class="bg-white py-4 border-bottom shadow-sm mb-5">
+    <div class="bg-white py-5 border-bottom shadow-sm mb-5">
         <div class="container">
-            <h6 class="text-secondary mb-3 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Mulai Presentasi Baru (Pilih Template)</h6>
+            <h6 class="section-label">Manajemen Tata Ibadah</h6>
             
             <div class="template-scroll-container">
-                <a href="{{ route('liturgy.builder') }}" class="template-card">
-                    <div class="card-blank">&plus;</div>
-                    <span class="template-name">Custom Builder (Kosong)</span>
+                
+                <a href="{{ route('liturgy.builder') }}" class="template-card create-new">
+                    <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
+                    <div class="t-card-content">
+                        <div class="t-card-type text-primary">Kustomisasi Langsung</div>
+                        <div class="t-card-title">Presentasi Sekali Pakai</div>
+                        <div class="card-action text-primary">Buat Baru &rarr;</div>
+                    </div>
+                </a>
+
+                <a href="{{ route('liturgy.template.create') }}" class="template-card create-template">
+                    <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
+                    <div class="t-card-content">
+                        <div class="t-card-type text-success">Database Master</div>
+                        <div class="t-card-title">Buat Template Baru</div>
+                        <div class="card-action text-success">Rancang Kerangka &rarr;</div>
+                    </div>
                 </a>
 
                 @if(isset($liturgies))
                     @foreach($liturgies as $liturgy)
-                        <a href="{{ route('liturgy.create', ['liturgy_id' => $liturgy->id]) }}" class="template-card">
-                            <div class="mockup-container mt-2">
-                                <div class="line-mockup title"></div>
-                                <div class="line-mockup"></div>
-                                <div class="line-mockup"></div>
-                                <div class="line-mockup short"></div>
+                        <div class="template-card" onclick="window.location='{{ route('liturgy.create', ['liturgy_id' => $liturgy->id]) }}'">
+                            <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
+                            <div class="t-card-content">
+                                <div class="t-card-type">Template Tersimpan</div>
+                                <div class="t-card-title">{{ $liturgy->name }}</div>
+                                <div class="card-action">
+                                    <span>Gunakan &rarr;</span>
+                                    <form action="{{ route('liturgy.template.destroy', $liturgy->id) }}" method="POST" onclick="event.stopPropagation();" onsubmit="return confirm('Hapus template ini secara permanen?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="delete-btn">Hapus</button>
+                                    </form>
+                                </div>
                             </div>
-                            <span class="template-name">{{ $liturgy->name }}</span>
-                        </a>
+                        </div>
                     @endforeach
                 @endif
             </div>
@@ -117,27 +147,25 @@
 
     <div class="container pb-5">
         @if(session('success')) 
-            <div class="alert alert-success shadow-sm border-0 border-start border-4 border-success">{{ session('success') }}</div> 
+            <div class="alert alert-success shadow-sm border-0 border-start border-4 border-success mb-4 fw-medium">{{ session('success') }}</div> 
         @endif
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px; color: #64748b;">Riwayat Presentasi Ibadah</h6>
-        </div>
+        <h6 class="section-label">Riwayat Presentasi Tersimpan</h6>
 
-        <div class="card shadow-sm border-0">
+        <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-0">
-                @if($schedules->isEmpty())
+                @if(isset($schedules) && $schedules->isEmpty())
                     <div class="text-center p-5 text-muted">
-                        <i>Belum ada presentasi yang tersimpan. Silakan pilih template di atas untuk memulai.</i>
+                        <i>Belum ada jadwal presentasi yang tersimpan. Silakan pilih template di atas untuk memulai.</i>
                     </div>
-                @else
+                @elseif(isset($schedules))
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-4">Hari / Tanggal</th>
+                                <th class="ps-4">Hari / Tanggal Ibadah</th>
                                 <th>Jenis Tata Ibadah</th>
                                 <th>Pelayan Firman</th>
-                                <th class="text-end pe-4">Aksi</th>
+                                <th class="text-end pe-4">Aksi Presentasi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -150,10 +178,15 @@
                                     <td class="align-middle">
                                         <div class="d-flex align-items-center">
                                             <div style="width: 12px; height: 12px; background-color: {{ $schedule->theme_color ?? '#cbd5e0' }}; border-radius: 50%; margin-right: 12px;"></div>
-                                            <span class="fw-medium text-secondary">{{ $schedule->liturgy->name ?? $schedule->theme }}</span>
+                                            <div>
+                                                <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ $schedule->liturgy->name ?? 'Presentasi Kustom' }}</div>
+                                                @if($schedule->theme)
+                                                    <div class="small text-muted" style="font-size: 0.75rem;">{{ $schedule->theme }}</div>
+                                                @endif
+                                            </div>
                                         </div>
                                     </td>
-                                    <td class="align-middle text-muted">{{ $schedule->preacher_name ?? '-' }}</td>
+                                    <td class="align-middle text-secondary fw-medium">{{ $schedule->preacher_name ?? '-' }}</td>
                                     <td class="text-end pe-4 align-middle">
                                         <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-control btn-sm fw-bold px-3 me-1">Live Control</a>
                                         <form action="{{ route('liturgy.destroy', $schedule->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data presentasi ini secara permanen?')">

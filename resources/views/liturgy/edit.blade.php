@@ -8,45 +8,32 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: #1e293b; overflow: hidden; }
-        
         .navbar { background-color: #0f172a !important; }
         .form-control:focus, .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25); }
         textarea { resize: vertical; }
 
-        /* Panel Kiri (Form Edit) */
         .left-panel { height: calc(100vh - 65px); overflow-y: auto; padding: 30px; background-color: #f8fafc; }
         .card-edit { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .form-label-header { font-weight: 700; color: #334155; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
         
-        /* Panel Kanan (Live Preview Grid) */
-        .right-panel { height: calc(100vh - 65px); overflow-y: auto; background-color: #1e293b; padding: 25px; border-left: 2px solid #334155; }
+        .right-panel { height: calc(100vh - 65px); overflow-y: auto; background-color: #1e293b; padding: 25px; border-left: 2px solid #334155; position: relative; padding-bottom: 90px; }
         .preview-header { position: sticky; top: -25px; background: #1e293b; z-index: 10; padding-bottom: 15px; padding-top: 10px; border-bottom: 1px solid #334155; margin-bottom: 20px; }
         
-        .preview-card {
-            background-color: #334155;
-            color: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            height: 140px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-            user-select: none;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
+        .preview-card { background-color: #334155; color: #f8fafc; border-radius: 8px; padding: 15px; height: 140px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 2px solid transparent; transition: all 0.2s ease; user-select: none; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .preview-card:hover { border-color: #60a5fa; transform: translateY(-2px); }
         .preview-card.active { border-color: #fcd34d; background-color: #0f172a; box-shadow: 0 0 15px rgba(252, 211, 77, 0.3); }
-        
         .preview-title { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700; }
         .preview-content { font-size: 0.85rem; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
         
-        /* Scrollbar Kustom */
+        /* FLOATING FONT CONTROLLER */
+        .font-controller { position: fixed; bottom: 20px; right: 30px; background: #0f172a; border: 1px solid #334155; border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; transition: 0.3s; opacity: 0; pointer-events: none; transform: translateY(20px);}
+        .font-controller.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .btn-font { background: #334155; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer; }
+        .btn-font:hover { background: #60a5fa; color: #0f172a; }
+        .btn-font-auto { background: transparent; border: 1px solid #64748b; color: #cbd5e1; border-radius: 20px; padding: 0 15px; font-size: 0.8rem; height: 35px; transition: 0.2s; cursor: pointer; font-weight: 600;}
+        .btn-font-auto:hover { background: #334155; color: white; }
+        .font-indicator { color: #fcd34d; font-weight: 700; font-size: 0.9rem; min-width: 45px; text-align: center; }
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -56,50 +43,59 @@
 <body>
 
     @php
-    // =========================================================================
-    // LOGIKA PEMISAHAN SLIDE (SAMA PERSIS DENGAN LAYAR PROYEKTOR)
-    // =========================================================================
     if (!function_exists('autoSplitText')) {
-        function autoSplitText($text, $maxLines = 3, $charsPerLine = 45) {
+        function autoSplitText($text) {
             if (is_array($text)) { $text = $text['content'] ?? ''; }
             if (!is_string($text)) $text = '';
-
             if (str_contains($text, '===SLIDE_BREAK===')) return array_filter(array_map('trim', explode('===SLIDE_BREAK===', $text)));
             
-            $slides = []; $currentSlideText = ''; $currentLines = 0;
-            $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $text));
+            $text = preg_replace("/[\r\n]+/", "\n", trim($text));
+            $paragraphs = explode("\n", $text);
+            $slides = []; $currentSlide = [];
+            $maxCharsPerLine = 35; 
 
-            foreach ($lines as $line) {
-                $line = trim($line); if (empty($line)) continue;
-                
-                $phrases = preg_split('/([.,;?!]\s+)/', $line, -1, PREG_SPLIT_DELIM_CAPTURE);
-                $combinedPhrases = []; $tempPhrase = '';
-                
-                foreach ($phrases as $p) {
-                    if (preg_match('/^[.,;?!]\s+$/', $p)) {
-                        $tempPhrase .= trim($p); $combinedPhrases[] = trim($tempPhrase); $tempPhrase = '';
-                    } else { $tempPhrase .= $p; }
+            foreach ($paragraphs as $para) {
+                $para = trim($para); if (empty($para)) continue;
+                $words = explode(' ', $para); $currentLine = '';
+                foreach ($words as $word) {
+                    if (strlen($currentLine) + strlen($word) + 1 > $maxCharsPerLine && !empty($currentLine)) {
+                        $currentSlide[] = trim($currentLine);
+                        $currentLine = $word;
+                        if (count($currentSlide) >= 3) {
+                            $slides[] = implode("\n", $currentSlide);
+                            $currentSlide = [];
+                        }
+                    } else { $currentLine = empty($currentLine) ? $word : $currentLine . ' ' . $word; }
                 }
-                if (!empty(trim($tempPhrase))) { $combinedPhrases[] = trim($tempPhrase); }
-
-                foreach ($combinedPhrases as $phrase) {
-                    $phrase = trim($phrase); if (empty($phrase)) continue;
-                    $estLines = max(1, ceil(strlen($phrase) / $charsPerLine));
-                    if ($currentLines + $estLines > $maxLines && !empty(trim($currentSlideText))) {
-                        $slides[] = trim($currentSlideText); $currentSlideText = $phrase . " "; $currentLines = $estLines;
-                    } else { $currentSlideText .= $phrase . " "; $currentLines += $estLines; }
+                if (!empty($currentLine)) {
+                    $currentSlide[] = trim($currentLine);
+                    if (count($currentSlide) >= 3) {
+                        $slides[] = implode("\n", $currentSlide);
+                        $currentSlide = [];
+                    }
                 }
-                $currentSlideText = trim($currentSlideText) . "\n";
             }
-            if (!empty(trim($currentSlideText))) $slides[] = trim($currentSlideText);
-            return empty($slides) ? [$text] : $slides;
+            if (!empty($currentSlide)) { $slides[] = implode("\n", $currentSlide); }
+            
+            $finalSlides = []; $total = count($slides);
+            for ($i = 0; $i < $total; $i++) {
+                if ($i === $total - 1 && $total > 1) {
+                    $wordCount = str_word_count(strip_tags(str_replace("\n", " ", $slides[$i])));
+                    if ($wordCount <= 4) { 
+                        $lastIndex = count($finalSlides) - 1;
+                        $finalSlides[$lastIndex] .= ' ' . str_replace("\n", " ", trim($slides[$i]));
+                        continue; 
+                    }
+                }
+                $finalSlides[] = $slides[$i];
+            }
+            return empty($finalSlides) ? [$text] : $finalSlides;
         }
     }
 
-    // MEMBANGUN ARRAY PREVIEW SLIDE
     $allSlides = [];
     $allSlides[] = [
-        'judul' => strtoupper($schedule->liturgy->name),
+        'judul' => strtoupper($schedule->liturgy->name ?? $schedule->theme ?? 'IBADAH'),
         'isi' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y') . ($schedule->theme ? "\n" . strtoupper($schedule->theme) : "")
     ];
 
@@ -121,19 +117,11 @@
                         $allSlides[] = ['judul' => $content['custom_title'], 'isi' => $st];
                     }
                 } elseif(!empty($content['bait'])) {
-                    // Slide Cover Lagu
-                    $allSlides[] = [
-                        'judul' => str_replace(' (Opsional)', '', $item->title),
-                        'isi' => ($content['judul'] ?? '')
-                    ];
-                    // Slide Lirik Lagu
+                    $allSlides[] = ['judul' => str_replace(' (Opsional)', '', $item->title), 'isi' => ($content['judul'] ?? '')];
                     foreach($content['bait'] as $index => $bait) {
                         $baitSlides = autoSplitText($bait);
                         foreach($baitSlides as $bSlide) {
-                            $allSlides[] = [
-                                'judul' => str_replace(' (Opsional)', '', $item->title),
-                                'isi' => $bSlide
-                            ];
+                            $allSlides[] = ['judul' => str_replace(' (Opsional)', '', $item->title) . ' - Bait ' . $index, 'isi' => $bSlide];
                         }
                     }
                 }
@@ -144,8 +132,6 @@
                 }
             }
         }
-        
-        // Cek jika ada slide sisipan manual
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
                 $cSlidesText = autoSplitText($cSlide->content);
@@ -155,7 +141,6 @@
             }
         }
     }
-
     $allSlides[] = ['judul' => 'PENUTUP', 'isi' => "TUHAN YESUS\nMEMBERKATI"];
     @endphp
 
@@ -229,7 +214,6 @@
                             </label>
                             
                             @if($item->is_dynamic)
-                                
                                 @if(stripos(strtolower($item->title), 'sikap') !== false)
                                     @php $sikapVal = is_array($val) ? ($val['content'] ?? $val[0] ?? '') : $val; @endphp
                                     <select name="dynamic_content[{{ $item->id }}]" class="form-select fw-medium bg-light">
@@ -237,7 +221,6 @@
                                         <option value="(Jemaat Duduk)" {{ strpos($sikapVal, 'Duduk') !== false ? 'selected' : '' }}>(Jemaat Duduk)</option>
                                         <option value="(Saat Teduh)" {{ strpos($sikapVal, 'Teduh') !== false ? 'selected' : '' }}>(Saat Teduh / Lilin Dipadamkan)</option>
                                     </select>
-
                                 @elseif(str_contains(strtolower($item->title), 'pra-ibadah') || str_contains(strtolower($item->title), 'prosesi'))
                                     @php 
                                         $ctitle = is_array($val) ? ($val['custom_title'] ?? '') : str_replace(' (Opsional)', '', $item->title);
@@ -245,7 +228,6 @@
                                     @endphp
                                     <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-2 fw-medium text-dark" value="{{ $ctitle }}">
                                     <textarea name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="6" {{ $reqRule }}>{{ $cisi }}</textarea>
-
                                 @elseif(stripos(strtolower($item->title), 'nyanyian') !== false || stripos(strtolower($item->title), 'pujian') !== false || stripos(strtolower($item->title), 'gloria') !== false || stripos(strtolower($item->title), 'introitus') !== false)
                                     @php
                                         $judulLagu = is_array($val) ? ($val['judul'] ?? '') : '';
@@ -259,44 +241,38 @@
                                         <button type="button" class="btn btn-secondary fw-medium px-3" onclick="tarikLagu({{ $item->id }}, event)">Tarik Lirik</button>
                                     </div>
                                     <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-2 fw-medium text-primary" placeholder="Judul Lagu Manual / Otomatis" value="{{ $judulLagu }}">
-                                    
                                     <div id="bait-container-{{ $item->id }}">
                                         @if(!empty($baits))
-                                            @foreach($baits as $baitText)
+                                            @foreach($baits as $index => $baitText)
                                             <div class="input-group mb-2 shadow-sm position-relative">
-                                                <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                                <textarea name="dynamic_content[{{ $item->id }}][bait][]" class="form-control" rows="3">{{ $baitText }}</textarea>
+                                                <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait {{ $index }}</span>
+                                                <textarea name="dynamic_content[{{ $item->id }}][bait][{{ $index }}]" class="form-control" rows="3">{{ $baitText }}</textarea>
                                                 <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                             </div>
                                             @endforeach
                                         @else
                                             <div class="input-group mb-2 shadow-sm position-relative">
-                                                <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                                <textarea name="dynamic_content[{{ $item->id }}][bait][]" class="form-control" rows="3" placeholder="Ketik lirik secara manual..."></textarea>
+                                                <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait 1</span>
+                                                <textarea name="dynamic_content[{{ $item->id }}][bait][1]" class="form-control" rows="3" placeholder="Ketik lirik secara manual..."></textarea>
                                             </div>
                                         @endif
                                     </div>
                                     <button type="button" class="btn btn-sm btn-light border w-100 fw-medium text-secondary mt-1" onclick="tambahBait({{ $item->id }})">&plus; Tambah Bait Lirik Manual</button>
-
                                 @elseif(stripos(strtolower($item->title), 'alkitab') !== false || stripos(strtolower($item->title), 'bacaan') !== false)
                                     <div class="input-group mb-2">
                                         <input type="text" id="input-alkitab-{{ $item->id }}" class="form-control bg-light" placeholder="Cari Kitab (Contoh: Yohanes 3:16)">
                                         <button type="button" class="btn btn-secondary fw-medium btn-sm px-4" onclick="tarikAlkitab({{ $item->id }}, event)">Tarik Teks Alkitab</button>
                                     </div>
                                     <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control" rows="6" {{ $reqRule }}>{{ is_array($val) ? '' : $val }}</textarea>
-
                                 @else
                                     <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control {{ str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi') ? 'bg-light text-secondary fw-bold' : '' }}" rows="6" {{ $reqRule }}>{{ is_array($val) ? '' : $val }}</textarea>
                                 @endif
-                                
                             @else
                                 <textarea name="dynamic_content[{{ $item->id }}]" class="form-control text-secondary bg-light" rows="3" readonly>{{ $val }}</textarea>
                             @endif
 
                             <div class="mt-4 pt-3 border-top" style="border-color: #edf2f7 !important;">
-                                <button type="button" class="btn btn-sm btn-outline-primary fw-medium px-4 rounded-pill" onclick="tambahSlideKhusus({{ $item->id }})">
-                                    &plus; Sisipkan Slide Tambahan Di Sini
-                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-medium px-4 rounded-pill" onclick="tambahSlideKhusus({{ $item->id }})">&plus; Sisipkan Slide Tambahan Di Sini</button>
                                 <div id="custom-slide-container-{{ $item->id }}" class="mt-3">
                                     @if(isset($customSlides[$item->id]))
                                         @foreach($customSlides[$item->id] as $cSlide)
@@ -324,23 +300,29 @@
                     <div>
                         <h5 class="text-white fw-bold mb-0">Control Panel / Preview</h5>
                         <p class="text-secondary small mb-0" style="font-size: 0.75rem;">
-                            <strong>Klik 1x</strong> untuk Lompat. <strong>Klik 2x</strong> untuk set Slide Awal Presentasi.
+                            <strong>Klik 1x</strong> untuk Lompat. <strong>Klik 2x</strong> untuk set Slide Awal.
                         </p>
                     </div>
-                    <a href="{{ route('liturgy.presentation', $schedule->id) }}" target="_blank" class="btn btn-primary fw-bold px-4 shadow-sm" style="background-color: #3b82f6; border:none;">
-                        💻 Buka Proyektor
-                    </a>
+                    <a href="{{ route('liturgy.presentation', $schedule->id) }}" target="_blank" class="btn btn-primary fw-bold px-4 shadow-sm" style="background-color: #3b82f6; border:none;">💻 Buka Proyektor</a>
                 </div>
 
                 <div class="row g-3">
                     @foreach($allSlides as $idx => $slide)
                         <div class="col-6 col-md-4 col-xl-3">
-                            <div class="preview-card" id="thumb-{{$idx}}" ondblclick="setStartSlide({{$idx}})" onclick="jumpToSlide({{$idx}})" title="Klik 2x untuk menetapkan sebagai slide awal saat proyektor dibuka">
+                            <div class="preview-card" id="thumb-{{$idx}}" ondblclick="setStartSlide({{$idx}})" onclick="jumpToSlide({{$idx}})" title="Klik 1x untuk tayangkan. Klik 2x untuk set awal.">
                                 <div class="preview-title">{{ $slide['judul'] }}</div>
                                 <div class="preview-content">{!! nl2br(e($slide['isi'])) !!}</div>
                             </div>
                         </div>
                     @endforeach
+                </div>
+
+                <div class="font-controller" id="fontController">
+                    <span class="text-secondary small me-2 text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Ukuran Teks Slide:</span>
+                    <button class="btn-font" onclick="changeCustomFont(-0.5)" title="Perkecil Font">-</button>
+                    <div class="font-indicator" id="fontIndicator">Auto</div>
+                    <button class="btn-font" onclick="changeCustomFont(0.5)" title="Perbesar Font">+</button>
+                    <button class="btn-font-auto ms-2" onclick="resetCustomFont()" title="Kembali ke ukuran otomatis">Reset</button>
                 </div>
             </div>
             
@@ -348,16 +330,34 @@
     </div>
 
     <script>
-        // Logika Form Edit (Tambah Bait, Slide Khusus, Tarik Lirik/Ayat)
+        const scheduleId = {{ $schedule->id ?? 0 }};
+        let activeSlideIndex = parseInt(localStorage.getItem('last_slide_index')) || 0;
+        let customFonts = JSON.parse(localStorage.getItem('custom_fonts_' + scheduleId)) || {};
+
+        // FORM LOGIC
+        function getNextVerseNumber(containerId) {
+            const container = document.getElementById(containerId);
+            let maxNum = 0;
+            const textareas = container.querySelectorAll('textarea');
+            textareas.forEach(ta => {
+                if(ta.name.includes('[bait]')) {
+                    const match = ta.name.match(/\[bait\]\[(\d+)\]/);
+                    if(match && parseInt(match[1]) > maxNum) { maxNum = parseInt(match[1]); }
+                }
+            });
+            return maxNum === 0 ? 1 : maxNum + 1;
+        }
+
         function tambahBait(itemId) {
-            const container = document.getElementById('bait-container-' + itemId);
+            const containerId = 'bait-container-' + itemId;
+            const nextNum = getNextVerseNumber(containerId);
             const html = `
                 <div class="input-group mb-2 shadow-sm position-relative">
-                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                    <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="3" placeholder="Teks lanjutan..."></textarea>
+                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait ${nextNum}</span>
+                    <textarea name="dynamic_content[${itemId}][bait][${nextNum}]" class="form-control" rows="3" placeholder="Teks lanjutan..."></textarea>
                     <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                 </div>`;
-            container.insertAdjacentHTML('beforeend', html);
+            document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
         }
 
         function tambahSlideKhusus(itemId) {
@@ -365,13 +365,13 @@
             const slideId = Math.random().toString(36).substr(2, 9);
             const html = `
                 <div class="p-3 mb-3 border border-2 rounded bg-light position-relative" style="border-color: #cbd5e0 !important;">
-                    <span class="badge bg-secondary mb-2">Slide Sisipan Baru</span>
+                    <span class="badge bg-secondary mb-2">Slide Sisipan Manual</span>
                     <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="this.parentElement.remove()"></button>
                     <div class="mb-2">
-                        <input type="text" name="custom_slides[${itemId}][new_${slideId}][title]" class="form-control fw-medium border-secondary" placeholder="Judul Slide (Misal: Pengumuman)" required>
+                        <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control fw-medium border-secondary" placeholder="Judul Slide (Misal: Pengumuman)" required>
                     </div>
                     <div>
-                        <textarea name="custom_slides[${itemId}][new_${slideId}][content]" class="form-control border-secondary" rows="4" placeholder="Isi konten..." required></textarea>
+                        <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control border-secondary" rows="4" placeholder="Isi konten..." required></textarea>
                     </div>
                 </div>
             `;
@@ -384,29 +384,26 @@
             const judulInput = document.querySelector(`input[name="dynamic_content[${itemId}][judul]"]`);
             const container = document.getElementById(`bait-container-${itemId}`);
             const btn = event.currentTarget;
-            
             if(!nomor) return alert('Masukkan nomor lagu!');
-            
-            const originalText = btn.innerHTML;
-            btn.innerHTML = 'Memuat...'; btn.disabled = true;
-
+            const originalText = btn.innerHTML; btn.innerHTML = 'Memuat...'; btn.disabled = true;
             fetch(`/api/fetch-lagu?buku=${buku}&nomor=${nomor}`)
                 .then(res => res.json())
                 .then(data => {
                     if(data.success) {
                         if(judulInput) judulInput.value = data.judul;
                         container.innerHTML = ''; 
-                        
                         const baits = data.text.split('===SLIDE_BREAK===');
+                        let verseNum = 1;
                         baits.forEach(bait => {
                             if(bait.trim() !== '') {
                                 const html = `
                                     <div class="input-group mb-2 shadow-sm position-relative">
-                                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                        <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="3">${bait.trim()}</textarea>
+                                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait ${verseNum}</span>
+                                        <textarea name="dynamic_content[${itemId}][bait][${verseNum}]" class="form-control" rows="3">${bait.trim()}</textarea>
                                         <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
+                                verseNum++;
                             }
                         });
                     } else { alert(data.message); }
@@ -418,13 +415,8 @@
             const textarea = document.getElementById('textarea-' + itemId);
             const btn = event.currentTarget;
             const query = inputField.value.trim();
-            
             if(!query) { alert('Tulis nama kitab dan pasalnya!'); inputField.focus(); return; }
-            
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '...'; btn.disabled = true;
-            textarea.value = "Memuat data...";
-            
+            const originalText = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true; textarea.value = "Memuat data...";
             fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
                 .then(data => {
@@ -438,37 +430,73 @@
         }
 
         // ==========================================
-        // LOGIKA LIVE CONTROL PROYEKTOR
+        // LOGIKA LIVE CONTROL & FONT
         // ==========================================
         function updateActiveThumb(index) {
+            activeSlideIndex = index;
             document.querySelectorAll('.preview-card').forEach((el, i) => {
                 if (i === index) el.classList.add('active');
                 else el.classList.remove('active');
             });
+            
+            // Tampilkan font controller
+            document.getElementById('fontController').classList.add('show');
+            updateFontIndicator();
         }
 
         function setStartSlide(index) {
-            // KLIK 2x (Double Click): Hanya set di local storage agar proyektor mulai dari sini nanti
             localStorage.setItem('last_slide_index', index);
             updateActiveThumb(index);
             alert('Titik mulai presentasi berhasil diatur ke slide ini.');
         }
 
         function jumpToSlide(index) {
-            // KLIK 1x: Langsung lempar perintah jump ke proyektor yang sedang terbuka
             localStorage.setItem('projector_command', JSON.stringify({action: 'jump', index: index, _t: Date.now()}));
             localStorage.setItem('last_slide_index', index);
             updateActiveThumb(index);
         }
 
-        // Dengar perubahan dari layar proyektor (jika operator ganti slide pakai keyboard di proyektor)
+        // FUNGSI CUSTOM FONT PER SLIDE
+        function updateFontIndicator() {
+            const indicator = document.getElementById('fontIndicator');
+            if (customFonts[activeSlideIndex]) {
+                indicator.innerText = customFonts[activeSlideIndex] + 'vw';
+                indicator.style.color = '#fcd34d';
+            } else {
+                indicator.innerText = 'Auto';
+                indicator.style.color = '#cbd5e1';
+            }
+        }
+
+        function changeCustomFont(step) {
+            let currentSize = customFonts[activeSlideIndex] ? parseFloat(customFonts[activeSlideIndex]) : 5.0; // 5.0 adalah nilai tengah default
+            let newSize = (currentSize + step).toFixed(1);
+            
+            // Batasan ukuran (minimum 2vw, maksimum 10vw)
+            if(newSize < 2.0) newSize = 2.0;
+            if(newSize > 10.0) newSize = 10.0;
+
+            customFonts[activeSlideIndex] = newSize;
+            saveAndSyncFont();
+        }
+
+        function resetCustomFont() {
+            delete customFonts[activeSlideIndex];
+            saveAndSyncFont();
+        }
+
+        function saveAndSyncFont() {
+            localStorage.setItem('custom_fonts_' + scheduleId, JSON.stringify(customFonts));
+            localStorage.setItem('font_sync_trigger', Date.now()); // Picu proyektor untuk merender ulang
+            updateFontIndicator();
+        }
+
         window.addEventListener('storage', (e) => {
             if (e.key === 'last_slide_index') {
                 updateActiveThumb(parseInt(e.newValue));
             }
         });
 
-        // Inisialisasi slide aktif saat Control Panel dibuka
         updateActiveThumb(parseInt(localStorage.getItem('last_slide_index')) || 0);
     </script>
 </body>

@@ -14,7 +14,7 @@
         .form-label-header { font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; margin-bottom: 12px; display: block; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
         .btn-primary-custom { background-color: #2b6cb0; color: white; border: none; }
         .btn-primary-custom:hover { background-color: #2c5282; color: white; }
-        textarea { resize: vertical; } /* Agar textarea bisa ditarik secara manual jika teks panjang */
+        textarea { resize: vertical; } 
     </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('liturgy.store') }}" method="POST">
+                        <form action="{{ route('liturgy.store') }}" method="POST" id="createForm">
                             @csrf
                             <input type="hidden" name="liturgy_id" value="{{ $liturgy->id }}">
 
@@ -123,11 +123,23 @@
                                                 <button type="button" class="btn btn-secondary fw-medium px-3" onclick="tarikLagu({{ $item->id }}, event)">Tarik Lirik</button>
                                             </div>
                                             <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-2 fw-medium text-primary" placeholder="Judul Lagu Manual / Otomatis">
+                                            
                                             <div id="bait-container-{{ $item->id }}">
-                                                <div class="input-group mb-2 shadow-sm position-relative">
-                                                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                                    <textarea name="dynamic_content[{{ $item->id }}][bait][]" class="form-control" rows="3" placeholder="Ketik lirik secara manual atau ditarik otomatis..." {{ $reqRule }}></textarea>
-                                                </div>
+                                                @if(old('dynamic_content.'.$item->id.'.bait'))
+                                                    @foreach(old('dynamic_content.'.$item->id.'.bait') as $bIdx => $baitText)
+                                                        <div class="input-group mb-2 shadow-sm position-relative">
+                                                            <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait {{ $bIdx }}</span>
+                                                            <textarea name="dynamic_content[{{ $item->id }}][bait][{{ $bIdx }}]" class="form-control" rows="3">{{ $baitText }}</textarea>
+                                                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="input-group mb-2 shadow-sm position-relative">
+                                                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait 1</span>
+                                                        <textarea name="dynamic_content[{{ $item->id }}][bait][1]" class="form-control" rows="3" placeholder="Ketik lirik secara manual..." {{ $reqRule }}></textarea>
+                                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                                    </div>
+                                                @endif
                                             </div>
                                             <button type="button" class="btn btn-sm btn-light border w-100 fw-medium text-secondary mt-1" onclick="tambahBait({{ $item->id }})">&plus; Tambah Bait Lirik Manual</button>
                                             
@@ -156,7 +168,7 @@
                                 </div>
                             @endforeach
 
-                            <button type="submit" class="btn btn-primary-custom btn-lg w-100 py-3 fw-bold mt-4 shadow text-uppercase" style="letter-spacing: 1px;">Simpan dan Siapkan Penayangan</button>
+                            <button type="submit" form="createForm" class="btn btn-primary-custom btn-lg w-100 py-3 fw-bold mt-4 shadow text-uppercase" style="letter-spacing: 1px;">Simpan dan Siapkan Penayangan</button>
                         </form>
 
                     </div>
@@ -166,15 +178,32 @@
     </div>
 
     <script>
+        function getNextVerseNumber(containerId) {
+            const container = document.getElementById(containerId);
+            let maxNum = 0;
+            const textareas = container.querySelectorAll('textarea');
+            textareas.forEach(ta => {
+                if(ta.name.includes('[bait]')) {
+                    const match = ta.name.match(/\[bait\]\[(\d+)\]/);
+                    if(match && parseInt(match[1]) > maxNum) {
+                        maxNum = parseInt(match[1]);
+                    }
+                }
+            });
+            return maxNum === 0 ? 1 : maxNum + 1;
+        }
+
         function tambahBait(itemId) {
-            const container = document.getElementById('bait-container-' + itemId);
+            const containerId = 'bait-container-' + itemId;
+            const nextNum = getNextVerseNumber(containerId);
+            
             const html = `
                 <div class="input-group mb-2 shadow-sm position-relative">
-                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                    <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="3" placeholder="Teks lanjutan..."></textarea>
+                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait ${nextNum}</span>
+                    <textarea name="dynamic_content[${itemId}][bait][${nextNum}]" class="form-control" rows="3" placeholder="Teks lanjutan..."></textarea>
                     <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                 </div>`;
-            container.insertAdjacentHTML('beforeend', html);
+            document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
         }
 
         function tambahSlideKhusus(itemId) {
@@ -215,15 +244,17 @@
                         container.innerHTML = ''; 
                         
                         const baits = data.text.split('===SLIDE_BREAK===');
+                        let verseNum = 1;
                         baits.forEach(bait => {
                             if(bait.trim() !== '') {
                                 const html = `
                                     <div class="input-group mb-2 shadow-sm position-relative">
-                                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem;">Bait</span>
-                                        <textarea name="dynamic_content[${itemId}][bait][]" class="form-control" rows="3">${bait.trim()}</textarea>
+                                        <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait ${verseNum}</span>
+                                        <textarea name="dynamic_content[${itemId}][bait][${verseNum}]" class="form-control" rows="3">${bait.trim()}</textarea>
                                         <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
+                                verseNum++;
                             }
                         });
                     } else { alert(data.message); }
@@ -236,14 +267,12 @@
             const btn = event.currentTarget;
             const query = inputField.value.trim();
             
-            if(!query) { 
-                alert('Tulis nama kitab dan pasalnya terlebih dahulu.'); 
-                inputField.focus(); return; 
-            }
+            if(!query) { alert('Tulis nama kitab dan pasalnya terlebih dahulu.'); inputField.focus(); return; }
             
             const originalText = btn.innerHTML;
-            btn.innerHTML = 'Memuat...'; btn.disabled = true;
-
+            btn.innerHTML = '...'; btn.disabled = true;
+            textarea.value = "Memuat data...";
+            
             fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
                 .then(data => {
