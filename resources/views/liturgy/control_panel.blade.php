@@ -77,10 +77,13 @@
         .thumb-num-badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; font-size: 0.65rem; font-weight: bold; padding: 3px 6px; border-radius: 4px; z-index: 10; border: 1px solid #444;}
         .thumb-simple-title { font-size: 0.65rem; color: #63b3ed; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; padding-right: 25px;}
         .thumb-simple-content { font-size: 0.9rem; color: #e2e8f0; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
-
+        
         .nav-controls { background: #141414; border-top: 1px solid #2d2d2d; display: flex; justify-content: center; align-items: center; gap: 50px; padding: 10px; }
         .nav-btn { background: #2d2d2d; border: 1px solid #4a5568; color: #e2e8f0; padding: 8px 30px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; transition: 0.2s; letter-spacing: 0.5px;}
         .nav-btn:hover { background: #4a5568; color: #fff; }
+        
+        .bait-label-input { width: 65px; border: none; font-size: 0.75rem; font-weight: 700; text-align: center; }
+        .bait-label-input:focus { outline: none; background: #e2e8f0; }
     </style>
 </head>
 <body onkeydown="handleKeyboard(event)">
@@ -142,14 +145,13 @@
 
     $allSlides = [];
     
-    // 1. SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW) - URUTAN PERTAMA
     if(isset($announcements) && $announcements->count() > 0) {
         $slideImages = [];
         foreach($announcements as $ann) {
             $slideImages[] = [
                 'image_url' => asset('storage/' . $ann->image_path),
                 'caption' => strtoupper($ann->title ?? ''),
-                'duration' => $ann->duration ?? 5 // Durasi dinamis per gambar
+                'duration' => $ann->duration ?? 5 
             ];
         }
         $allSlides[] = [
@@ -159,7 +161,6 @@
         ];
     }
     
-    // 2. COVER (LOGO & TEMA)
     $allSlides[] = [
         'type' => 'cover',
         'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
@@ -168,7 +169,6 @@
         'preacher' => strtoupper($schedule->preacher_name ?? '')
     ];
 
-    // 3. TATA IBADAH
     foreach($liturgyItems as $item) {
         $detail = $scheduleDetails->get($item->id);
         $content = $detail ? $detail->dynamic_content : $item->static_content;
@@ -193,8 +193,6 @@
                         'content' => ($content['judul'] ?? '')
                     ];
                     
-                    // REFF DETECTION ALGORITHM
-                    $verseCounter = 1;
                     foreach($content['bait'] as $key => $bait) {
                         $baitTextRaw = trim($bait);
                         if(empty($baitTextRaw)) continue;
@@ -205,9 +203,15 @@
                         }
 
                         $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
-
-                        $displayIndex = $isReff ? '' : $verseCounter; 
-                        if (!$isReff) $verseCounter++; 
+                        
+                        $displayIndex = '';
+                        if (!$isReff) {
+                            if (preg_match('/\d+/', $key, $matches)) {
+                                $displayIndex = $matches[0];
+                            } else {
+                                $displayIndex = $key;
+                            }
+                        }
                         
                         $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
                         if($isReff) $slideTitle .= ' (Reff)';
@@ -231,7 +235,6 @@
             }
         }
         
-        // 4. SISIPAN SLIDE TAMBAHAN (CUSTOM SLIDES)
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
                 $cSlidesText = autoSplitText($cSlide->content);
@@ -264,7 +267,6 @@
 
                 <div class="card-edit" style="border-left: 3px solid #3182ce;">
                     <label class="form-label-header text-info">Desain Latar & Font</label>
-                    
                     <div class="mb-2">
                         <select id="bg_type" onchange="toggleBgSettings(); updateDesignLive()" class="form-select form-select-sm bg-dark text-white border-secondary fw-medium">
                             <option value="gradient">Gradien Statis (Klasik)</option>
@@ -282,7 +284,6 @@
 
                     <div id="video_settings" class="mb-2" style="display: none; background: #1a1a1a; padding: 8px; border-radius: 4px; border: 1px dashed #444;">
                         <input type="text" id="bg_video_url" oninput="updateDesignLive()" class="form-control form-control-sm bg-dark text-white border-secondary mb-1" placeholder="URL Video LOKAL (Cth: /bg.mp4)">
-                        <small class="text-muted d-block" style="font-size:0.6rem; line-height: 1.1;">Taruh file mp4 di dalam folder public/ lalu ketik namanya di atas.</small>
                     </div>
 
                     <div id="anim_speed_wrapper" class="mb-2 px-1" style="display: none;">
@@ -374,34 +375,42 @@
                                 <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-1 fw-medium" placeholder="Judul Lagu" value="{{ is_array($val) ? ($val['judul'] ?? '') : '' }}">
                                 
                                 <div id="bait-container-{{ $item->id }}">
-                                    @php $verseCountForEdit = 1; @endphp
                                     @if(is_array($val) && isset($val['bait']) && is_array($val['bait']))
                                         @foreach($val['bait'] as $key => $baitText)
                                             @php 
                                                 $isReffKey = (is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitText);
-                                                $displayKey = $isReffKey ? 'Reff' : 'Bait ' . $verseCountForEdit;
-                                                if (!$isReffKey) $verseCountForEdit++;
+                                                
+                                                $displayKey = $isReffKey ? 'Reff' : preg_replace('/[^0-9]/', '', $key);
+                                                if(empty($displayKey) && !$isReffKey) $displayKey = $key;
                                                 
                                                 $cleanTextForEdit = preg_replace('/^\[?REFF\]?\s*/i', '', $baitText);
                                             @endphp
                                             <div class="input-group mb-1 position-relative bait-item">
-                                                <span class="input-group-text label-text text-warning">{{ $displayKey }}</span>
-                                                <textarea name="dynamic_content[{{ $item->id }}][bait][{{ $key }}]" class="form-control" rows="2">{{ $cleanTextForEdit }}</textarea>
-                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="hapusBait(this, {{ $item->id }})" style="font-size: 14px;">&times;</button>
+                                                <div class="input-group-text {{ $isReffKey ? 'bg-warning text-dark' : 'bg-dark text-secondary' }} p-0 overflow-hidden">
+                                                    <input type="text" class="bait-label-input {{ $isReffKey ? 'bg-warning text-dark' : 'bg-dark text-secondary' }}" 
+                                                        onchange="updateBaitName(this, '{{ $item->id }}')" 
+                                                        value="{{ $displayKey }}">
+                                                </div>
+                                                
+                                                <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][{{ $key }}]" value="{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}">
+                                                <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value">{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}</textarea>
+                                                
+                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
                                             </div>
                                         @endforeach
                                     @else
                                         <div class="input-group mb-1 position-relative bait-item">
-                                            <span class="input-group-text label-text text-warning">Bait 1</span>
-                                            <textarea name="dynamic_content[{{ $item->id }}][bait][b_1]" class="form-control" rows="2"></textarea>
+                                            <div class="input-group-text bg-dark text-secondary p-0 overflow-hidden">
+                                                <input type="text" class="bait-label-input bg-dark text-secondary" onchange="updateBaitName(this, '{{ $item->id }}')" value="1">
+                                            </div>
+                                            <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][1]" value="">
+                                            <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value"></textarea>
+                                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
                                         </div>
                                     @endif
                                 </div>
                                 
-                                <div class="d-flex gap-1 mt-1">
-                                    <button type="button" class="btn-add-slide w-50" onclick="tambahBait({{ $item->id }}, false)">&plus; Bait Baru</button>
-                                    <button type="button" class="btn-add-slide w-50 text-warning border-warning" style="border-style:dashed;" onclick="tambahBait({{ $item->id }}, true)">&plus; Teks Reff</button>
-                                </div>
+                                <button type="button" class="btn-add-slide mt-1" onclick="tambahBaitLagu('{{ $item->id }}')">&plus; Tambah Bait</button>
 
                             @else
                                 @if(str_contains(strtolower($item->title), 'alkitab') || str_contains(strtolower($item->title), 'bacaan'))
@@ -441,7 +450,6 @@
             </div>
 
             <div class="slide-monitor">
-                
                 <div class="current-slide-box monitor-box" id="monitor-current">
                     <span class="label-badge">TAMPILAN SAAT INI</span>
                     <div id="virtual-render-current" style="width: 100%; height: 100%;"></div>
@@ -459,7 +467,6 @@
                     <span class="label-badge" style="background: #4a5568;">BERIKUTNYA</span>
                     <div id="virtual-render-next" style="width: 100%; height: 100%;"></div>
                 </div>
-
             </div>
 
             <div class="slide-gallery-container" id="slideGallery"></div>
@@ -555,17 +562,10 @@
         document.getElementById('video_settings').style.display = (type === 'video') ? 'block' : 'none';
         const isAnim = type.includes('anim-');
         document.getElementById('anim_colors_wrapper').style.display = isAnim ? 'flex' : 'none';
-        
-        if(type.includes('anim') || type === 'pattern-grid-anim' || type === 'pattern-stripes-anim') {
-            document.getElementById('anim_speed_wrapper').style.display = 'block';
-        } else {
-            document.getElementById('anim_speed_wrapper').style.display = 'none';
-        }
+        if(type.includes('anim') || type === 'pattern-grid-anim' || type === 'pattern-stripes-anim') { document.getElementById('anim_speed_wrapper').style.display = 'block'; } else { document.getElementById('anim_speed_wrapper').style.display = 'none'; }
     }
-
-    function updateSpeedIndicator() {
-        document.getElementById('speed_indicator').innerText = document.getElementById('anim_speed').value + 's';
-    }
+    
+    function updateSpeedIndicator() { document.getElementById('speed_indicator').innerText = document.getElementById('anim_speed').value + 's'; }
 
     function hexToRgb(hex) {
         let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
@@ -585,50 +585,17 @@
 
         document.querySelectorAll('.sp-container').forEach(el => {
             el.style.background = ''; el.style.backgroundColor = ''; el.style.backgroundImage = ''; el.style.backgroundSize = ''; el.style.animation = '';
-            
-            let vid = el.querySelector('.virtual-bg-video');
-            if(vid) vid.remove();
+            let vid = el.querySelector('.virtual-bg-video'); if(vid) vid.remove();
 
-            if (settings.bgType === 'gradient' || !settings.bgType) {
-                el.style.background = `radial-gradient(circle at center, ${settings.bgCenterColor} 0%, ${settings.bgEdgeColor} 100%)`;
-            } 
-            else if (settings.bgType === 'anim-linear') {
-                el.style.background = `linear-gradient(-45deg, ${settings.bgCenterColor}, ${settings.bgEdgeColor}, ${ac1}, ${ac2})`;
-                el.style.backgroundSize = '400% 400%'; el.style.animation = `gradientBG ${speed}s ease infinite`;
-            } 
-            else if (settings.bgType === 'anim-radial') {
-                el.style.background = `radial-gradient(circle, ${settings.bgCenterColor}, ${ac1}, ${settings.bgEdgeColor}, ${ac2})`;
-                el.style.backgroundSize = '400% 400%'; el.style.animation = `gradientBG ${speed}s ease infinite`;
-            } 
-            else if (settings.bgType === 'anim-sweep') {
-                el.style.background = `linear-gradient(90deg, ${settings.bgCenterColor}, ${ac1}, ${settings.bgEdgeColor}, ${ac2}, ${settings.bgCenterColor})`;
-                el.style.backgroundSize = '400% 100%'; el.style.animation = `gradientBG ${speed}s linear infinite`;
-            }
-            else if (settings.bgType === 'pattern-grid') {
-                el.style.backgroundColor = settings.bgEdgeColor;
-                el.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`;
-                el.style.backgroundSize = '4cqw 4cqw';
-            }
-            else if (settings.bgType === 'pattern-grid-anim') {
-                el.style.backgroundColor = settings.bgEdgeColor;
-                el.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`;
-                el.style.backgroundSize = '4cqw 4cqw'; el.style.animation = `moveGridCP ${speed}s linear infinite`;
-            } 
-            else if (settings.bgType === 'pattern-dots') {
-                el.style.backgroundColor = settings.bgEdgeColor;
-                el.style.backgroundImage = `radial-gradient(${settings.bgCenterColor} 3px, transparent 3px)`;
-                el.style.backgroundSize = '4cqw 4cqw';
-            } 
-            else if (settings.bgType === 'pattern-stripes') {
-                el.style.backgroundColor = settings.bgEdgeColor;
-                el.style.backgroundImage = `repeating-linear-gradient(45deg, ${settings.bgCenterColor} 0, ${settings.bgCenterColor} 2px, transparent 2px, transparent 50%)`;
-                el.style.backgroundSize = '4cqw 4cqw';
-            }
-            else if (settings.bgType === 'pattern-stripes-anim') {
-                el.style.backgroundColor = settings.bgEdgeColor;
-                el.style.backgroundImage = `repeating-linear-gradient(45deg, ${settings.bgCenterColor} 0, ${settings.bgCenterColor} 2px, transparent 2px, transparent 50%)`;
-                el.style.backgroundSize = '4cqw 4cqw'; el.style.animation = `moveStripesCP ${speed}s linear infinite`;
-            }
+            if (settings.bgType === 'gradient' || !settings.bgType) { el.style.background = `radial-gradient(circle at center, ${settings.bgCenterColor} 0%, ${settings.bgEdgeColor} 100%)`; } 
+            else if (settings.bgType === 'anim-linear') { el.style.background = `linear-gradient(-45deg, ${settings.bgCenterColor}, ${settings.bgEdgeColor}, ${ac1}, ${ac2})`; el.style.backgroundSize = '400% 400%'; el.style.animation = `gradientBG ${speed}s ease infinite`; } 
+            else if (settings.bgType === 'anim-radial') { el.style.background = `radial-gradient(circle, ${settings.bgCenterColor}, ${ac1}, ${settings.bgEdgeColor}, ${ac2})`; el.style.backgroundSize = '400% 400%'; el.style.animation = `gradientBG ${speed}s ease infinite`; } 
+            else if (settings.bgType === 'anim-sweep') { el.style.background = `linear-gradient(90deg, ${settings.bgCenterColor}, ${ac1}, ${settings.bgEdgeColor}, ${ac2}, ${settings.bgCenterColor})`; el.style.backgroundSize = '400% 100%'; el.style.animation = `gradientBG ${speed}s linear infinite`; }
+            else if (settings.bgType === 'pattern-grid') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; el.style.backgroundSize = '4cqw 4cqw'; }
+            else if (settings.bgType === 'pattern-grid-anim') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; el.style.backgroundSize = '4cqw 4cqw'; el.style.animation = `moveGridCP ${speed}s linear infinite`; } 
+            else if (settings.bgType === 'pattern-dots') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `radial-gradient(${settings.bgCenterColor} 3px, transparent 3px)`; el.style.backgroundSize = '4cqw 4cqw'; } 
+            else if (settings.bgType === 'pattern-stripes') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `repeating-linear-gradient(45deg, ${settings.bgCenterColor} 0, ${settings.bgCenterColor} 2px, transparent 2px, transparent 50%)`; el.style.backgroundSize = '4cqw 4cqw'; }
+            else if (settings.bgType === 'pattern-stripes-anim') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `repeating-linear-gradient(45deg, ${settings.bgCenterColor} 0, ${settings.bgCenterColor} 2px, transparent 2px, transparent 50%)`; el.style.backgroundSize = '4cqw 4cqw'; el.style.animation = `moveStripesCP ${speed}s linear infinite`; }
             else if (settings.bgType === 'video' && settings.bgVideoUrl) {
                 el.style.backgroundColor = '#000';
                 const v = document.createElement('video');
@@ -640,21 +607,13 @@
     }
 
     function updateDesignLive() {
-        const bgType = document.getElementById('bg_type').value;
-        const bgVideoUrl = document.getElementById('bg_video_url').value;
-        const animSpeed = document.getElementById('anim_speed').value;
-        const bgCenterColor = document.getElementById('bg_center_color').value;
-        const bgEdgeColor = document.getElementById('bg_edge_color').value;
-        const animColor1 = document.getElementById('anim_color_1').value;
-        const animColor2 = document.getElementById('anim_color_2').value;
-        const textColor = document.getElementById('text_color').value;
-        const fontFamily = document.getElementById('font_family').value;
-        const shadowColor = document.getElementById('shadow_color').value;
+        const bgType = document.getElementById('bg_type').value; const bgVideoUrl = document.getElementById('bg_video_url').value;
+        const animSpeed = document.getElementById('anim_speed').value; const bgCenterColor = document.getElementById('bg_center_color').value;
+        const bgEdgeColor = document.getElementById('bg_edge_color').value; const animColor1 = document.getElementById('anim_color_1').value;
+        const animColor2 = document.getElementById('anim_color_2').value; const textColor = document.getElementById('text_color').value;
+        const fontFamily = document.getElementById('font_family').value; const shadowColor = document.getElementById('shadow_color').value;
 
-        const designSettings = { 
-            bgType, bgVideoUrl, animSpeed, fontFamily, bgCenterColor, bgEdgeColor, animColor1, animColor2,
-            textColor, shadowColor, textShadow: '0.9'
-        };
+        const designSettings = { bgType, bgVideoUrl, animSpeed, fontFamily, bgCenterColor, bgEdgeColor, animColor1, animColor2, textColor, shadowColor, textShadow: '0.9' };
         localStorage.setItem('live_design_settings', JSON.stringify(designSettings));
         applyVirtualDesign(designSettings);
     }
@@ -679,37 +638,19 @@
         let currentSize = customFonts[currentSlide] ? parseFloat(customFonts[currentSlide]) : 5.0; 
         let newSize = (currentSize + step).toFixed(1);
         if(newSize < 2.0) newSize = 2.0; if(newSize > 15.0) newSize = 15.0;
-        customFonts[currentSlide] = newSize;
-        saveAndSyncFont();
+        customFonts[currentSlide] = newSize; saveAndSyncFont();
     }
-
-    function resetSlideFont() {
-        delete customFonts[currentSlide];
-        saveAndSyncFont();
-    }
-
-    function saveAndSyncFont() {
-        localStorage.setItem('custom_fonts_' + scheduleId, JSON.stringify(customFonts));
-        localStorage.setItem('font_sync_trigger', Date.now()); 
-        updateConsoleView(); 
-    }
+    function resetSlideFont() { delete customFonts[currentSlide]; saveAndSyncFont(); }
+    function saveAndSyncFont() { localStorage.setItem('custom_fonts_' + scheduleId, JSON.stringify(customFonts)); localStorage.setItem('font_sync_trigger', Date.now()); updateConsoleView(); }
 
     function controlProjector(action, specificIndex = null) {
-        if(action === 'next') currentSlide++;
-        else if(action === 'prev') currentSlide--;
-        else if(action === 'jump') currentSlide = specificIndex;
-
-        if (currentSlide < 0) currentSlide = 0;
-        if (currentSlide >= allSlidesData.length) currentSlide = allSlidesData.length - 1;
-
+        if(action === 'next') currentSlide++; else if(action === 'prev') currentSlide--; else if(action === 'jump') currentSlide = specificIndex;
+        if (currentSlide < 0) currentSlide = 0; if (currentSlide >= allSlidesData.length) currentSlide = allSlidesData.length - 1;
         localStorage.setItem('projector_command', JSON.stringify({ action: 'jump', index: currentSlide, time: Date.now() }));
-        localStorage.setItem('last_slide_index', currentSlide);
-        updateConsoleView();
+        localStorage.setItem('last_slide_index', currentSlide); updateConsoleView();
     }
 
-    function openProjector() {
-        window.open("{{ route('liturgy.presentation', $schedule->id) }}", "ProjectorWindow", `width=${window.screen.width},height=${window.screen.height},left=${window.screen.width},top=0,menubar=no,toolbar=no,location=no,status=no`);
-    }
+    function openProjector() { window.open("{{ route('liturgy.presentation', $schedule->id) }}", "ProjectorWindow", `width=${window.screen.width},height=${window.screen.height},left=${window.screen.width},top=0,menubar=no,toolbar=no,location=no,status=no`); }
 
     function handleKeyboard(e) {
         if (['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
@@ -720,7 +661,7 @@
     function updateConsoleView() {
         clearTimeout(window.cpWartaInterval); 
         clearTimeout(window.cpWartaNextInterval); 
-
+        
         document.getElementById('virtual-render-current').innerHTML = renderVirtualSlide(allSlidesData[currentSlide], currentSlide);
         document.getElementById('virtual-render-next').innerHTML = renderVirtualSlide(allSlidesData[currentSlide + 1], currentSlide + 1);
         document.getElementById('slide-num').innerText = `${currentSlide + 1} / ${allSlidesData.length}`;
@@ -731,15 +672,10 @@
         });
 
         const fontIndicator = document.getElementById('slide-font-indicator');
-        if (customFonts[currentSlide]) {
-            fontIndicator.innerText = customFonts[currentSlide] + 'vw';
-            fontIndicator.style.color = '#fcd34d'; 
-        } else {
-            fontIndicator.innerText = 'Auto';
-            fontIndicator.style.color = '#cbd5e0'; 
-        }
+        if (customFonts[currentSlide]) { fontIndicator.innerText = customFonts[currentSlide] + 'vw'; fontIndicator.style.color = '#fcd34d'; } 
+        else { fontIndicator.innerText = 'Auto'; fontIndicator.style.color = '#cbd5e0'; }
 
-        // --- Logika Durasi Dinamis untuk Monitor CURRENT ---
+        // Animasi CP untuk Monitor Current
         let currentItems = document.getElementById('monitor-current').querySelectorAll(`.warta-item-cp-${currentSlide}`);
         if(currentItems.length > 1) {
             let cwIdx = 0;
@@ -754,7 +690,7 @@
             window.cpWartaInterval = setTimeout(runNextCurrent, firstDur);
         }
 
-        // --- Logika Durasi Dinamis untuk Monitor NEXT ---
+        // Animasi CP untuk Monitor Next
         let nextIndex = currentSlide + 1;
         let nextItems = document.getElementById('monitor-next').querySelectorAll(`.warta-item-cp-${nextIndex}`);
         if(nextItems.length > 1) {
@@ -776,11 +712,8 @@
     function buildGallery() {
         const gallery = document.getElementById('slideGallery'); gallery.innerHTML = '';
         allSlidesData.forEach((slide, i) => {
-            const thumb = document.createElement('div'); 
-            thumb.className = 'slide-thumb-simple';
-            
-            let displayTitle = slide.title || '';
-            let displayContent = slide.content || '';
+            const thumb = document.createElement('div'); thumb.className = 'slide-thumb-simple';
+            let displayTitle = slide.title || ''; let displayContent = slide.content || '';
             
             if(slide.type === 'cover') { displayTitle = 'SAMPUL DEPAN'; displayContent = slide.title + ' - ' + slide.date; }
             else if(slide.type === 'announcements_slideshow') { displayTitle = 'WARTA SINODE (SLIDESHOW)'; displayContent = slide.images.length + ' Gambar berjalan otomatis...'; }
@@ -789,46 +722,42 @@
             let shortContent = displayContent.replace(/<[^>]*>?/gm, '').substring(0, 90);
             if(displayContent.length > 90) shortContent += '...';
 
-            thumb.innerHTML = `
-                <div class="thumb-num-badge">${i+1}</div>
-                <div class="thumb-simple-title">${displayTitle}</div>
-                <div class="thumb-simple-content">${shortContent}</div>
-            `;
-            thumb.ondblclick = () => controlProjector('jump', i); 
-            gallery.appendChild(thumb);
+            thumb.innerHTML = `<div class="thumb-num-badge">${i+1}</div><div class="thumb-simple-title">${displayTitle}</div><div class="thumb-simple-content">${shortContent}</div>`;
+            thumb.ondblclick = () => controlProjector('jump', i); gallery.appendChild(thumb);
         });
     }
 
-    function reindexBait(container) {
-        let bCount = 1;
-        container.querySelectorAll('.bait-item').forEach(el => {
-            let label = el.querySelector('.label-text');
-            if (label && !label.innerText.includes('Reff')) {
-                label.innerText = 'Bait ' + bCount;
-                bCount++;
-            }
-        });
+    function updateBaitName(inputElement, blockId) {
+        let newName = inputElement.value.trim();
+        if(newName === '') newName = 'Bait';
+        if(newName.toLowerCase() === 'reff') {
+            inputElement.classList.replace('bg-dark', 'bg-warning');
+            inputElement.classList.replace('text-secondary', 'text-dark');
+        } else {
+            inputElement.classList.replace('bg-warning', 'bg-dark');
+            inputElement.classList.replace('text-dark', 'text-secondary');
+        }
+        
+        let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
+        if(hiddenInput) {
+            hiddenInput.name = `dynamic_content[${blockId}][bait][${newName}]`;
+        }
     }
 
-    function hapusBait(btn, itemId) {
-        const container = btn.closest('#bait-container-' + itemId);
-        btn.closest('.bait-item').remove();
-        reindexBait(container);
-    }
-
-    function tambahBait(itemId, isReff) {
-        const container = document.getElementById('bait-container-' + itemId);
-        const uniqueKey = isReff ? 'ref_' + Date.now().toString().slice(-5) : 'b_' + Date.now().toString().slice(-5);
-        const labelText = isReff ? 'Reff' : 'Bait'; 
-
+    function tambahBaitLagu(blockId) {
+        const container = document.getElementById(`bait-container-${blockId}`);
+        const baitNum = Date.now().toString().slice(-4);
         const html = `
             <div class="input-group mb-1 position-relative bait-item">
-                <span class="input-group-text label-text text-warning">${labelText}</span>
-                <textarea name="dynamic_content[${itemId}][bait][${uniqueKey}]" class="form-control" rows="2"></textarea>
-                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="hapusBait(this, ${itemId})" style="font-size: 14px;">&times;</button>
-            </div>`;
+                <div class="input-group-text bg-dark text-secondary p-0 overflow-hidden">
+                    <input type="text" class="bait-label-input bg-dark text-secondary" onchange="updateBaitName(this, '${blockId}')" value="${baitNum}" placeholder="Nomor">
+                </div>
+                <input type="hidden" class="bait-hidden-key" name="dynamic_content[${blockId}][bait][${baitNum}]" value="">
+                <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value"></textarea>
+                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
+            </div>
+        `;
         container.insertAdjacentHTML('beforeend', html);
-        reindexBait(container);
     }
 
     function tambahSlideKhusus(itemId) {
@@ -840,34 +769,40 @@
     function tarikLagu(itemId, event) {
         const buku = document.getElementById(`buku-lagu-${itemId}`).value; const nomor = document.getElementById(`nomor-lagu-${itemId}`).value.trim();
         const judulInput = document.querySelector(`input[name="dynamic_content[${itemId}][judul]"]`); const container = document.getElementById(`bait-container-${itemId}`);
-        const btn = event.currentTarget;
-        if(!nomor) return alert('Masukkan nomor lagu!');
+        const btn = event.currentTarget; if(!nomor) return alert('Masukkan nomor lagu!');
         const originalText = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
         
         fetch(`/api/fetch-lagu?buku=${buku}&nomor=${nomor}`).then(res => res.json()).then(data => {
             if(data.success) {
-                judulInput.value = data.judul; container.innerHTML = ''; 
-                const baits = data.text.split('===SLIDE_BREAK==='); 
+                judulInput.value = data.judul; container.innerHTML = ''; const baits = data.text.split('===SLIDE_BREAK==='); 
                 
+                let verseCounter = 1; // LOGIKA COUNTER BAIT
+
                 baits.forEach((bait, idx) => {
                     let baitRaw = bait.trim();
                     if(baitRaw !== '') {
                         let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref') || baitRaw.toLowerCase().startsWith('korus');
                         let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                         
-                        let uniqueKey = isReff ? 'ref_' + idx : 'b_' + idx;
-                        let labelText = isReff ? 'Reff' : 'Bait';
+                        let labelText = isReff ? 'Reff' : verseCounter;
+                        let uniqueKey = isReff ? 'ref_' + idx : verseCounter;
+                        let bgClass = isReff ? 'bg-warning text-dark' : 'bg-dark text-secondary';
 
                         const html = `
                             <div class="input-group mb-1 position-relative bait-item">
-                                <span class="input-group-text label-text ${isReff ? 'text-warning' : ''}">${labelText}</span>
-                                <textarea name="dynamic_content[${itemId}][bait][${uniqueKey}]" class="form-control" rows="3">${cleanBait}</textarea>
-                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="hapusBait(this, ${itemId})" style="font-size: 14px;">&times;</button>
-                            </div>`;
+                                <div class="input-group-text ${bgClass} p-0 overflow-hidden">
+                                    <input type="text" class="bait-label-input ${bgClass}" onchange="updateBaitName(this, '${itemId}')" value="${labelText}">
+                                </div>
+                                <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${uniqueKey}]" value="${isReff ? '[REFF]\n' + cleanBait : cleanBait}">
+                                <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
+                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
+                            </div>
+                        `;
                         container.insertAdjacentHTML('beforeend', html); 
+
+                        if (!isReff) verseCounter++; // NAIKKAN COUNTER HANYA JIKA BUKAN REFF
                     }
                 });
-                reindexBait(container);
             } else { alert(data.message); }
         }).catch(err => alert('Gagal menarik data lagu.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
@@ -882,10 +817,7 @@
         }).catch(() => alert('Terjadi kesalahan koneksi.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
 
-    // SESSION KEEP-ALIVE SCRIPT (Pencegah Auto-Logout)
-    setInterval(function() {
-        fetch('{{ url('/') }}').catch(() => console.log('Session keep-alive ping failed'));
-    }, 10 * 60 * 1000); // Nge-ping server setiap 10 menit
+    setInterval(function() { fetch('{{ url('/') }}').catch(() => console.log('Session keep-alive ping failed')); }, 10 * 60 * 1000);
 
     window.addEventListener('storage', (e) => { 
         if (e.key === 'last_slide_index') { currentSlide = parseInt(e.newValue); updateConsoleView(); }

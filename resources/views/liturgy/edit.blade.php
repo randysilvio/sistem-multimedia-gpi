@@ -11,17 +11,34 @@
         .navbar { background-color: #0f172a !important; }
         .builder-container { max-width: 800px; margin: auto; margin-top: 30px; }
         
-        .block-card { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
+        .block-wrapper { position: relative; }
+        .block-card { background: white; border-radius: 8px; padding: 25px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
         .block-card:focus-within { box-shadow: 0 4px 15px rgba(43, 108, 176, 0.15); border-color: #90cdf4; }
         
-        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; }
+        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; z-index: 10;}
         .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
 
-        /* SOLID BOTTOM TOOLBAR PROFESIONAL */
-        .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
+        .insert-divider { position: relative; height: 36px; display: flex; align-items: center; justify-content: center; margin-top: -12px; margin-bottom: -12px; z-index: 10; opacity: 0; transition: opacity 0.3s; }
+        .block-wrapper:hover .insert-divider, .insert-divider:hover, .insert-divider.show { opacity: 1; z-index: 950; }
+        .top-divider { opacity: 1; margin-bottom: 15px; margin-top: 0; height: 40px; }
+        .insert-divider::before { content: ""; position: absolute; width: 100%; height: 2px; background: #cbd5e1; z-index: 1; border-radius: 2px; transition: 0.2s; }
+        .block-wrapper:hover .insert-divider::before { background: #94a3b8; }
         
+        .btn-insert { position: relative; z-index: 2; background: #ffffff; color: #475569; border: 1px solid #cbd5e1; border-radius: 50%; width: 34px; height: 34px; font-weight: 400; font-size: 22px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; line-height: 1; }
+        .btn-insert:hover, .btn-insert[aria-expanded="true"] { border-color: #2b6cb0; color: #2b6cb0; background: #ebf8ff; transform: scale(1.1); box-shadow: 0 4px 10px rgba(43, 108, 176, 0.15); }
+        
+        .dropdown-menu { border-radius: 8px; padding: 8px 0; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1050 !important; min-width: 220px; }
+        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; cursor: pointer;}
+        .dropdown-item:hover { background-color: #f8fafc; color: #0f172a; }
+        .dropdown-divider { border-top: 1px solid #e2e8f0; margin: 5px 0; }
+
+        .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
         .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; transition: 0.2s;}
         .btn-primary-custom:hover { background-color: #1e293b; color: white; }
+        
+        /* Input khusus modifikasi nama bait */
+        .bait-label-input { width: 100%; border: none; font-size: 0.8rem; font-weight: 700; text-align: center; background: transparent; color: inherit; }
+        .bait-label-input:focus { outline: none; background: rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -76,116 +93,165 @@
                 <small class="text-muted">{{ $schedule->liturgy->name ?? 'Kustom' }}</small>
             </div>
 
-            @foreach($schedule->liturgy->items as $item)
-                @php 
-                    $detail = $schedule->details->where('liturgy_item_id', $item->id)->first();
-                    $val = $detail ? $detail->dynamic_content : ($item->static_content ?? '');
-                    
-                    // Deteksi Tipe Warna
-                    $titleLower = strtolower($item->title);
-                    $cardColor = '#718096'; $typeLabel = 'TEKS BEBAS';
-                    if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) { $cardColor = '#2b6cb0'; $typeLabel = 'NYANYIAN JEMAAT'; } 
-                    elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) { $cardColor = '#2c5282'; $typeLabel = 'BACAAN ALKITAB'; } 
-                    elseif (str_contains($titleLower, 'votum') || str_contains($titleLower, 'prosesi') || str_contains($titleLower, 'pengakuan')) { $cardColor = '#4a5568'; $typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; } 
-                    elseif (str_contains($titleLower, 'sikap') || str_contains($titleLower, 'aksi')) { $cardColor = '#c53030'; $typeLabel = 'INSTRUKSI SIKAP JEMAAT'; }
-                @endphp
-                
-                <div class="block-card" style="border-top: 4px solid {{ $cardColor }};">
-                    <div class="mb-3 pb-2 d-flex justify-content-between align-items-center border-bottom">
-                        <span class="badge text-uppercase" style="background-color: {{ $cardColor }}; letter-spacing: 0.5px;">{{ $typeLabel }}</span>
-                        <span class="fw-bold text-dark">{{ $item->title }}</span>
-                    </div>
-                    
-                    @if($item->is_dynamic)
-
-                        @if(str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi'))
-                            @php $sikapVal = is_array($val) ? ($val['content'] ?? $val[0] ?? '') : $val; @endphp
-                            <select name="dynamic_content[{{ $item->id }}]" class="form-select bg-light fw-bold border-secondary text-dark">
-                                <option value="(Jemaat Berdiri)" {{ str_contains($sikapVal, 'Berdiri') ? 'selected' : '' }}>(Jemaat Berdiri)</option>
-                                <option value="(Jemaat Duduk)" {{ str_contains($sikapVal, 'Duduk') && !str_contains($sikapVal, 'Teduh') ? 'selected' : '' }}>(Jemaat Duduk)</option>
-                                <option value="(Saat Teduh)" {{ str_contains($sikapVal, 'Teduh') ? 'selected' : '' }}>(Saat Teduh / Lilin Dipadamkan)</option>
-                            </select>
-
-                        @elseif(str_contains(strtolower($item->title), 'pra-ibadah') || str_contains(strtolower($item->title), 'prosesi'))
-                            <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-2 fw-medium" value="{{ is_array($val) ? ($val['custom_title'] ?? '') : str_replace(' (Opsional)', '', $item->title) }}" placeholder="Judul Tampilan">
-                            <textarea name="dynamic_content[{{ $item->id }}][content]" class="form-control bg-light" rows="4">{{ is_array($val) ? ($val['content'] ?? '') : (is_string($val) ? $val : '') }}</textarea>
-                            
-                        @elseif(str_contains(strtolower($item->title), 'nyanyian') || str_contains(strtolower($item->title), 'pujian'))
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-3">
-                                    <select id="buku-lagu-{{ $item->id }}" class="form-select bg-light">
-                                        <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="BEBAS">Lainnya</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-7">
-                                    <input type="text" id="nomor-lagu-{{ $item->id }}" class="form-control bg-light" placeholder="No. Lagu">
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-secondary w-100" onclick="tarikLagu({{ $item->id }}, event)">Tarik</button>
-                                </div>
-                            </div>
-
-                            <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-3 fw-bold text-primary" placeholder="Judul Lagu" value="{{ is_array($val) ? ($val['judul'] ?? '') : '' }}">
-                            
-                            <div id="bait-container-{{ $item->id }}">
-                                @if(is_array($val) && isset($val['bait']) && is_array($val['bait']))
-                                    @php $verseCountForEdit = 1; @endphp
-                                    @foreach($val['bait'] as $idx => $bait)
-                                        @php 
-                                            $isReffKey = (is_string($idx) && stripos($idx, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $bait);
-                                            $displayKey = $isReffKey ? 'Reff' : 'Bait ' . $verseCountForEdit;
-                                            if (!$isReffKey) $verseCountForEdit++;
-                                            $cleanTextForEdit = preg_replace('/^\[?REFF\]?\s*/i', '', $bait);
-                                        @endphp
-                                        <div class="input-group mb-2 shadow-sm position-relative bait-item">
-                                            <span class="input-group-text {{ $isReffKey ? 'bg-warning text-dark' : 'bg-light text-secondary' }} fw-bold" style="font-size:0.8rem; min-width: 70px; justify-content:center;">{{ $displayKey }}</span>
-                                            <textarea name="dynamic_content[{{ $item->id }}][bait][{{ $idx }}]" class="form-control" rows="3">{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}</textarea>
-                                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="hapusBaitEdit(this, {{ $item->id }})" style="font-size: 14px; padding: 2px 6px;">&times;</button>
-                                        </div>
-                                    @endforeach
-                                @endif
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="tambahBaitEdit({{ $item->id }})">&plus; Tambah Bait Lirik</button>
-                            
-                        @else
-                            @if(str_contains(strtolower($item->title), 'alkitab') || str_contains(strtolower($item->title), 'bacaan'))
-                                <div class="row g-2 mb-2">
-                                    <div class="col-md-10">
-                                        <input type="text" id="input-alkitab-{{ $item->id }}" class="form-control bg-light" placeholder="Cari Kitab (Cth: Yohanes 3:16)">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="button" class="btn btn-secondary w-100" onclick="tarikAlkitab({{ $item->id }}, event)">Tarik</button>
-                                    </div>
-                                </div>
-                            @endif
-                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control bg-light" rows="4">{{ is_array($val) ? ($val['content'] ?? '') : $val }}</textarea>
-                        @endif
-                        
-                    @else
-                        <textarea name="dynamic_content[{{ $item->id }}]" class="form-control text-secondary bg-light border-0" rows="2" readonly>{{ $item->static_content }}</textarea>
-                    @endif
-
-                    <div class="mt-4 pt-3 border-top" style="border-color: #edf2f7 !important;">
-                        <label class="form-label text-secondary"><small>Slide Tambahan / Sisipan (Opsional)</small></label>
-                        <div id="custom-slide-container-{{ $item->id }}">
-                            @if(isset($schedule->customSlides) && $schedule->customSlides->where('liturgy_item_id', $item->id)->count() > 0)
-                                @foreach($schedule->customSlides->where('liturgy_item_id', $item->id) as $index => $cSlide)
-                                    <div class="p-3 mb-2 border rounded bg-light position-relative">
-                                        <button type="button" class="btn-delete-block" onclick="this.parentElement.remove()" style="top:5px; right:5px;">&times;</button>
-                                        <div class="mb-2 pe-4">
-                                            <input type="text" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][title]" class="form-control fw-medium" value="{{ $cSlide->title }}">
-                                        </div>
-                                        <textarea name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][content]" class="form-control" rows="3">{{ $cSlide->content }}</textarea>
-                                    </div>
-                                @endforeach
-                            @endif
-                        </div>
-                        <button type="button" class="btn btn-sm btn-light border fw-medium px-4 rounded mt-2" onclick="tambahSlideKhusus({{ $item->id }})">
-                            &plus; Sisipkan Slide Tambahan Di Sini
-                        </button>
+            <div id="canvas-area">
+                <div class="insert-divider top-divider" id="top-anchor">
+                    <div class="dropdown">
+                        <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Tambah Slide Paling Atas">&plus;</button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" onclick="insertBlock('nyanyian', 'top')">Tambah Nyanyian Jemaat</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('alkitab', 'top')">Tambah Bacaan Alkitab</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('votum', 'top')">Tambah Votum / Prosesi</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('aksi', 'top')">Tambah Instruksi Sikap Jemaat</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas</a></li>
+                        </ul>
                     </div>
                 </div>
-            @endforeach
+
+                @foreach($schedule->liturgy->items as $index => $item)
+                    @php 
+                        $detail = $schedule->details->where('liturgy_item_id', $item->id)->first();
+                        $val = $detail ? $detail->dynamic_content : ($item->static_content ?? '');
+                        
+                        $titleLower = strtolower($item->title);
+                        $cardColor = '#718096'; $typeLabel = 'TEKS BEBAS'; $type = 'polos';
+                        if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) { $cardColor = '#2b6cb0'; $typeLabel = 'NYANYIAN JEMAAT'; $type = 'nyanyian'; } 
+                        elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) { $cardColor = '#2c5282'; $typeLabel = 'BACAAN ALKITAB'; $type = 'alkitab'; } 
+                        elseif (str_contains($titleLower, 'votum') || str_contains($titleLower, 'prosesi') || str_contains($titleLower, 'pengakuan')) { $cardColor = '#4a5568'; $typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; $type = 'votum'; } 
+                        elseif (str_contains($titleLower, 'sikap') || str_contains($titleLower, 'aksi')) { $cardColor = '#c53030'; $typeLabel = 'INSTRUKSI SIKAP JEMAAT'; $type = 'aksi'; }
+                        
+                        $idx = 'old_' . $item->id;
+                        $displayTitle = preg_replace('/^(Nyanyian:|Bacaan Alkitab:|Prosesi:|Slide Bebas:)\s*/i', '', $item->title);
+                        $displayTitle = str_replace(' (Opsional)', '', $displayTitle);
+                    @endphp
+                    
+                    <div class="block-wrapper" id="wrapper-{{ $idx }}">
+                        <div class="block-card" style="border-top: 4px solid {{ $cardColor }};">
+                            <input type="hidden" name="blocks[{{ $idx }}][type]" value="{{ $type }}">
+                            <button type="button" class="btn-delete-block" onclick="this.closest('.block-wrapper').remove()" title="Hapus Bagian Ini">&times;</button>
+
+                            <div class="mb-3 pb-2 d-flex justify-content-between align-items-center border-bottom">
+                                <span class="badge text-uppercase" style="background-color: {{ $cardColor }}; letter-spacing: 0.5px;">{{ $typeLabel }}</span>
+                            </div>
+                            
+                            <div class="row g-3">
+                                @if($type === 'nyanyian')
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-bold text-muted">Keterangan / Momen</label>
+                                        <input type="text" name="blocks[{{ $idx }}][title]" class="form-control fw-bold" value="{{ $displayTitle }}" required>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-bold text-muted">Tarik Data Lagu</label>
+                                        <div class="input-group mb-2">
+                                            <select id="buku-{{ $idx }}" class="form-select bg-light" style="max-width: 90px;">
+                                                <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="BEBAS">Lainnya</option>
+                                            </select>
+                                            <input type="text" id="nomor-{{ $idx }}" class="form-control bg-light" placeholder="No. Lagu">
+                                            <button type="button" class="btn btn-secondary px-3" onclick="tarikLaguBuilder('{{ $idx }}', event, false)">Tarik</button>
+                                        </div>
+                                        <input type="text" id="judul-{{ $idx }}" name="blocks[{{ $idx }}][judul]" class="form-control mb-2 text-primary fw-medium" placeholder="Judul Lagu" value="{{ is_array($val) ? ($val['judul'] ?? '') : '' }}" style="font-size: 0.85rem;">
+                                        
+                                        <div id="bait-container-{{ $idx }}" class="mt-3">
+                                            @if(is_array($val) && isset($val['bait']) && is_array($val['bait']))
+                                                @foreach($val['bait'] as $key => $bait)
+                                                    @php 
+                                                        $isReffKey = (is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $bait);
+                                                        
+                                                        // Gunakan KEY ASLI DARI DATABASE
+                                                        $displayKey = $key;
+                                                        $cleanTextForEdit = preg_replace('/^\[?REFF\]?\s*/i', '', $bait);
+                                                    @endphp
+                                                    <div class="input-group mb-2 shadow-sm position-relative bait-item">
+                                                        <div class="input-group-text {{ $isReffKey ? 'bg-warning text-dark' : 'bg-light text-secondary' }} p-0 overflow-hidden" style="width: 80px;">
+                                                            <input type="text" class="bait-label-input" 
+                                                                onchange="updateBaitName(this, '{{ $idx }}', false)" 
+                                                                value="{{ $displayKey }}">
+                                                        </div>
+                                                        <textarea name="blocks[{{ $idx }}][bait][{{ $displayKey }}]" class="form-control" rows="3">{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}</textarea>
+                                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                                    </div>
+                                                @endforeach
+                                            @else
+                                                <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                                                    <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                                                        <input type="text" class="bait-label-input" onchange="updateBaitName(this, '{{ $idx }}', false)" value="1">
+                                                    </div>
+                                                    <textarea name="blocks[{{ $idx }}][bait][1]" class="form-control" rows="3"></textarea>
+                                                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem; font-weight:600;" onclick="tambahBaitLagu('{{ $idx }}', false, '{{ $item->id }}')">+ Tambah Bait Manual</button>
+                                    </div>
+
+                                @elseif($type === 'alkitab')
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-bold text-muted">Momen Bacaan</label>
+                                        <input type="text" name="blocks[{{ $idx }}][title]" class="form-control fw-bold" value="{{ $displayTitle }}" required>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-bold text-muted">Cari Kitab & Pasal</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" id="cari-kitab-{{ $idx }}" class="form-control bg-light" placeholder="Cth: Yohanes 3:16">
+                                            <button type="button" class="btn btn-secondary px-3" onclick="tarikAyatBuilder('{{ $idx }}', event)">Tarik</button>
+                                        </div>
+                                        <textarea name="blocks[{{ $idx }}][content][]" id="text-kitab-{{ $idx }}" class="form-control bg-light" rows="4">{{ is_array($val) ? ($val['content'] ?? '') : (is_string($val) ? $val : '') }}</textarea>
+                                    </div>
+
+                                @elseif($type === 'votum')
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Judul Sesi</label>
+                                        <input type="text" name="blocks[{{ $idx }}][title]" class="form-control fw-bold" value="{{ is_array($val) ? ($val['custom_title'] ?? $displayTitle) : $displayTitle }}" required>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label small fw-bold text-muted">Teks Pembacaan</label>
+                                        <textarea name="blocks[{{ $idx }}][content][]" class="form-control bg-light" rows="3">{{ is_array($val) ? ($val['content'] ?? '') : (is_string($val) ? $val : '') }}</textarea>
+                                    </div>
+
+                                @elseif($type === 'aksi')
+                                    @php $sikapVal = is_array($val) ? ($val['content'] ?? $val[0] ?? '') : $val; @endphp
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-bold text-muted">Keterangan Internal</label>
+                                        <input type="text" name="blocks[{{ $idx }}][title]" class="form-control fw-bold text-muted" value="Instruksi Sikap Jemaat" readonly>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-bold text-muted">Pilih Instruksi Tayang</label>
+                                        <select name="blocks[{{ $idx }}][content][]" class="form-select bg-light fw-bold border-secondary text-dark">
+                                            <option value="(Jemaat Berdiri)" {{ str_contains($sikapVal, 'Berdiri') ? 'selected' : '' }}>(Jemaat Berdiri)</option>
+                                            <option value="(Jemaat Duduk)" {{ str_contains($sikapVal, 'Duduk') && !str_contains($sikapVal, 'Teduh') ? 'selected' : '' }}>(Jemaat Duduk)</option>
+                                            <option value="(Saat Teduh / Lilin Dipadamkan)" {{ str_contains($sikapVal, 'Teduh') ? 'selected' : '' }}>(Saat Teduh / Lilin Dipadamkan)</option>
+                                        </select>
+                                    </div>
+
+                                @else
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Judul Slide (Header)</label>
+                                        <input type="text" name="blocks[{{ $idx }}][title]" class="form-control fw-bold" value="{{ $displayTitle }}" required>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label small fw-bold text-muted">Isi Konten Teks</label>
+                                        <textarea name="blocks[{{ $idx }}][content][]" class="form-control bg-light" rows="3">{{ is_array($val) ? ($val['content'] ?? '') : $val }}</textarea>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="insert-divider">
+                            <div class="dropdown">
+                                <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan Slide Di Sini">&plus;</button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" onclick="insertBlock('nyanyian', '{{ $idx }}')">Tambah Nyanyian Jemaat</a></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('alkitab', '{{ $idx }}')">Tambah Bacaan Alkitab</a></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('votum', '{{ $idx }}')">Tambah Votum / Prosesi</a></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('aksi', '{{ $idx }}')">Tambah Instruksi Sikap</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('polos', '{{ $idx }}')">Tambah Slide Teks Bebas</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
             
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
@@ -195,62 +261,197 @@
         </form>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-    // FUNGSI REINDEX BAIT SEPERTI DI CONTROL PANEL
-    function reindexBaitEdit(container) {
-        let bCount = 1;
-        container.querySelectorAll('.bait-item').forEach(el => {
-            let span = el.querySelector('span');
-            if (span && !span.innerText.toLowerCase().includes('reff')) {
-                span.innerText = 'Bait ' + bCount;
-                bCount++;
-            }
-        });
+    let blockCount = 0;
+
+    function insertBlock(type, referenceId) {
+        blockCount++;
+        const newId = 'new_' + blockCount;
+        let cardColor = '';
+        let typeLabel = '';
+        let contentHtml = '';
+
+        if (type === 'nyanyian') {
+            cardColor = '#2b6cb0'; typeLabel = 'NYANYIAN JEMAAT';
+            contentHtml = `
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-muted">Keterangan / Momen</label>
+                    <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" placeholder="Cth: Nyanyian Persiapan" required>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label small fw-bold text-muted">Tarik Data Lagu</label>
+                    <div class="input-group mb-2">
+                        <select id="buku-${newId}" class="form-select bg-light" style="max-width: 90px;">
+                            <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="BEBAS">Lainnya</option>
+                        </select>
+                        <input type="text" id="nomor-${newId}" class="form-control bg-light" placeholder="No. Lagu">
+                        <button type="button" class="btn btn-secondary px-3" onclick="tarikLaguBuilder('${newId}', event, true)">Tarik</button>
+                    </div>
+                    <input type="text" id="judul-${newId}" name="blocks[${newId}][judul]" class="form-control mb-2 text-primary fw-medium" placeholder="Judul otomatis terdeteksi..." style="font-size: 0.85rem;">
+                    
+                    <div id="bait-container-${newId}" class="mt-3">
+                        <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                            <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                                <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${newId}', true)" value="1" placeholder="Angka">
+                            </div>
+                            <textarea name="blocks[${newId}][bait][1]" class="form-control" rows="3" placeholder="Isi lirik..."></textarea>
+                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem; font-weight:600;" onclick="tambahBaitLagu('${newId}', true, null)">+ Tambah Bait Manual</button>
+                </div>
+            `;
+        } 
+        else if (type === 'alkitab') {
+            cardColor = '#2c5282'; typeLabel = 'BACAAN ALKITAB';
+            contentHtml = `
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-muted">Momen Bacaan</label>
+                    <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" value="Pelayanan Firman" required>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label small fw-bold text-muted">Cari Kitab & Pasal</label>
+                    <div class="input-group mb-2">
+                        <input type="text" id="cari-kitab-${newId}" class="form-control bg-light" placeholder="Cth: Yohanes 3:16">
+                        <button type="button" class="btn btn-secondary px-3" onclick="tarikAyatBuilder('${newId}', event)">Tarik</button>
+                    </div>
+                    <textarea name="blocks[${newId}][content][]" id="text-kitab-${newId}" class="form-control bg-light" rows="4" placeholder="Teks ayat..."></textarea>
+                </div>
+            `;
+        }
+        else if (type === 'votum') {
+            cardColor = '#4a5568'; typeLabel = 'VOTUM / PROSESI / PENGAKUAN';
+            contentHtml = `
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Judul Sesi</label>
+                    <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" placeholder="Cth: Votum & Salam" required>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label small fw-bold text-muted">Teks Pembacaan</label>
+                    <textarea name="blocks[${newId}][content][]" class="form-control bg-light" rows="3" placeholder="Ketik teks yang akan dibaca..."></textarea>
+                </div>
+            `;
+        }
+        else if (type === 'aksi') {
+            cardColor = '#c53030'; typeLabel = 'INSTRUKSI SIKAP JEMAAT';
+            contentHtml = `
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-muted">Keterangan Internal</label>
+                    <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold text-muted" value="Instruksi Sikap Jemaat" readonly>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label small fw-bold text-muted">Pilih Instruksi Tayang</label>
+                    <select name="blocks[${newId}][content][]" class="form-select bg-light fw-bold border-secondary text-dark">
+                        <option value="(Jemaat Berdiri)">(Jemaat Berdiri)</option>
+                        <option value="(Jemaat Duduk)">(Jemaat Duduk)</option>
+                        <option value="(Saat Teduh / Lilin Dipadamkan)">(Saat Teduh / Lilin Dipadamkan)</option>
+                    </select>
+                </div>
+            `;
+        }
+        else {
+            cardColor = '#718096'; typeLabel = 'SLIDE TEKS BEBAS';
+            contentHtml = `
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Judul Slide (Header)</label>
+                    <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" placeholder="Judul besar..." required>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label small fw-bold text-muted">Isi Konten Teks</label>
+                    <textarea name="blocks[${newId}][content][]" class="form-control bg-light" rows="3" placeholder="Ketik teks bebas..."></textarea>
+                </div>
+            `;
+        }
+
+        const blockHtml = `
+            <div class="block-card" style="border-top: 4px solid ${cardColor};">
+                <input type="hidden" name="blocks[${newId}][type]" value="${type}">
+                <button type="button" class="btn-delete-block" onclick="this.closest('.block-wrapper').remove()" title="Hapus Slide">&times;</button>
+                <div class="mb-3 pb-2">
+                    <span class="badge text-uppercase" style="background-color: ${cardColor}; letter-spacing: 0.5px;">${typeLabel}</span>
+                </div>
+                <div class="row g-3">
+                    ${contentHtml}
+                </div>
+            </div>
+        `;
+
+        const dividerHtml = `
+            <div class="insert-divider">
+                <div class="dropdown">
+                    <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan Slide Di Sini">&plus;</button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" onclick="insertBlock('nyanyian', '${newId}')">Tambah Nyanyian Jemaat</a></li>
+                        <li><a class="dropdown-item" onclick="insertBlock('alkitab', '${newId}')">Tambah Bacaan Alkitab</a></li>
+                        <li><a class="dropdown-item" onclick="insertBlock('votum', '${newId}')">Tambah Votum / Prosesi</a></li>
+                        <li><a class="dropdown-item" onclick="insertBlock('aksi', '${newId}')">Tambah Instruksi Sikap</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas</a></li>
+                    </ul>
+                </div>
+            </div>
+        `;
+
+        const wrapperHtml = `<div class="block-wrapper" id="wrapper-${newId}">${blockHtml}${dividerHtml}</div>`;
+
+        if (referenceId === 'top') {
+            document.getElementById('top-anchor').insertAdjacentHTML('afterend', wrapperHtml);
+        } else {
+            document.getElementById('wrapper-' + referenceId).insertAdjacentHTML('afterend', wrapperHtml);
+        }
+        
+        document.getElementById('wrapper-' + newId).scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    function hapusBaitEdit(btn, itemId) {
-        const container = btn.closest('#bait-container-' + itemId);
-        btn.closest('.bait-item').remove();
-        reindexBaitEdit(container);
+    function updateBaitName(inputElement, blockId, isNewBlock) {
+        let newName = inputElement.value.trim();
+        if(newName === '') newName = 'Bait';
+        
+        let parentDiv = inputElement.closest('.input-group-text');
+        
+        if(newName.toLowerCase() === 'reff') {
+            parentDiv.classList.replace('bg-light', 'bg-warning');
+            parentDiv.classList.replace('text-secondary', 'text-dark');
+        } else {
+            parentDiv.classList.replace('bg-warning', 'bg-light');
+            parentDiv.classList.replace('text-dark', 'text-secondary');
+        }
+        
+        let textarea = inputElement.closest('.bait-item').querySelector('textarea');
+        if(textarea) {
+            textarea.name = `blocks[${blockId}][bait][${newName}]`;
+        }
     }
 
-    function tambahBaitEdit(itemId) {
-        const container = document.getElementById('bait-container-' + itemId);
-        const uniqueKey = 'b_' + Date.now().toString().slice(-5);
+    function tambahBaitLagu(blockId, isNewBlock, originalItemId) {
+        const container = document.getElementById(`bait-container-${blockId}`);
+        const baitNum = Date.now().toString().slice(-4); 
         
         const html = `
-            <div class="input-group mb-2 shadow-sm position-relative bait-item">
-                <span class="input-group-text bg-light text-secondary fw-bold" style="font-size:0.8rem; min-width: 70px; justify-content:center;">Bait</span>
-                <textarea name="dynamic_content[${itemId}][bait][${uniqueKey}]" class="form-control" rows="3"></textarea>
-                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="hapusBaitEdit(this, ${itemId})" style="font-size: 14px; padding: 2px 6px;">&times;</button>
-            </div>`;
+            <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                    <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${blockId}', ${isNewBlock})" value="${baitNum}" placeholder="Angka">
+                </div>
+                <textarea name="blocks[${blockId}][bait][${baitNum}]" class="form-control" rows="3"></textarea>
+                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+            </div>
+        `;
         container.insertAdjacentHTML('beforeend', html);
-        reindexBaitEdit(container);
     }
 
-    function tambahSlideKhusus(itemId) {
-        const container = document.getElementById('custom-slide-container-' + itemId); 
-        const slideId = Math.random().toString(36).substr(2, 9);
-        const html = `
-            <div class="p-3 mb-2 border rounded bg-light position-relative">
-                <button type="button" class="btn-delete-block" onclick="this.parentElement.remove()" style="top:5px; right:5px;">&times;</button>
-                <div class="mb-2 pe-4">
-                    <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control fw-medium" placeholder="Judul Sisipan">
-                </div>
-                <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control" rows="3" placeholder="Isi teks slide..."></textarea>
-            </div>`;
-        container.insertAdjacentHTML('beforeend', html);
-    }
-    
-    function tarikLagu(itemId, event) {
-        const buku = document.getElementById(`buku-lagu-${itemId}`).value;
-        const nomor = document.getElementById(`nomor-lagu-${itemId}`).value.trim();
-        const judulInput = document.querySelector(`input[name="dynamic_content[${itemId}][judul]"]`);
-        const container = document.getElementById(`bait-container-${itemId}`);
+    // FUNGSI TARIK LAGU (DIPERBAIKI LOGIKA COUNTERNYA)
+    function tarikLaguBuilder(blockId, event, isNewBlock) {
+        const buku = document.getElementById(`buku-${blockId}`).value;
+        const nomor = document.getElementById(`nomor-${blockId}`).value.trim();
+        const judulInput = document.getElementById(`judul-${blockId}`);
+        const container = document.getElementById(`bait-container-${blockId}`);
         const btn = event.currentTarget;
         
-        if(!nomor) return alert('Masukkan nomor lagu!');
+        if(!nomor) return alert('Tulis nomor lagu terlebih dahulu!');
         
+        const originalText = btn.innerHTML;
         btn.innerHTML = '...'; btn.disabled = true;
 
         fetch(`/api/fetch-lagu?buku=${buku}&nomor=${nomor}`)
@@ -261,45 +462,58 @@
                     container.innerHTML = ''; 
                     const baits = data.text.split('===SLIDE_BREAK===');
                     
+                    let verseCounter = 1; // Counter khusus untuk bait
+                    
                     baits.forEach((bait, idx) => {
                         let baitRaw = bait.trim();
                         if(baitRaw !== '') {
                             let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                             let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
-                            let uniqueKey = isReff ? 'ref_' + idx : 'b_' + idx;
-                            let labelText = isReff ? 'Reff' : 'Bait';
-
+                            
+                            let labelText = isReff ? 'Reff' : verseCounter;
+                            let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
+                            
                             const html = `
-                                <div class="input-group mb-2 shadow-sm position-relative bait-item">
-                                    <span class="input-group-text ${isReff ? 'bg-warning text-dark' : 'bg-light text-secondary'} fw-bold" style="font-size:0.8rem; min-width: 70px; justify-content:center;">${labelText}</span>
-                                    <textarea name="dynamic_content[${itemId}][bait][${uniqueKey}]" class="form-control" rows="3">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
-                                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="hapusBaitEdit(this, ${itemId})" style="font-size: 14px; padding: 2px 6px;">&times;</button>
-                                </div>`;
+                                <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                                    <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
+                                        <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${blockId}', ${isNewBlock})" value="${labelText}">
+                                    </div>
+                                    <textarea name="blocks[${blockId}][bait][${labelText}]" class="form-control" rows="3">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
+                                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                </div>
+                            `;
                             container.insertAdjacentHTML('beforeend', html);
+                            
+                            if (!isReff) verseCounter++; // Hanya naikkan counter jika bukan Reff
                         }
                     });
-                    reindexBaitEdit(container);
                 } else { alert(data.message); }
-            }).finally(() => { btn.innerHTML = 'Tarik'; btn.disabled = false; });
+            })
+            .catch(() => alert('Gagal menarik data lagu.'))
+            .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
 
-    function tarikAlkitab(itemId, event) {
-        const inputField = document.getElementById('input-alkitab-' + itemId); 
-        const textarea = document.getElementById('textarea-' + itemId);
-        const btn = event.currentTarget; 
-        const query = inputField.value.trim();
+    function tarikAyatBuilder(blockId, event) {
+        const input = document.getElementById(`cari-kitab-${blockId}`);
+        const textarea = document.getElementById(`text-kitab-${blockId}`);
+        const btn = event.currentTarget;
+        const query = input.value.trim();
         
-        if(!query) return alert('Masukkan kitab dan pasal.'); 
+        if(!query) return alert('Tulis nama kitab dan pasalnya!');
         
+        const originalText = btn.innerHTML;
         btn.innerHTML = '...'; btn.disabled = true;
-        
+        textarea.value = "Menghubungi server Alkitab...";
+
         fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`)
             .then(res => res.json())
             .then(data => {
-                if(data.success) { 
-                    textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text; 
-                } else { alert(data.message); }
-            }).finally(() => { btn.innerHTML = 'Tarik'; btn.disabled = false; });
+                if(data.success) {
+                    textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text;
+                } else { textarea.value = "Gagal: " + data.message; }
+            })
+            .catch(() => textarea.value = "Gagal koneksi internet.")
+            .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
 </script>
 </body>

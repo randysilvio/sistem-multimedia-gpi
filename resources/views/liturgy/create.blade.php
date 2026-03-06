@@ -14,7 +14,7 @@
         .block-card { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
         .block-card:focus-within { box-shadow: 0 4px 15px rgba(43, 108, 176, 0.15); border-color: #90cdf4; }
         
-        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; }
+        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; z-index: 10;}
         .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
 
         /* SOLID BOTTOM TOOLBAR PROFESIONAL */
@@ -22,6 +22,10 @@
         
         .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; transition: 0.2s;}
         .btn-primary-custom:hover { background-color: #1e293b; color: white; }
+
+        /* Input khusus modifikasi nama bait */
+        .bait-label-input { width: 100%; border: none; font-size: 0.8rem; font-weight: 700; text-align: center; background: transparent; color: inherit; }
+        .bait-label-input:focus { outline: none; background: rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -137,9 +141,13 @@
                             <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-3 fw-bold text-primary" placeholder="Judul Lagu">
                             
                             <div id="bait-container-{{ $item->id }}">
-                                <div class="input-group mb-2 shadow-sm position-relative">
-                                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait 1</span>
-                                    <textarea name="dynamic_content[{{ $item->id }}][bait][1]" class="form-control" rows="3" placeholder="Ketik lirik..." {{ $reqRule }}></textarea>
+                                <div class="input-group mb-2 shadow-sm position-relative bait-item">
+                                    <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                                        <input type="text" class="bait-label-input" onchange="updateBaitName(this, '{{ $item->id }}')" value="1">
+                                    </div>
+                                    <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][1]" value="">
+                                    <textarea class="form-control" rows="3" placeholder="Ketik lirik..." oninput="this.previousElementSibling.value = this.value"></textarea>
+                                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="tambahBait({{ $item->id }})">&plus; Tambah Bait Lirik</button>
@@ -184,28 +192,39 @@
     </div>
 
     <script>
-        function getNextVerseNumber(containerId) {
-            const container = document.getElementById(containerId);
-            let maxNum = 0;
-            const textareas = container.querySelectorAll('textarea');
-            textareas.forEach(ta => {
-                if(ta.name.includes('[bait]')) {
-                    const match = ta.name.match(/\[bait\]\[(\d+)\]/);
-                    if(match && parseInt(match[1]) > maxNum) maxNum = parseInt(match[1]);
-                }
-            });
-            return maxNum === 0 ? 1 : maxNum + 1;
+        // FUNGSI MENGGANTI NAMA BAIT (KEY ARRAY)
+        function updateBaitName(inputElement, itemId) {
+            let newName = inputElement.value.trim();
+            if(newName === '') newName = 'Bait';
+            
+            let parentDiv = inputElement.closest('.input-group-text');
+            
+            if(newName.toLowerCase() === 'reff') {
+                parentDiv.classList.replace('bg-light', 'bg-warning');
+                parentDiv.classList.replace('text-secondary', 'text-dark');
+            } else {
+                parentDiv.classList.replace('bg-warning', 'bg-light');
+                parentDiv.classList.replace('text-dark', 'text-secondary');
+            }
+            
+            let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
+            if(hiddenInput) {
+                hiddenInput.name = `dynamic_content[${itemId}][bait][${newName}]`;
+            }
         }
 
         function tambahBait(itemId) {
             const containerId = 'bait-container-' + itemId;
-            const nextNum = getNextVerseNumber(containerId);
+            const baitNum = Date.now().toString().slice(-4);
             
             const html = `
-                <div class="input-group mb-2 shadow-sm position-relative">
-                    <span class="input-group-text bg-light text-secondary" style="font-size:0.8rem; min-width: 70px;">Bait ${nextNum}</span>
-                    <textarea name="dynamic_content[${itemId}][bait][${nextNum}]" class="form-control" rows="3" placeholder="Teks lanjutan..."></textarea>
-                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                <div class="input-group mb-2 shadow-sm position-relative bait-item">
+                    <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                        <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${itemId}')" value="${baitNum}" placeholder="Angka">
+                    </div>
+                    <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${baitNum}]" value="">
+                    <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value"></textarea>
+                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                 </div>`;
             document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
         }
@@ -245,21 +264,27 @@
                         container.innerHTML = ''; 
                         
                         const baits = data.text.split('===SLIDE_BREAK===');
-                        let verseNum = 1;
-                        baits.forEach(bait => {
-                            if(bait.trim() !== '') {
-                                let isReff = bait.trim().toUpperCase().startsWith('[REFF]');
-                                let labelText = isReff ? 'Reff' : 'Bait ' + verseNum;
-                                let cleanBait = bait.replace(/^\[?REFF\]?\s*/i, '').trim();
+                        
+                        baits.forEach((bait, idx) => {
+                            let baitRaw = bait.trim();
+                            if(baitRaw !== '') {
+                                let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
+                                let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
+                                
+                                // LOGIKA KUNCI: Biarkan nomor Index Asli (idx+1) menjadi Label
+                                let labelText = isReff ? 'Reff' : (idx + 1);
+                                let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
                                 
                                 const html = `
-                                    <div class="input-group mb-2 shadow-sm position-relative">
-                                        <span class="input-group-text ${isReff ? 'bg-warning text-dark' : 'bg-light text-secondary'} fw-bold" style="font-size:0.8rem; min-width: 70px;">${labelText}</span>
-                                        <textarea name="dynamic_content[${itemId}][bait][${verseNum}]" class="form-control" rows="3">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
-                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.parentElement.remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
+                                    <div class="input-group mb-2 shadow-sm position-relative bait-item">
+                                        <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
+                                            <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${itemId}')" value="${labelText}">
+                                        </div>
+                                        <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${labelText}]" value="${isReff ? '[REFF]\n' + cleanBait : cleanBait}">
+                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
+                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
-                                verseNum++;
                             }
                         });
                     } else { alert(data.message); }

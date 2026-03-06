@@ -9,7 +9,11 @@
         
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            color: #ffffff; font-family: 'Inter', Tahoma, sans-serif; overflow: hidden; background: #000;
+            background: radial-gradient(circle at center, {{ $schedule->theme_color ?? '#1b2735' }} 0%, #050505 100%);
+            color: #ffffff; 
+            font-family: 'Inter', Tahoma, sans-serif; 
+            overflow: hidden; 
+            transition: background 0.5s ease, color 0.5s ease;
         }
 
         /* KEYFRAME ANIMASI BACKGROUND CSS */
@@ -24,7 +28,13 @@
         .start-title { color: #3182ce; font-size: 3vw; margin-bottom: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
         .start-subtitle { color: #a0aec0; font-size: 1.5vw; text-align: center; font-weight: 400; }
         
-        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding: 6vh 4vw; box-sizing: border-box; opacity: 0; z-index: 0; pointer-events: none; }
+        .slide { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
+            text-align: center; padding: 7vh 6vw; box-sizing: border-box; 
+            opacity: 0; /* Transisi dihapus di sini agar pergantian instan */
+            z-index: 0; pointer-events: none; 
+        }
         .slide.active { opacity: 1; z-index: 10; pointer-events: auto; }
         
         .bait-watermark { position: absolute; top: -3vh; left: 3vw; font-size: 55vh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; user-select: none; pointer-events: none;}
@@ -93,14 +103,15 @@
     }
 
     $allSlides = [];
-
-    // 1. SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW) - PINDAH KE URUTAN 1
+    
+    // 1. SISIPAN OTOMATIS WARTA SINODE
     if(isset($announcements) && $announcements->count() > 0) {
         $slideImages = [];
         foreach($announcements as $ann) {
             $slideImages[] = [
                 'image_url' => asset('storage/' . $ann->image_path),
-                'caption' => strtoupper($ann->title ?? '')
+                'caption' => strtoupper($ann->title ?? ''),
+                'duration' => $ann->duration ?? 5
             ];
         }
         $allSlides[] = [
@@ -110,7 +121,7 @@
         ];
     }
     
-    // 2. COVER (LOGO & TEMA) - PINDAH KE URUTAN 2
+    // 2. COVER (LOGO & TEMA)
     $allSlides[] = [
         'type' => 'cover',
         'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
@@ -144,7 +155,6 @@
                         'content' => ($content['judul'] ?? '')
                     ];
                     
-                    $verseCounter = 1;
                     foreach($content['bait'] as $key => $bait) {
                         $baitTextRaw = trim($bait);
                         if(empty($baitTextRaw)) continue;
@@ -153,10 +163,18 @@
                         if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
                             $isReff = true;
                         }
-
+                        
                         $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
-                        $displayIndex = $isReff ? '' : $verseCounter; 
-                        if (!$isReff) $verseCounter++; 
+                        
+                        // MENJAGA ANGKA ASLI DARI DATABASE UNTUK WATERMARK
+                        $displayIndex = '';
+                        if (!$isReff) {
+                            if (preg_match('/\d+/', $key, $matches)) {
+                                $displayIndex = $matches[0];
+                            } else {
+                                $displayIndex = $key; 
+                            }
+                        }
                         
                         $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
                         if($isReff) $slideTitle .= ' (Reff)';
@@ -179,6 +197,7 @@
                 }
             }
         }
+        
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
                 $cSlidesText = autoSplitText($cSlide->content);
@@ -208,7 +227,7 @@
                 @elseif($slide['type'] === 'announcements_slideshow')
                     <div style="position: absolute; top:0; left:0; width:100%; height:100%; background:#000; z-index:0;">
                         @foreach($slide['images'] as $idx => $img)
-                            <div class="warta-item warta-item-{{ $index }}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: {{ $idx==0 ? 1 : 0 }}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
+                            <div class="warta-item warta-item-{{ $index }}" data-duration="{{ $img['duration'] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: {{ $idx==0 ? 1 : 0 }}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
                                 <img src="{{ $img['image_url'] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:1;">
                                 @if($img['caption'])
                                     <div style="position:relative; z-index:2; margin-bottom: 5vh; background:rgba(0,0,0,0.8); color:#fff; padding:1vh 3vw; border-radius:50px; font-size:2vw; font-weight:bold; text-align:center;">{{ $img['caption'] }}</div>
@@ -288,7 +307,6 @@
             }
         }
 
-        // ENGINE PENGUBAH BACKGROUND DAN DESAIN
         function applyLiveDesign(settings) {
             if(!settings) return;
             if(settings.fontFamily) document.body.style.fontFamily = settings.fontFamily;
@@ -350,7 +368,7 @@
             if (index >= slides.length) index = slides.length - 1;
             if (index < 0) index = 0;
             
-            clearInterval(wartaInterval); // Reset timer jika pindah slide
+            clearTimeout(wartaInterval);
 
             slides.forEach((slide, i) => {
                 slide.classList.remove('active');
@@ -361,16 +379,21 @@
             });
             currentSlide = index;
 
-            // Cek apakah ini Slide Warta, jika iya jalankan Animasi Interval
             let currentSlideEl = slides[index];
             let wartaItems = currentSlideEl.querySelectorAll('.warta-item-' + index);
             if(wartaItems.length > 1) {
                 let wIndex = 0;
-                wartaInterval = setInterval(() => {
+                
+                const runNextWarta = () => {
                     wartaItems[wIndex].style.opacity = 0;
                     wIndex = (wIndex + 1) % wartaItems.length;
                     wartaItems[wIndex].style.opacity = 1;
-                }, 5000); // 5 Detik per gambar
+                    let nextDuration = (parseInt(wartaItems[wIndex].dataset.duration) || 5) * 1000;
+                    wartaInterval = setTimeout(runNextWarta, nextDuration);
+                };
+
+                let firstDuration = (parseInt(wartaItems[0].dataset.duration) || 5) * 1000;
+                wartaInterval = setTimeout(runNextWarta, firstDuration);
             }
             
             localStorage.setItem('last_slide_index', index);

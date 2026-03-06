@@ -37,9 +37,12 @@
 
         /* SOLID BOTTOM TOOLBAR PROFESIONAL */
         .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
-        
         .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; }
         .btn-primary-custom:hover { background-color: #1e293b; color: white; }
+
+        /* Input khusus modifikasi nama bait */
+        .bait-label-input { width: 100%; border: none; font-size: 0.8rem; font-weight: 700; text-align: center; background: transparent; color: inherit; }
+        .bait-label-input:focus { outline: none; background: rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -55,7 +58,7 @@
     </nav>
 
     <div class="container builder-container">
-        <form action="{{ route('liturgy.store_custom') }}" method="POST">
+        <form action="{{ route('liturgy.store_custom') }}" method="POST" id="mainForm">
             @csrf
             
             <div class="card border-0 shadow-sm mb-4 rounded-3">
@@ -84,7 +87,6 @@
 
             <div class="d-flex justify-content-between align-items-end mt-5 mb-3">
                 <h6 class="fw-bold text-dark text-uppercase m-0" style="letter-spacing: 1px; font-size:0.85rem;">Struktur Slide Presentasi</h6>
-                <small class="text-muted">Arahkan kursor di antara slide untuk menyisipkan</small>
             </div>
             
             <div id="canvas-area">
@@ -101,8 +103,7 @@
                         </ul>
                     </div>
                 </div>
-                
-                </div>
+            </div>
 
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
@@ -124,7 +125,6 @@
             let typeLabel = '';
             let contentHtml = '';
 
-            // Palette Warna Elegan
             if (type === 'nyanyian') {
                 cardColor = '#2b6cb0'; typeLabel = 'NYANYIAN JEMAAT';
                 contentHtml = `
@@ -141,12 +141,16 @@
                             <input type="text" id="nomor-${newId}" class="form-control" placeholder="No. Lagu">
                             <button type="button" class="btn btn-secondary px-3" onclick="tarikLaguBuilder(${newId}, event)">Tarik</button>
                         </div>
-                        <input type="text" id="judul-${newId}" class="form-control mb-2 text-primary fw-medium" placeholder="Judul otomatis terdeteksi..." readonly style="font-size: 0.85rem;">
+                        <input type="text" id="judul-${newId}" name="blocks[${newId}][judul]" class="form-control mb-2 text-primary fw-medium" placeholder="Judul otomatis terdeteksi..." style="font-size: 0.85rem;">
                         
                         <div id="bait-container-${newId}" class="mt-3">
-                            <div class="input-group mb-2 position-relative">
-                                <span class="input-group-text bg-light text-secondary fw-bold">Bait 1</span>
-                                <textarea name="blocks[${newId}][content][]" class="form-control" rows="2" placeholder="Isi lirik..."></textarea>
+                            <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                                <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                                    <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${newId}')" value="1" placeholder="Angka">
+                                </div>
+                                <input type="hidden" class="bait-hidden-key" name="blocks[${newId}][bait][1]" value="">
+                                <textarea class="form-control" rows="2" placeholder="Isi lirik..." oninput="this.previousElementSibling.value = this.value"></textarea>
+                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                             </div>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem; font-weight:600;" onclick="tambahBaitLagu(${newId})">+ Tambah Bait Manual</button>
@@ -254,14 +258,39 @@
             document.getElementById('wrapper-' + newId).scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
+        // FUNGSI MENGGANTI NAMA BAIT (KEY ARRAY SECARA DINAMIS TANPA REINDEX)
+        function updateBaitName(inputElement, blockId) {
+            let newName = inputElement.value.trim();
+            if(newName === '') newName = 'Bait';
+            
+            let parentDiv = inputElement.closest('.input-group-text');
+            
+            if(newName.toLowerCase() === 'reff') {
+                parentDiv.classList.replace('bg-light', 'bg-warning');
+                parentDiv.classList.replace('text-secondary', 'text-dark');
+            } else {
+                parentDiv.classList.replace('bg-warning', 'bg-light');
+                parentDiv.classList.replace('text-dark', 'text-secondary');
+            }
+            
+            let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
+            if(hiddenInput) {
+                hiddenInput.name = `blocks[${blockId}][bait][${newName}]`;
+            }
+        }
+
         function tambahBaitLagu(blockId) {
             const container = document.getElementById(`bait-container-${blockId}`);
-            const baitNum = container.children.length + 1;
+            const baitNum = Date.now().toString().slice(-4); 
+            
             const html = `
-                <div class="input-group mb-2 position-relative">
-                    <span class="input-group-text bg-light text-secondary fw-bold">Bait ${baitNum}</span>
-                    <textarea name="blocks[${blockId}][content][]" class="form-control" rows="2"></textarea>
-                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.parentElement.remove()" style="font-size: 14px;">&times;</button>
+                <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                    <div class="input-group-text bg-light text-secondary p-0 overflow-hidden" style="width: 80px;">
+                        <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${blockId}')" value="${baitNum}" placeholder="Angka">
+                    </div>
+                    <input type="hidden" class="bait-hidden-key" name="blocks[${blockId}][bait][${baitNum}]" value="">
+                    <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value"></textarea>
+                    <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html);
@@ -292,13 +321,19 @@
                             if(baitRaw !== '') {
                                 let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                                 let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
-                                let labelText = isReff ? 'Reff' : 'Bait ' + (idx + 1);
+                                
+                                // LOGIKA PENTING: Gunakan nomor indeks + 1 sebagai label agar sesuai aslinya (misal: 1, Reff, 3)
+                                let labelText = isReff ? 'Reff' : (idx + 1);
+                                let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
 
                                 const html = `
-                                    <div class="input-group mb-2 position-relative">
-                                        <span class="input-group-text ${isReff ? 'bg-warning text-dark' : 'bg-light text-secondary'} fw-bold" style="width: 75px; justify-content:center;">${labelText}</span>
-                                        <textarea name="blocks[${blockId}][content][]" class="form-control" rows="3">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
-                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.parentElement.remove()" style="font-size: 14px;">&times;</button>
+                                    <div class="input-group mb-2 position-relative bait-item shadow-sm">
+                                        <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
+                                            <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${blockId}')" value="${labelText}">
+                                        </div>
+                                        <input type="hidden" class="bait-hidden-key" name="blocks[${blockId}][bait][${labelText}]" value="${isReff ? '[REFF]\n' + cleanBait : cleanBait}">
+                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
+                                        <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>
                                 `;
                                 container.insertAdjacentHTML('beforeend', html);
