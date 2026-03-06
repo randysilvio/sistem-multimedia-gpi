@@ -28,7 +28,7 @@
 
     <div class="container">
         <div class="info-tip shadow-sm">
-            <strong>Resolusi Ideal:</strong> Gunakan gambar ukuran <strong>1920x1080 (16:9)</strong> agar pas memenuhi layar proyektor. Semua gambar di bawah akan tayang otomatis dalam 1 slide slideshow.
+            <strong>Resolusi Ideal:</strong> Gunakan gambar ukuran <strong>1920x1080 (16:9)</strong> agar pas memenuhi layar proyektor tanpa sisa hitam. Semua gambar di bawah akan tayang otomatis dalam 1 slide slideshow.
         </div>
 
         @if(session('success')) 
@@ -75,7 +75,7 @@
                             @forelse($announcements as $ann)
                                 <div class="col-md-6">
                                     <div class="card-warta">
-                                        <img src="{{ asset('storage/' . $ann->image_path) }}" class="image-preview" alt="Warta">
+                                        <img src="{{ asset('storage/' . $ann->image_path) }}" class="image-preview">
                                         <div class="p-3">
                                             <div class="fw-bold text-truncate" style="font-size: 0.9rem;">{{ $ann->title ?? 'Tanpa Caption' }}</div>
                                             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
