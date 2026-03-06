@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LiturgyController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\LiturgyTemplateController;
+use App\Http\Controllers\AnnouncementController; // <-- TAMBAHAN CONTROLLER WARTA
 
 Route::get('/', function () {
     return view('welcome');
@@ -32,10 +33,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/builder', [LiturgyController::class, 'builder'])->name('liturgy.builder');
         Route::post('/builder/store', [LiturgyController::class, 'storeCustom'])->name('liturgy.store_custom');
         Route::delete('/{schedule}', [LiturgyController::class, 'destroy'])->name('liturgy.destroy');
-        Route::get('/kontrol/{schedule}', [LiturgyController::class, 'edit'])->name('liturgy.edit');
-        Route::put('/update/{schedule}', [LiturgyController::class, 'update'])->name('liturgy.update');
+        
+        // --- PEMISAHAN EDIT & KONTROL PANEL ---
+        Route::get('/edit/{schedule}', [LiturgyController::class, 'edit'])->name('liturgy.edit');
+        Route::get('/kontrol/{schedule}', [LiturgyController::class, 'controlPanel'])->name('liturgy.control');
+        Route::post('/update/{schedule}', [LiturgyController::class, 'update'])->name('liturgy.update');
+        
         Route::get('/output/{schedule}', [LiturgyController::class, 'presentation'])->name('liturgy.presentation');
         Route::get('/export-pdf/{schedule}', [LiturgyController::class, 'exportPdf'])->name('liturgy.export_pdf');
+
+        // --- CRUD WARTA SINODE ---
+        Route::get('/warta', [AnnouncementController::class, 'index'])->name('announcement.index');
+        Route::post('/warta/store', [AnnouncementController::class, 'store'])->name('announcement.store');
+        Route::delete('/warta/{id}', [AnnouncementController::class, 'destroy'])->name('announcement.destroy');
     });
 
     Route::resource('songs', SongController::class);

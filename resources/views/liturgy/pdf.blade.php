@@ -106,6 +106,19 @@
             </div>
         </div>
 
+        @if(isset($announcements) && $announcements->count() > 0)
+            @foreach($announcements as $ann)
+                <div class="slide" style="padding: 0; display:flex; align-items:center; justify-content:center; background:#000; border:none;">
+                    <img src="{{ asset('storage/' . $ann->image_path) }}" style="width: 100vw; height: 100vh; object-fit: contain;">
+                    @if($ann->title)
+                        <div style="position:absolute; bottom:5vh; background:rgba(0,0,0,0.8); color:#fff; padding:15px 30px; border-radius:50px; font-size:24px; font-weight:bold; z-index:10;">
+                            {{ strtoupper($ann->title) }}
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+        @endif
+
         @foreach($liturgyItems as $item)
             @php
                 $detail = $scheduleDetails->get($item->id);
@@ -127,7 +140,7 @@
                         @foreach($slidesText as $slideTeks)
                             <div class="slide">
                                 <div class="judul-sesi">{{ $content['custom_title'] }}</div>
-                                <div class="isi-teks">{!! nl2br(e(trim($slideTeks))) !!}</div>
+                                <div class="isi-teks">{!! nl2br(e(is_string($slideTeks) ? trim($slideTeks) : '')) !!}</div>
                             </div>
                         @endforeach
                     
@@ -144,21 +157,26 @@
                                     </div>
                                 @endif
                                 <div class="isi-teks teks-kuning" style="font-size: 30px; margin-top: 25px;">
-                                    Menyanyikan Bait: {{ implode(', ', range(1, count($content['bait']))) }}
+                                    Menyanyikan Bait: {{ implode(', ', array_keys($content['bait'])) }}
                                 </div>
                             </div>
                         </div>
 
                         @foreach($content['bait'] as $index => $bait)
-                            @php $baitSlides = autoSplitText($bait); @endphp
+                            @php 
+                                $isReffKey = (is_string($index) && stripos($index, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $bait);
+                                $cleanBait = preg_replace('/^\[?REFF\]?\s*/i', '', trim($bait));
+                                $baitSlides = autoSplitText($cleanBait); 
+                            @endphp
+                            
                             @foreach($baitSlides as $bSlide)
                                 <div class="slide">
                                     <div class="judul-sesi">
                                         {{ str_replace(' (Opsional)', '', $item->title) }} 
                                         @if(!empty($content['judul'])) - {{ $content['judul'] }} @endif 
-                                        <span class="teks-kuning"> - Bait {{ $index + 1 }}</span>
+                                        <span class="teks-kuning"> - {{ $isReffKey ? 'Reff' : 'Bait' }}</span>
                                     </div>
-                                    <div class="isi-teks">{!! nl2br(e(trim($bSlide))) !!}</div>
+                                    <div class="isi-teks">{!! nl2br(e(is_string($bSlide) ? trim($bSlide) : '')) !!}</div>
                                 </div>
                             @endforeach
                         @endforeach
@@ -170,7 +188,7 @@
                     @foreach($slidesText as $slideTeks)
                         <div class="slide">
                             <div class="judul-sesi">{{ str_replace(' (Opsional)', '', $item->title) }}</div>
-                            <div class="isi-teks">{!! nl2br(e(trim($slideTeks))) !!}</div>
+                            <div class="isi-teks">{!! nl2br(e(is_string($slideTeks) ? trim($slideTeks) : '')) !!}</div>
                         </div>
                     @endforeach
                 @endif

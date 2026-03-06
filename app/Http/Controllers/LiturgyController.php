@@ -7,27 +7,21 @@ use App\Models\Liturgy;
 use App\Models\Schedule;
 use App\Models\ScheduleDetail;
 use App\Models\ScheduleCustomSlide;
+use App\Models\Announcement; // <-- Model Warta Sinode
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 
 class LiturgyController extends Controller
 {
-    /**
-     * Menampilkan daftar jadwal ibadah (Galeri ala Google Docs)
-     */
     public function gallery()
     {
         Carbon::setLocale('id');
-        // Tarik template liturgi untuk menu atas (Google Docs style)
         $liturgies = Liturgy::orderBy('id')->get(); 
         $schedules = Schedule::with('liturgy')->orderBy('worship_date', 'desc')->get();
         
         return view('liturgy.gallery', compact('schedules', 'liturgies'));
     }
 
-    /**
-     * Form pembuatan jadwal baru (Template Baku)
-     */
     public function create(Request $request)
     {
         $liturgies = Liturgy::orderBy('id')->get();
@@ -43,17 +37,11 @@ class LiturgyController extends Controller
         return view('liturgy.create', compact('liturgies', 'liturgy'));
     }
 
-    /**
-     * Menampilkan Form Builder (Kanvas Kosong ala Google Form)
-     */
     public function builder()
     {
         return view('liturgy.builder');
     }
 
-    /**
-     * Menyimpan jadwal dari form template baku
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -75,9 +63,6 @@ class LiturgyController extends Controller
                          ->with('success', 'Jadwal berhasil dibuat. Selamat melayani!');
     }
 
-    /**
-     * Menyimpan presentasi kustom dari Form Builder
-     */
     public function storeCustom(Request $request)
     {
         $request->validate([
@@ -86,12 +71,10 @@ class LiturgyController extends Controller
             'blocks' => 'required|array'
         ]);
 
-        // 1. Buat Template Liturgi Kustom On-The-Fly
         $liturgy = Liturgy::create([
             'name' => $request->schedule_name . ' (Custom)'
         ]);
 
-        // 2. Buat Jadwal Ibadah
         $schedule = Schedule::create([
             'liturgy_id' => $liturgy->id,
             'worship_date' => $request->worship_date,
@@ -100,14 +83,12 @@ class LiturgyController extends Controller
             'theme_color' => $request->theme_color ?? '#1b2735'
         ]);
 
-        // 3. Proses setiap blok dari Builder menjadi Item Liturgi & Detail
         $order = 1;
         foreach ($request->blocks as $block) {
             $type = $block['type'] ?? 'polos';
             $title = $block['title'] ?? 'Slide';
             $content = $block['content'] ?? '';
 
-            // Trik: Beri prefix pada title agar Control Panel mengenali jenis inputnya
             if ($type === 'nyanyian') {
                 $itemTitle = 'Nyanyian: ' . $title;
                 $dynContent = [
@@ -131,14 +112,12 @@ class LiturgyController extends Controller
                 $dynContent = is_array($content) ? ($content[0] ?? '') : $content;
             }
 
-            // Buat Item Struktur
             $item = $liturgy->items()->create([
                 'title' => $itemTitle,
                 'is_dynamic' => true,
                 'order_number' => $order++,
             ]);
 
-            // Simpan Teksnya
             ScheduleDetail::create([
                 'schedule_id' => $schedule->id,
                 'liturgy_item_id' => $item->id,
@@ -151,23 +130,35 @@ class LiturgyController extends Controller
     }
 
     /**
-     * Menampilkan Control Panel (Menggantikan halaman edit lama)
+     * Halaman Edit Data (Formulir Bersih)
      */
     public function edit(Schedule $schedule)
     {
         $schedule->load(['details', 'customSlides', 'liturgy.items']);
-        return view('liturgy.control_panel', compact('schedule'));
+        return view('liturgy.edit', compact('schedule'));
     }
 
     /**
-     * Update Live: Menyimpan perubahan dari Control Panel secara async (AJAX)
+     * Halaman Live Control Panel (Mesin Proyektor)
      */
+    public function controlPanel(Schedule $schedule)
+    {
+        $schedule->load(['details', 'customSlides', 'liturgy.items']);
+        
+        // Tarik warta sinode untuk ditampilkan di layar
+        $announcements = Announcement::where('is_active', true)->orderBy('order_num')->get();
+        
+        return view('liturgy.control_panel', compact('schedule', 'announcements'));
+    }
+
     public function update(Request $request, Schedule $schedule)
     {
+        $themeColor = $request->theme_color ?? $schedule->theme_color ?? '#1b2735';
+
         $schedule->update([
             'theme' => $request->theme,
             'preacher_name' => $request->preacher_name,
-            'theme_color' => $request->theme_color
+            'theme_color' => $themeColor
         ]);
 
         $schedule->details()->delete();
@@ -179,12 +170,13 @@ class LiturgyController extends Controller
             return response()->json(['success' => true]);
         }
 
-        return redirect()->route('liturgy.edit', $schedule->id)->with('success', 'Data diperbarui.');
+        if (str_contains(url()->previous(), 'kontrol')) {
+            return redirect()->route('liturgy.control', $schedule->id)->with('success', 'Perubahan slide berhasil disimpan.');
+        }
+
+        return redirect()->route('liturgy.gallery')->with('success', 'Data diperbarui.');
     }
 
-    /**
-     * Menampilkan Output Proyektor (Jendela terpisah)
-     */
     public function presentation(Schedule $schedule)
     {
         Carbon::setLocale('id');
@@ -192,12 +184,12 @@ class LiturgyController extends Controller
         $liturgyItems = $schedule->liturgy->items;
         $customSlides = $schedule->customSlides()->get()->groupBy('liturgy_item_id');
         
-        return view('liturgy.presentation', compact('schedule', 'liturgyItems', 'scheduleDetails', 'customSlides'));
+        // Tarik warta sinode untuk proyektor fullscreen
+        $announcements = Announcement::where('is_active', true)->orderBy('order_num')->get();
+        
+        return view('liturgy.presentation', compact('schedule', 'liturgyItems', 'scheduleDetails', 'customSlides', 'announcements'));
     }
 
-    /**
-     * Helper untuk menyimpan detail konten dinamis
-     */
     private function saveDetails($schedule, $request)
     {
         if(!$request->has('dynamic_content')) return;
@@ -242,18 +234,12 @@ class LiturgyController extends Controller
         }
     }
 
-    /**
-     * Menghapus jadwal
-     */
     public function destroy(Schedule $schedule)
     {
         $schedule->delete();
         return back()->with('success', 'Jadwal ibadah berhasil dihapus.');
     }
 
-    /**
-     * Mengambil ayat Alkitab dari API
-     */
     public function fetchAlkitab(Request $request)
     {
         $query = $request->query('q');
@@ -282,14 +268,15 @@ class LiturgyController extends Controller
         return response()->json(['success' => false, 'message' => 'Terjadi kesalahan sistem.']);
     }
 
-    /**
-     * Menampilkan versi PDF
-     */
     public function exportPdf(Schedule $schedule)
     {
         Carbon::setLocale('id');
         $scheduleDetails = $schedule->details()->get()->keyBy('liturgy_item_id');
         $liturgyItems = $schedule->liturgy->items;
-        return view('liturgy.pdf', compact('schedule', 'liturgyItems', 'scheduleDetails'));
+        
+        // Tarik warta sinode untuk PDF
+        $announcements = Announcement::where('is_active', true)->orderBy('order_num')->get();
+
+        return view('liturgy.pdf', compact('schedule', 'liturgyItems', 'scheduleDetails', 'announcements'));
     }
 }

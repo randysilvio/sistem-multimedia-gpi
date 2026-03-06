@@ -91,108 +91,165 @@
             return empty($finalSlides) ? [$text] : $finalSlides;
         }
     }
+
+    $allSlides = [];
+    
+    // 1. COVER
+    $allSlides[] = [
+        'type' => 'cover',
+        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
+        'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
+        'theme' => strtoupper($schedule->theme ?? ''),
+        'preacher' => strtoupper($schedule->preacher_name ?? '')
+    ];
+
+    // 2. SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW)
+    if(isset($announcements) && $announcements->count() > 0) {
+        $slideImages = [];
+        foreach($announcements as $ann) {
+            $slideImages[] = [
+                'image_url' => asset('storage/' . $ann->image_path),
+                'caption' => strtoupper($ann->title ?? ''),
+                'duration' => $ann->duration ?? 5 // Tambahkan durasi per gambar
+            ];
+        }
+        $allSlides[] = [
+            'type' => 'announcements_slideshow',
+            'title' => 'WARTA SINODE',
+            'images' => $slideImages
+        ];
+    }
+
+    // 3. TATA IBADAH
+    foreach($liturgyItems as $item) {
+        $detail = $scheduleDetails->get($item->id);
+        $content = $detail ? $detail->dynamic_content : $item->static_content;
+        $isEmptyArray = is_array($content) && empty($content['judul']) && empty($content['bait']) && empty($content['content']);
+        $isEmptyString = !is_array($content) && trim($content) === '';
+        $isInstruksi = str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi');
+
+        if($content && !$isEmptyArray && !$isEmptyString) {
+            if($isInstruksi) {
+                $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content;
+                $allSlides[] = ['type' => 'instruksi', 'title' => $item->title, 'content' => $textInstruksi];
+            } elseif(is_array($content)) {
+                if(isset($content['custom_title'])) {
+                    $slidesText = autoSplitText($content['content'] ?? '');
+                    foreach($slidesText as $st) {
+                        $allSlides[] = ['type' => 'text', 'title' => $content['custom_title'], 'content' => $st];
+                    }
+                } elseif(!empty($content['bait'])) {
+                    $allSlides[] = [
+                        'type' => 'song_cover', 
+                        'title' => str_replace(' (Opsional)', '', $item->title),
+                        'content' => ($content['judul'] ?? '')
+                    ];
+                    
+                    $verseCounter = 1;
+                    foreach($content['bait'] as $key => $bait) {
+                        $baitTextRaw = trim($bait);
+                        if(empty($baitTextRaw)) continue;
+
+                        $isReff = false;
+                        if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
+                            $isReff = true;
+                        }
+
+                        $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
+                        $displayIndex = $isReff ? '' : $verseCounter; 
+                        if (!$isReff) $verseCounter++; 
+                        
+                        $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
+                        if($isReff) $slideTitle .= ' (Reff)';
+
+                        $baitSlides = autoSplitText($cleanBaitText);
+                        foreach($baitSlides as $bSlide) {
+                            $allSlides[] = [
+                                'type' => 'song_lyric',
+                                'watermark' => $displayIndex,
+                                'title' => $slideTitle,
+                                'content' => $bSlide
+                            ];
+                        }
+                    }
+                }
+            } else {
+                $slidesText = autoSplitText($content);
+                foreach($slidesText as $st) {
+                    $allSlides[] = ['type' => 'text', 'title' => str_replace(' (Opsional)', '', $item->title), 'content' => $st];
+                }
+            }
+        }
+        if(isset($customSlides[$item->id])) {
+            foreach($customSlides[$item->id] as $cSlide) {
+                $cSlidesText = autoSplitText($cSlide->content);
+                foreach($cSlidesText as $ct) {
+                    $allSlides[] = ['type' => 'custom', 'title' => $cSlide->title, 'content' => $ct];
+                }
+            }
+        }
+    }
+    $allSlides[] = ['type' => 'closing', 'title' => 'PENUTUP', 'content' => "TUHAN YESUS\nMEMBERKATI"];
     @endphp
 
     <div id="presentation">
-        <div class="slide active">
-            <div class="welcome-wrapper">
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" style="height: 18vh; margin: 0 auto 3vh auto; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));">
-                <div class="welcome-title">{{ strtoupper($schedule->liturgy->name) }}</div>
-                <div class="welcome-sub" style="color: {{ $schedule->theme_color == '#ffffff' ? '#ecc94b' : $schedule->theme_color }};">
-                    {{ \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y') }}
-                </div>
-                @if($schedule->theme) <div class="welcome-sub mt-4" style="margin-top: 20px;">TEMA: {{ strtoupper($schedule->theme) }}</div> @endif
-                @if($schedule->preacher_name) <div class="welcome-sub mt-2">PELAYAN FIRMAN: {{ strtoupper($schedule->preacher_name) }}</div> @endif
-            </div>
-        </div>
-
-        @foreach($liturgyItems as $item)
-            @php
-                $detail = $scheduleDetails->get($item->id);
-                $content = $detail ? $detail->dynamic_content : $item->static_content;
-                $isEmptyArray = is_array($content) && empty($content['judul']) && empty($content['bait']) && empty($content['content']);
-                $isEmptyString = !is_array($content) && trim($content) === '';
-                $isInstruksi = str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi');
-            @endphp
-
-            @if($content && !$isEmptyArray && !$isEmptyString)
-                @if($isInstruksi)
-                    @php $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content; @endphp
-                    <div class="slide"><div class="instruksi-jemaat">{{ $textInstruksi }}</div></div>
-                @elseif(is_array($content))
-                    @if(isset($content['custom_title']))
-                        @php $slidesText = autoSplitText($content['content'] ?? ''); @endphp
-                        @foreach($slidesText as $slideTeks)
-                            <div class="slide"><div class="judul-sesi">{{ $content['custom_title'] }}</div><div class="isi-teks">{!! nl2br(e(is_string($slideTeks) ? trim($slideTeks) : '')) !!}</div></div>
-                        @endforeach
-                    @elseif(!empty($content['bait']))
-                        <div class="slide">
-                            <div style="margin: auto; text-align: center; position:relative; z-index:2;">
-                                <div class="welcome-sub" style="font-size: 2.5vw; margin-bottom: 15px; text-transform: uppercase; color: #cbd5e0; letter-spacing: 2px;">{{ str_replace(' (Opsional)', '', $item->title) }}</div>
-                                @if(!empty($content['judul']))<div class="welcome-title" style="font-size: 5.5vw;">{{ $content['judul'] }}</div>@endif
-                            </div>
+        @foreach($allSlides as $index => $slide)
+            <div class="slide" id="slide-{{ $index }}" style="{{ $slide['type'] === 'announcements_slideshow' ? 'padding: 0;' : '' }}">
+                @if($slide['type'] === 'cover')
+                    <div class="welcome-wrapper">
+                        <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" style="height: 18vh; margin: 0 auto 3vh auto; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));">
+                        <div class="welcome-title">{{ $slide['title'] }}</div>
+                        <div class="welcome-sub" style="color: {{ $schedule->theme_color == '#ffffff' ? '#ecc94b' : $schedule->theme_color }};">
+                            {{ $slide['date'] }}
                         </div>
-                        
-                        @php $verseCounter = 1; @endphp
-                        @foreach($content['bait'] as $key => $bait)
-                            @php 
-                                $baitTextRaw = trim($bait);
-                                if(empty($baitTextRaw)) continue;
-
-                                // Deteksi Reff (dari key atau dari teks)
-                                $isReff = false;
-                                if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
-                                    $isReff = true;
-                                }
-
-                                // Bersihkan tag [REFF] agar lirik bersih
-                                $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
-
-                                $displayIndex = $isReff ? '' : $verseCounter; 
-                                if (!$isReff) $verseCounter++; // Penomoran Bait tidak naik jika itu Reff
-                                
-                                $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
-                                if($isReff) $slideTitle .= ' (Reff)';
-
-                                $baitSlides = autoSplitText($cleanBaitText);
-                            @endphp
-
-                            @foreach($baitSlides as $bSlide)
-                                <div class="slide">
-                                    @if($displayIndex !== '')
-                                        <div class="bait-watermark">{{ $displayIndex }}</div>
-                                    @endif
-                                    <div class="judul-sesi">{{ $slideTitle }}</div>
-                                    <div class="isi-teks">{!! nl2br(e(is_string($bSlide) ? trim($bSlide) : '')) !!}</div>
-                                </div>
-                            @endforeach
+                        @if($slide['theme']) <div class="welcome-sub mt-4" style="margin-top: 20px;">TEMA: {{ $slide['theme'] }}</div> @endif
+                        @if($slide['preacher']) <div class="welcome-sub mt-2">PELAYAN FIRMAN: {{ $slide['preacher'] }}</div> @endif
+                    </div>
+                
+                @elseif($slide['type'] === 'announcements_slideshow')
+                    <div style="position: absolute; top:0; left:0; width:100%; height:100%; background:#000; z-index:0;">
+                        @foreach($slide['images'] as $idx => $img)
+                            <div class="warta-item warta-item-{{ $index }}" data-duration="{{ $img['duration'] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: {{ $idx==0 ? 1 : 0 }}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
+                                <img src="{{ $img['image_url'] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:1;">
+                                @if($img['caption'])
+                                    <div style="position:relative; z-index:2; margin-bottom: 5vh; background:rgba(0,0,0,0.8); color:#fff; padding:1vh 3vw; border-radius:50px; font-size:2vw; font-weight:bold; text-align:center;">{{ $img['caption'] }}</div>
+                                @endif
+                            </div>
                         @endforeach
+                    </div>
+
+                @elseif($slide['type'] === 'instruksi')
+                    <div class="instruksi-jemaat">{{ $slide['content'] }}</div>
+                
+                @elseif($slide['type'] === 'song_cover')
+                    <div style="margin: auto; text-align: center; position:relative; z-index:2;">
+                        <div class="welcome-sub" style="font-size: 2.5vw; margin-bottom: 15px; text-transform: uppercase; color: #cbd5e0; letter-spacing: 2px;">{{ $slide['title'] }}</div>
+                        <div class="welcome-title" style="font-size: 5.5vw;">{{ $slide['content'] }}</div>
+                    </div>
+                
+                @elseif($slide['type'] === 'song_lyric')
+                    @if($slide['watermark'] !== '')
+                        <div class="bait-watermark">{{ $slide['watermark'] }}</div>
                     @endif
+                    <div class="judul-sesi">{{ $slide['title'] }}</div>
+                    <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
+                
+                @elseif($slide['type'] === 'closing')
+                    <div class="welcome-title text-center" style="margin: auto;">{!! nl2br(e($slide['content'])) !!}</div>
+                
                 @else
-                    @php $slidesText = autoSplitText($content); @endphp
-                    @foreach($slidesText as $slideTeks)
-                        <div class="slide"><div class="judul-sesi">{{ str_replace(' (Opsional)', '', $item->title) }}</div><div class="isi-teks">{!! nl2br(e(is_string($slideTeks) ? trim($slideTeks) : '')) !!}</div></div>
-                    @endforeach
+                    <div class="judul-sesi {{ $slide['type'] === 'custom' ? 'judul-custom' : '' }}">{{ $slide['title'] }}</div>
+                    <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
                 @endif
-            @endif
-
-            @if(isset($customSlides[$item->id]))
-                @foreach($customSlides[$item->id] as $cSlide)
-                    @php $cSlidesText = autoSplitText($cSlide->content); @endphp
-                    @foreach($cSlidesText as $cText)
-                        <div class="slide"><div class="judul-sesi judul-custom">{{ $cSlide->title }}</div><div class="isi-teks">{!! nl2br(e(is_string($cText) ? trim($cText) : '')) !!}</div></div>
-                    @endforeach
-                @endforeach
-            @endif
+            </div>
         @endforeach
-
-        <div class="slide"><div class="welcome-title text-center" style="margin: auto;">TUHAN YESUS<br><span class="teks-kuning">MEMBERKATI</span></div></div>
     </div>
 
     <div class="nav-hint">Navigasi: Panah Kiri/Kanan, Atas/Bawah | F: Layar Penuh</div>
 
     <script>
         const scheduleId = {{ $schedule->id ?? 0 }};
+        let wartaInterval = null; 
 
         function launchFullscreen() {
             if (!document.fullscreenElement) {
@@ -232,9 +289,7 @@
             }
         }
 
-        // =======================================================
         // ENGINE PENGUBAH BACKGROUND DAN DESAIN
-        // =======================================================
         function applyLiveDesign(settings) {
             if(!settings) return;
             if(settings.fontFamily) document.body.style.fontFamily = settings.fontFamily;
@@ -255,63 +310,24 @@
             document.body.style.backgroundSize = '';
             document.body.style.animation = '';
 
-            // Terapkan Latar Sesuai Tipe
-            if (bgType === 'gradient') {
-                document.body.style.background = `radial-gradient(circle at center, ${bgCenter} 0%, ${bgEdge} 100%)`;
-            } 
-            else if (bgType === 'anim-linear') {
-                document.body.style.background = `linear-gradient(-45deg, ${bgCenter}, ${bgEdge}, ${ac1}, ${ac2})`;
-                document.body.style.backgroundSize = '400% 400%';
-                document.body.style.animation = `gradientBG ${speed}s ease infinite`;
-            } 
-            else if (bgType === 'anim-radial') {
-                document.body.style.background = `radial-gradient(circle, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2})`;
-                document.body.style.backgroundSize = '400% 400%';
-                document.body.style.animation = `gradientBG ${speed}s ease infinite`;
-            } 
-            else if (bgType === 'anim-sweep') {
-                document.body.style.background = `linear-gradient(90deg, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2}, ${bgCenter})`;
-                document.body.style.backgroundSize = '400% 100%';
-                document.body.style.animation = `gradientBG ${speed}s linear infinite`;
-            }
-            else if (bgType === 'pattern-grid') {
-                document.body.style.backgroundColor = bgEdge;
-                document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`;
-                document.body.style.backgroundSize = '4vw 4vw';
-            }
-            else if (bgType === 'pattern-grid-anim') {
-                document.body.style.backgroundColor = bgEdge;
-                document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`;
-                document.body.style.backgroundSize = '4vw 4vw';
-                document.body.style.animation = `moveGrid ${speed}s linear infinite`;
-            } 
-            else if (bgType === 'pattern-dots') {
-                document.body.style.backgroundColor = bgEdge;
-                document.body.style.backgroundImage = `radial-gradient(${bgCenter} 3px, transparent 3px)`;
-                document.body.style.backgroundSize = '4vw 4vw';
-            } 
-            else if (bgType === 'pattern-stripes') {
-                document.body.style.backgroundColor = bgEdge;
-                document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`;
-                document.body.style.backgroundSize = '4vw 4vw';
-            }
-            else if (bgType === 'pattern-stripes-anim') {
-                document.body.style.backgroundColor = bgEdge;
-                document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`;
-                document.body.style.backgroundSize = '4vw 4vw';
-                document.body.style.animation = `moveStripes ${speed}s linear infinite`;
-            }
+            if (bgType === 'gradient') { document.body.style.background = `radial-gradient(circle at center, ${bgCenter} 0%, ${bgEdge} 100%)`; } 
+            else if (bgType === 'anim-linear') { document.body.style.background = `linear-gradient(-45deg, ${bgCenter}, ${bgEdge}, ${ac1}, ${ac2})`; document.body.style.backgroundSize = '400% 400%'; document.body.style.animation = `gradientBG ${speed}s ease infinite`; } 
+            else if (bgType === 'anim-radial') { document.body.style.background = `radial-gradient(circle, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2})`; document.body.style.backgroundSize = '400% 400%'; document.body.style.animation = `gradientBG ${speed}s ease infinite`; } 
+            else if (bgType === 'anim-sweep') { document.body.style.background = `linear-gradient(90deg, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2}, ${bgCenter})`; document.body.style.backgroundSize = '400% 100%'; document.body.style.animation = `gradientBG ${speed}s linear infinite`; }
+            else if (bgType === 'pattern-grid') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; document.body.style.backgroundSize = '4vw 4vw'; }
+            else if (bgType === 'pattern-grid-anim') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; document.body.style.backgroundSize = '4vw 4vw'; document.body.style.animation = `moveGrid ${speed}s linear infinite`; } 
+            else if (bgType === 'pattern-dots') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `radial-gradient(${bgCenter} 3px, transparent 3px)`; document.body.style.backgroundSize = '4vw 4vw'; } 
+            else if (bgType === 'pattern-stripes') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`; document.body.style.backgroundSize = '4vw 4vw'; }
+            else if (bgType === 'pattern-stripes-anim') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`; document.body.style.backgroundSize = '4vw 4vw'; document.body.style.animation = `moveStripes ${speed}s linear infinite`; }
             else if (bgType === 'video' && settings.bgVideoUrl) {
                 document.body.style.backgroundColor = '#000';
                 const vid = document.createElement('video');
-                vid.id = 'bg-video-element';
-                vid.src = settings.bgVideoUrl;
+                vid.id = 'bg-video-element'; vid.src = settings.bgVideoUrl;
                 vid.autoplay = true; vid.loop = true; vid.muted = true;
                 vid.style.position = 'fixed'; vid.style.top = '0'; vid.style.left = '0'; vid.style.width = '100vw'; vid.style.height = '100vh'; vid.style.objectFit = 'cover'; vid.style.zIndex = '-1'; vid.style.opacity = '0.6';
                 document.body.insertBefore(vid, document.body.firstChild);
             }
 
-            // Settingan Shadow Text
             const shadowIntensity = settings.textShadow || '0.9';
             const sColor = settings.shadowColor || '#000000';
             let r = 0, g = 0, b = 0;
@@ -335,6 +351,8 @@
             if (index >= slides.length) index = slides.length - 1;
             if (index < 0) index = 0;
             
+            clearTimeout(wartaInterval); // Hentikan timer jika pindah slide
+
             slides.forEach((slide, i) => {
                 slide.classList.remove('active');
                 if (i === index) {
@@ -343,14 +361,29 @@
                 }
             });
             currentSlide = index;
+
+            // Logika Slideshow Warta Dinamis
+            let currentSlideEl = slides[index];
+            let wartaItems = currentSlideEl.querySelectorAll('.warta-item-' + index);
+            if(wartaItems.length > 1) {
+                let wIndex = 0;
+                
+                const runNextWarta = () => {
+                    wartaItems[wIndex].style.opacity = 0;
+                    wIndex = (wIndex + 1) % wartaItems.length;
+                    wartaItems[wIndex].style.opacity = 1;
+                    
+                    // Ambil durasi dari atribut data-duration gambar selanjutnya
+                    let nextDuration = (parseInt(wartaItems[wIndex].dataset.duration) || 5) * 1000;
+                    wartaInterval = setTimeout(runNextWarta, nextDuration);
+                };
+
+                // Mulai slideshow berdasarkan durasi gambar pertama
+                let firstDuration = (parseInt(wartaItems[0].dataset.duration) || 5) * 1000;
+                wartaInterval = setTimeout(runNextWarta, firstDuration);
+            }
             
             localStorage.setItem('last_slide_index', index);
-            localStorage.setItem('total_slides', slides.length);
-            localStorage.setItem('last_slide_text', slides[index].innerText.substring(0, 150));
-            localStorage.setItem('next_slide_text', slides[index+1] ? slides[index+1].innerText.substring(0, 80) : 'Selesai');
-            const allContent = Array.from(slides).map(s => s.innerText.trim());
-            localStorage.setItem('all_slides_content', JSON.stringify(allContent));
-            localStorage.setItem('slide_changed', Date.now());
         }
 
         showSlide(currentSlide);

@@ -149,6 +149,23 @@
         'preacher' => strtoupper($schedule->preacher_name ?? '')
     ];
 
+    // --- SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW) ---
+    if(isset($announcements) && $announcements->count() > 0) {
+        $slideImages = [];
+        foreach($announcements as $ann) {
+            $slideImages[] = [
+                'image_url' => asset('storage/' . $ann->image_path),
+                'caption' => strtoupper($ann->title ?? '')
+            ];
+        }
+        $allSlides[] = [
+            'type' => 'announcements_slideshow',
+            'title' => 'WARTA SINODE',
+            'images' => $slideImages
+        ];
+    }
+    // ------------------------------------------------
+
     foreach($liturgyItems as $item) {
         $detail = $scheduleDetails->get($item->id);
         $content = $detail ? $detail->dynamic_content : $item->static_content;
@@ -181,13 +198,11 @@
                         $baitTextRaw = trim($bait);
                         if(empty($baitTextRaw)) continue;
 
-                        // Deteksi apakah ini Reff dari Key (ref_xxx) atau dari Teks ([REFF] atau awalan Reff)
                         $isReff = false;
                         if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
                             $isReff = true;
                         }
 
-                        // Buang tag [REFF] bawaan API saat diproyeksikan agar liriknya bersih
                         $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
 
                         $displayIndex = $isReff ? '' : $verseCounter; 
@@ -200,7 +215,7 @@
                         foreach($baitSlides as $bSlide) {
                             $allSlides[] = [
                                 'type' => 'song_lyric',
-                                'watermark' => $displayIndex, // Jika reff, watermark ini kosong (tidak tampil)
+                                'watermark' => $displayIndex,
                                 'title' => $slideTitle,
                                 'content' => $bSlide
                             ];
@@ -243,7 +258,6 @@
 
             <form id="liveForm" action="{{ route('liturgy.update', $schedule->id) }}" method="POST">
                 @csrf
-                @method('PUT') 
 
                 <div class="card-edit" style="border-left: 3px solid #3182ce;">
                     <label class="form-label-header text-info">Desain Latar & Font</label>
@@ -361,12 +375,10 @@
                                     @if(is_array($val) && isset($val['bait']) && is_array($val['bait']))
                                         @foreach($val['bait'] as $key => $baitText)
                                             @php 
-                                                // Deteksi Reff saat me-load form dari DB
                                                 $isReffKey = (is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitText);
                                                 $displayKey = $isReffKey ? 'Reff' : 'Bait ' . $verseCountForEdit;
                                                 if (!$isReffKey) $verseCountForEdit++;
                                                 
-                                                // Bersihkan tag [REFF] bawaan API di kotak textarea agar terlihat bersih
                                                 $cleanTextForEdit = preg_replace('/^\[?REFF\]?\s*/i', '', $baitText);
                                             @endphp
                                             <div class="input-group mb-1 position-relative bait-item">
@@ -432,7 +444,7 @@
                     <div id="virtual-render-current" style="width: 100%; height: 100%;"></div>
                     
                     <div class="per-slide-font-control">
-                        <span class="font-control-label">Ukuran Teks:</span>
+                        <span class="font-control-label">Ukuran Teks Slide Ini:</span>
                         <button type="button" onclick="changeSlideFont(-0.5)" title="Perkecil Font">-</button>
                         <span id="slide-font-indicator">Auto</span>
                         <button type="button" onclick="changeSlideFont(0.5)" title="Perbesar Font">+</button>
@@ -462,7 +474,9 @@
 </div>
 
 <script>
-    // PERINTAH REFRESH PROYEKTOR JIKA BERHASIL SAVE
+    window.cpWartaInterval = null;
+    window.cpWartaNextInterval = null;
+
     @if(session('success'))
         localStorage.setItem('liturgy_update', Date.now());
     @endif
@@ -476,7 +490,6 @@
     let currentSlide = parseInt(localStorage.getItem('last_slide_index')) || 0;
     let customFonts = JSON.parse(localStorage.getItem('custom_fonts_' + scheduleId)) || {};
 
-    // 1. ENGINE VIRTUAL RENDER (HANYA UNTUK 2 MONITOR ATAS)
     function renderVirtualSlide(slide, index) {
         if(!slide) return '<div class="sp-container"><div class="vp-content">SELESAI</div></div>';
 
@@ -491,6 +504,16 @@
                 <div style="font-size: 2.5cqw; color: #cbd5e0; font-weight: 400;">${slide.date}</div>
                 ${slide.theme ? `<div style="font-size: 2.5cqw; color: #cbd5e0; margin-top: 2cqh;">TEMA: ${slide.theme}</div>` : ''}
             `;
+        }
+        else if (slide.type === 'announcements_slideshow') {
+            let imagesHtml = slide.images.map((img, idx) => `
+                <div class="warta-item-cp" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: ${idx===0 ? 1 : 0}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
+                    <img src="${img.image_url}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:1;">
+                    ${img.caption ? `<div style="position:relative; z-index:2; margin-bottom: 5cqh; background:rgba(0,0,0,0.8); color:#fff; padding:1.5cqh 3cqw; border-radius:50px; font-size:2.5cqw; font-weight:bold;">${img.caption}</div>` : ''}
+                </div>
+            `).join('');
+            
+            return `<div style="position: absolute; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden;">${imagesHtml}</div>`;
         }
         else if (slide.type === 'instruksi') {
             if(!fontSizeStyle) fontSizeStyle = slide.content.length < 25 ? 'font-size: 7cqw;' : 'font-size: 5cqw;';
@@ -512,7 +535,7 @@
             `;
         }
         else if (slide.type === 'closing') {
-            innerHTML = `<div style="font-size: 6.5cqw; font-weight: 900; text-transform: uppercase; margin: auto; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">TUHAN YESUS<br><span class="sp-text-kuning">MEMBERKATI</span></div>`;
+            innerHTML = `<div style="font-size: 6.5cqw; font-weight: 900; text-transform: uppercase; margin: auto; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">TUHAN YESUS<br><span class="sp-text-kuning" style="color:#fcd34d;">MEMBERKATI</span></div>`;
         }
         else { 
             innerHTML = `
@@ -524,11 +547,9 @@
         return `<div class="sp-container">${innerHTML}</div>`;
     }
 
-    // 2. LOGIKA BACKGROUND DINAMIS
     function toggleBgSettings() {
         const type = document.getElementById('bg_type').value;
         document.getElementById('video_settings').style.display = (type === 'video') ? 'block' : 'none';
-        
         const isAnim = type.includes('anim-');
         document.getElementById('anim_colors_wrapper').style.display = isAnim ? 'flex' : 'none';
         
@@ -632,7 +653,6 @@
             textColor, shadowColor, textShadow: '0.9'
         };
         localStorage.setItem('live_design_settings', JSON.stringify(designSettings));
-        
         applyVirtualDesign(designSettings);
     }
 
@@ -652,7 +672,6 @@
         }
     }
 
-    // 3. LOGIKA FONT KHUSUS PER SLIDE
     function changeSlideFont(step) {
         let currentSize = customFonts[currentSlide] ? parseFloat(customFonts[currentSlide]) : 5.0; 
         let newSize = (currentSize + step).toFixed(1);
@@ -672,7 +691,6 @@
         updateConsoleView(); 
     }
 
-    // 4. NAVIGASI PROYEKTOR
     function controlProjector(action, specificIndex = null) {
         if(action === 'next') currentSlide++;
         else if(action === 'prev') currentSlide--;
@@ -696,13 +714,14 @@
         if (['ArrowLeft', 'ArrowDown'].includes(e.key)) { e.preventDefault(); controlProjector('prev'); }
     }
 
-    // 5. UPDATE TAMPILAN MONITOR CONTROL PANEL
     function updateConsoleView() {
+        clearInterval(window.cpWartaInterval); 
+        clearInterval(window.cpWartaNextInterval); 
+
         document.getElementById('virtual-render-current').innerHTML = renderVirtualSlide(allSlidesData[currentSlide], currentSlide);
         document.getElementById('virtual-render-next').innerHTML = renderVirtualSlide(allSlidesData[currentSlide + 1], currentSlide + 1);
         document.getElementById('slide-num').innerText = `${currentSlide + 1} / ${allSlidesData.length}`;
         
-        // Update Thumbnails Simple Bawah
         document.querySelectorAll('.slide-thumb-simple').forEach((thumb, i) => { 
             thumb.classList.toggle('active', i === currentSlide); 
             if(i === currentSlide) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
@@ -717,10 +736,31 @@
             fontIndicator.style.color = '#cbd5e0'; 
         }
 
+        // Animasi CP untuk Monitor Current
+        let items = document.getElementById('monitor-current').querySelectorAll('.warta-item-cp');
+        if(items.length > 1) {
+            let wIdx = 0;
+            window.cpWartaInterval = setInterval(() => {
+                items[wIdx].style.opacity = 0;
+                wIdx = (wIdx + 1) % items.length;
+                items[wIdx].style.opacity = 1;
+            }, 5000); // 5 Detik
+        }
+
+        // Animasi CP untuk Monitor Next
+        let nextItems = document.getElementById('monitor-next').querySelectorAll('.warta-item-cp');
+        if(nextItems.length > 1) {
+            let nwIdx = 0;
+            window.cpWartaNextInterval = setInterval(() => {
+                nextItems[nwIdx].style.opacity = 0;
+                nwIdx = (nwIdx + 1) % nextItems.length;
+                nextItems[nwIdx].style.opacity = 1;
+            }, 5000); 
+        }
+
         applyVirtualDesign(JSON.parse(localStorage.getItem('live_design_settings')));
     }
 
-    // 6. BUILD GALLERY (MODE TEKS SEDERHANA, LEBIH RINGAN DAN TERBACA JELAS)
     function buildGallery() {
         const gallery = document.getElementById('slideGallery'); gallery.innerHTML = '';
         allSlidesData.forEach((slide, i) => {
@@ -731,7 +771,8 @@
             let displayContent = slide.content || '';
             
             if(slide.type === 'cover') { displayTitle = 'SAMPUL DEPAN'; displayContent = slide.title + ' - ' + slide.date; }
-            if(slide.type === 'song_lyric') { displayTitle = slide.title + (slide.watermark ? ' (Bait ' + slide.watermark + ')' : ''); }
+            else if(slide.type === 'announcements_slideshow') { displayTitle = 'WARTA SINODE (SLIDESHOW)'; displayContent = slide.images.length + ' Gambar berjalan otomatis...'; }
+            else if(slide.type === 'song_lyric') { displayTitle = slide.title + (slide.watermark ? ' (Bait ' + slide.watermark + ')' : ''); }
 
             let shortContent = displayContent.replace(/<[^>]*>?/gm, '').substring(0, 90);
             if(displayContent.length > 90) shortContent += '...';
@@ -746,7 +787,6 @@
         });
     }
 
-    // 7. FUNGSI FORM LOGIC DENGAN SMART REFF HANDLING
     function reindexBait(container) {
         let bCount = 1;
         container.querySelectorAll('.bait-item').forEach(el => {
@@ -767,7 +807,7 @@
     function tambahBait(itemId, isReff) {
         const container = document.getElementById('bait-container-' + itemId);
         const uniqueKey = isReff ? 'ref_' + Date.now().toString().slice(-5) : 'b_' + Date.now().toString().slice(-5);
-        const labelText = isReff ? 'Reff' : 'Bait'; // Nomor diurus oleh reindexBait
+        const labelText = isReff ? 'Reff' : 'Bait'; 
 
         const html = `
             <div class="input-group mb-1 position-relative bait-item">
@@ -800,10 +840,7 @@
                 baits.forEach((bait, idx) => {
                     let baitRaw = bait.trim();
                     if(baitRaw !== '') {
-                        // Deteksi otomatis jika teks diawali dengan "Reff" atau jika itu bawaan dari API ([REFF])
                         let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref') || baitRaw.toLowerCase().startsWith('korus');
-                        
-                        // Bersihkan teks tag [REFF] bawaan API agar tidak muncul di dalam textarea
                         let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                         
                         let uniqueKey = isReff ? 'ref_' + idx : 'b_' + idx;
@@ -818,7 +855,7 @@
                         container.insertAdjacentHTML('beforeend', html); 
                     }
                 });
-                reindexBait(container); // Susun ulang nomor bait
+                reindexBait(container);
             } else { alert(data.message); }
         }).catch(err => alert('Gagal menarik data lagu.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
@@ -832,6 +869,11 @@
             if(data.success) { textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text; } else alert(data.message);
         }).catch(() => alert('Terjadi kesalahan koneksi.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
+
+    // SESSION KEEP-ALIVE SCRIPT (Pencegah Auto-Logout)
+    setInterval(function() {
+        fetch('{{ url('/') }}').catch(() => console.log('Session keep-alive ping failed'));
+    }, 10 * 60 * 1000); // Nge-ping server setiap 10 menit
 
     window.addEventListener('storage', (e) => { 
         if (e.key === 'last_slide_index') { currentSlide = parseInt(e.newValue); updateConsoleView(); }

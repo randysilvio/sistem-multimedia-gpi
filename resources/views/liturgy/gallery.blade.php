@@ -11,6 +11,12 @@
         
         .navbar { background-color: #0f172a !important; }
         .navbar-brand { font-weight: 700; letter-spacing: 1px; font-size: 1.1rem; }
+        
+        /* Tombol Navbar Profesional */
+        .nav-actions .btn { font-size: 0.85rem; letter-spacing: 0.3px; }
+        .btn-warta { background-color: #0ea5e9; color: white; border: none; }
+        .btn-warta:hover { background-color: #0284c7; color: white; }
+
         .section-label { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .section-label::after { content: ""; flex: 1; height: 1px; background-color: #e2e8f0; }
         
@@ -21,53 +27,20 @@
         .template-scroll-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
 
         /* KARTU TEMPLATE ELEGAN */
-        .template-card { 
-            flex: 0 0 220px; 
-            height: 160px; 
-            border-radius: 12px; 
-            border: 1px solid #e2e8f0; 
-            background: #ffffff; 
-            cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            text-decoration: none !important; 
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-        }
-        .template-card:hover { 
-            border-color: #3b82f6; 
-            box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.15); 
-            transform: translateY(-4px); 
-        }
+        .template-card { flex: 0 0 220px; height: 160px; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; display: flex; flex-direction: column; text-decoration: none !important; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); padding: 20px; }
+        .template-card:hover { border-color: #3b82f6; box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.15); transform: translateY(-4px); }
 
-        /* WATERMARK LOGO */
-        .watermark-logo {
-            position: absolute;
-            right: -25px;
-            bottom: -25px;
-            height: 120px;
-            opacity: 0.04;
-            z-index: 0;
-            pointer-events: none;
-            filter: grayscale(100%);
-            transition: transform 0.4s ease;
-        }
+        .watermark-logo { position: absolute; right: -25px; bottom: -25px; height: 120px; opacity: 0.04; z-index: 0; pointer-events: none; filter: grayscale(100%); transition: transform 0.4s ease; }
         .template-card:hover .watermark-logo { transform: scale(1.1) rotate(-5deg); }
 
         .t-card-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-        
         .t-card-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
         .t-card-title { font-size: 1.05rem; font-weight: 800; color: #1e293b; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
         .card-action { font-size: 0.75rem; font-weight: 600; color: #3b82f6; display: flex; align-items: center; justify-content: space-between; }
-        
         .delete-btn { color: #ef4444; border: none; background: transparent; padding: 0; font-size: 0.75rem; font-weight: 600; cursor: pointer; z-index: 10; position: relative; }
         .delete-btn:hover { text-decoration: underline; }
 
-        /* KARTU SPESIAL */
         .template-card.create-new { background: #f8fafc; border: 2px dashed #cbd5e1; }
         .template-card.create-new:hover { background: #eff6ff; border-color: #3b82f6; }
         .template-card.create-new .t-card-title { color: #3b82f6; }
@@ -79,6 +52,7 @@
         .table { font-size: 0.9rem; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .table thead th { background-color: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; padding-top: 15px; padding-bottom: 15px;}
         .table tbody td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f8fafc; }
+        
         .btn-control { background-color: #2b6cb0; color: white; border: none; font-weight: 600; }
         .btn-control:hover { background-color: #1e40af; color: white; }
     </style>
@@ -91,9 +65,10 @@
                 <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI" height="32" class="me-3">
                 <span>Sistem Multimedia</span>
             </a>
-            <div>
-                <a href="{{ route('dashboard') }}" class="btn btn-outline-light btn-sm fw-medium px-3 me-2">Ke Dashboard</a>
-                <a href="{{ route('songs.index') }}" class="btn btn-light btn-sm fw-bold px-4 text-primary">Database Lagu</a>
+            <div class="d-flex gap-2 nav-actions">
+                <a href="{{ route('dashboard') }}" class="btn btn-outline-light fw-medium px-3">Ke Dashboard</a>
+                <a href="{{ route('songs.index') }}" class="btn btn-light fw-bold px-4 text-primary">Database Lagu</a>
+                <a href="{{ route('announcement.index') }}" class="btn btn-warta fw-bold px-4">Kelola Warta Sinode</a>
             </div>
         </div>
     </nav>
@@ -101,9 +76,7 @@
     <div class="bg-white py-5 border-bottom shadow-sm mb-5">
         <div class="container">
             <h6 class="section-label">Manajemen Tata Ibadah</h6>
-            
             <div class="template-scroll-container">
-                
                 <a href="{{ route('liturgy.builder') }}" class="template-card create-new">
                     <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
                     <div class="t-card-content">
@@ -141,7 +114,6 @@
                     @endforeach
                 @endif
             </div>
-            
         </div>
     </div>
 
@@ -188,7 +160,9 @@
                                     </td>
                                     <td class="align-middle text-secondary fw-medium">{{ $schedule->preacher_name ?? '-' }}</td>
                                     <td class="text-end pe-4 align-middle">
-                                        <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-control btn-sm fw-bold px-3 me-1">Live Control</a>
+                                        <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-outline-primary btn-sm fw-bold px-3 me-1">Edit Data</a>
+                                        <a href="{{ route('liturgy.control', $schedule->id) }}" class="btn btn-control btn-sm fw-bold px-3 me-1">Live Control</a>
+                                        
                                         <form action="{{ route('liturgy.destroy', $schedule->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data presentasi ini secara permanen?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-light border btn-sm text-danger">&times;</button>
