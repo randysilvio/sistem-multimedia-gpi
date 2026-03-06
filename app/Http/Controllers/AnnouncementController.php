@@ -29,17 +29,12 @@ class AnnouncementController extends Controller
             $cleanName = Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME));
             $fileName = time() . '_' . $cleanName . '.' . $image->getClientOriginalExtension();
             
-            // SIMPAN LANGSUNG KE FOLDER PUBLIC DENGAN CARA PALING AMAN UNTUK SHARED HOSTING
-            $destinationPath = public_path('uploads/warta');
+            // TRIK JITU HOSTING: Pindahkan gambar langsung secara relatif
+            // Ini akan otomatis membuat folder "warta_images" tepat di dalam root publik Anda
+            $image->move('warta_images', $fileName);
             
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $image->move($destinationPath, $fileName);
-            
-            // Simpan nama path yang bisa diakses URL secara langsung
-            $path = 'uploads/warta/' . $fileName; 
+            // Simpan nama path
+            $path = 'warta_images/' . $fileName; 
 
             Announcement::create([
                 'title' => $request->title,
@@ -57,10 +52,9 @@ class AnnouncementController extends Controller
     {
         $announcement = Announcement::findOrFail($id);
         
-        $filePath = public_path($announcement->image_path);
-        
-        if (file_exists($filePath)) {
-            unlink($filePath);
+        // Hapus fisik dengan path relatif
+        if (file_exists($announcement->image_path)) {
+            unlink($announcement->image_path);
         }
         
         $announcement->delete();
