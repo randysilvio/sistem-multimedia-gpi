@@ -28,7 +28,7 @@
 
     <div class="container">
         <div class="info-tip shadow-sm">
-            <strong>💡 Resolusi Ideal:</strong> Gunakan gambar ukuran <strong>1920x1080 (16:9)</strong> agar pas memenuhi layar proyektor tanpa sisa hitam. Semua gambar di bawah akan tayang otomatis dalam 1 slide slideshow.
+            <strong>Resolusi Ideal:</strong> Gunakan gambar ukuran <strong>1920x1080 (16:9)</strong> agar pas memenuhi layar proyektor tanpa sisa hitam. Semua gambar di bawah akan tayang otomatis dalam 1 slide slideshow.
         </div>
 
         @if(session('success')) 
