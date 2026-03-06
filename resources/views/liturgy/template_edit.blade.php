@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Buat Template Master - GPI Papua</title>
+    <title>Edit Template Master - GPI Papua</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -48,14 +48,14 @@
         <div class="container d-flex justify-content-between align-items-center">
             <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
                 <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI" height="32" class="me-3">
-                <span>Builder Template Master</span>
+                <span>Edit Template Master</span>
             </a>
             <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Batal & Kembali</a>
         </div>
     </nav>
 
     <div class="container builder-container">
-        <form action="{{ route('liturgy.template.store') }}" method="POST">
+        <form action="{{ route('liturgy.template.update', $liturgy->id) }}" method="POST">
             @csrf
             
             <div class="card border-0 shadow-sm mb-4 rounded-3">
@@ -63,16 +63,16 @@
                     <h6 class="fw-bold text-success mb-3 text-uppercase" style="letter-spacing: 1px; font-size:0.85rem;">Informasi Template</h6>
                     <div class="mb-2">
                         <label class="form-label small fw-bold text-secondary">Nama Template (Wajib)</label>
-                        <input type="text" name="name" class="form-control form-control-lg bg-light fw-bold text-dark" placeholder="Cth: Tata Ibadah Perjamuan Kudus" required>
+                        <input type="text" name="name" class="form-control form-control-lg bg-light fw-bold text-dark" value="{{ $liturgy->name }}" required>
                     </div>
                 </div>
             </div>
 
             <div class="d-flex justify-content-between align-items-end mt-5 mb-3">
-                <h6 class="fw-bold text-dark text-uppercase m-0" style="letter-spacing: 1px; font-size:0.85rem;">Struktur Kerangka Slide</h6>
+                <h6 class="fw-bold text-dark text-uppercase m-0" style="letter-spacing: 1px; font-size:0.85rem;">Struktur Kerangka Slide Saat Ini</h6>
                 <small class="text-muted">Arahkan kursor di antara slide untuk menyisipkan</small>
             </div>
-            
+
             <div id="canvas-area">
                 <div class="insert-divider top-divider" id="top-anchor">
                     <div class="dropdown">
@@ -81,17 +81,66 @@
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', 'top')">Tambah Kerangka Nyanyian</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', 'top')">Tambah Kerangka Bacaan Alkitab</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', 'top')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'top')">Tambah Instruksi Sikap Jemaat</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'top')">Tambah Instruksi Sikap</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas</a></li>
                         </ul>
                     </div>
                 </div>
-                </div>
+
+                @foreach($liturgy->items as $index => $item)
+                    @php
+                        $titleLower = strtolower($item->title);
+                        $cardColor = '#718096'; $typeLabel = 'SLIDE TEKS BEBAS'; $type = 'polos';
+                        if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) {
+                            $cardColor = '#2b6cb0'; $typeLabel = 'NYANYIAN JEMAAT'; $type = 'nyanyian';
+                        } elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) {
+                            $cardColor = '#2c5282'; $typeLabel = 'BACAAN ALKITAB'; $type = 'alkitab';
+                        } elseif (str_contains($titleLower, 'votum') || str_contains($titleLower, 'prosesi') || str_contains($titleLower, 'pengakuan')) {
+                            $cardColor = '#4a5568'; $typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; $type = 'votum';
+                        } elseif (str_contains($titleLower, 'sikap') || str_contains($titleLower, 'aksi')) {
+                            $cardColor = '#c53030'; $typeLabel = 'INSTRUKSI SIKAP JEMAAT'; $type = 'aksi';
+                        }
+                    @endphp
+
+                    <div class="block-wrapper" id="wrapper-old-{{ $index }}">
+                        <div class="block-card" style="border-top: 4px solid {{ $cardColor }};">
+                            <button type="button" class="btn-delete-block" onclick="this.closest('.block-wrapper').remove()" title="Hapus Kerangka">&times;</button>
+                            <div class="mb-3 pb-2">
+                                <span class="badge text-uppercase" style="background-color: {{ $cardColor }}; letter-spacing: 0.5px;">{{ $typeLabel }}</span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold text-muted">Judul Sesi</label>
+                                    <input type="text" name="blocks[old_{{ $index }}][title]" class="form-control fw-bold" value="{{ $item->title }}" required>
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label small fw-bold text-muted">Teks Bawaan (Opsional)</label>
+                                    <textarea name="blocks[old_{{ $index }}][content]" class="form-control bg-light" rows="2">{{ $item->static_content }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="insert-divider">
+                            <div class="dropdown">
+                                <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan Slide Di Sini">&plus;</button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', 'old-{{ $index }}')">Tambah Kerangka Nyanyian</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', 'old-{{ $index }}')">Tambah Kerangka Bacaan Alkitab</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', 'old-{{ $index }}')">Tambah Votum / Prosesi</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'old-{{ $index }}')">Tambah Instruksi Sikap</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'old-{{ $index }}')">Tambah Slide Teks Bebas</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
 
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary-custom">SIMPAN TEMPLATE MASTER</button>
+                    <button type="submit" class="btn btn-primary-custom">SIMPAN PERUBAHAN TEMPLATE</button>
                 </div>
             </div>
         </form>
@@ -100,7 +149,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        let blockCount = 0;
+        let blockCount = {{ $liturgy->items->count() }};
 
         function insertBlock(type, referenceId) {
             blockCount++;
@@ -110,7 +159,6 @@
             let defaultTitle = '';
             let defaultContent = '';
 
-            // Palette Warna & Default
             if (type === 'nyanyian') { cardColor = '#2b6cb0'; typeLabel = 'NYANYIAN JEMAAT'; defaultTitle = 'Nyanyian Jemaat'; } 
             else if (type === 'alkitab') { cardColor = '#2c5282'; typeLabel = 'BACAAN ALKITAB'; defaultTitle = 'Pelayanan Firman'; }
             else if (type === 'votum') { cardColor = '#4a5568'; typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; defaultTitle = 'Votum dan Salam'; defaultContent = 'Pertolongan kita adalah dalam nama Tuhan...'; }
@@ -125,12 +173,12 @@
                     </div>
                     <div class="row g-3">
                         <div class="col-md-5">
-                            <label class="form-label small fw-bold text-muted">Judul Sesi (Bisa Diubah)</label>
+                            <label class="form-label small fw-bold text-muted">Judul Sesi</label>
                             <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" value="${defaultTitle}" required>
                         </div>
                         <div class="col-md-7">
-                            <label class="form-label small fw-bold text-muted">Teks Bawaan (Kosongkan bila perlu)</label>
-                            <textarea name="blocks[${newId}][content]" class="form-control bg-light" rows="2" placeholder="Kosongkan agar diisi waktu jadwal dibuat...">${defaultContent}</textarea>
+                            <label class="form-label small fw-bold text-muted">Teks Bawaan (Opsional)</label>
+                            <textarea name="blocks[${newId}][content]" class="form-control bg-light" rows="2">${defaultContent}</textarea>
                         </div>
                     </div>
                 </div>
@@ -162,10 +210,6 @@
             
             document.getElementById('wrapper-' + newId).scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-
-        window.onload = function() {
-            insertBlock('nyanyian', 'top'); // Default 1 kerangka pertama
-        };
     </script>
 </body>
 </html>

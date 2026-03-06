@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LiturgyController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\LiturgyTemplateController;
-use App\Http\Controllers\AnnouncementController; // <-- TAMBAHAN CONTROLLER WARTA
+use App\Http\Controllers\AnnouncementController; 
 
 Route::get('/', function () {
     return view('welcome');
@@ -20,10 +20,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('liturgi')->group(function () {
         Route::get('/galeri', [LiturgyController::class, 'gallery'])->name('liturgy.gallery');
         
-        // --- CRUD MASTER TEMPLATE (BARU) ---
+        // --- CRUD MASTER TEMPLATE ---
         Route::prefix('template')->name('liturgy.template.')->group(function () {
             Route::get('/create', [LiturgyTemplateController::class, 'create'])->name('create');
             Route::post('/store', [LiturgyTemplateController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [LiturgyTemplateController::class, 'edit'])->name('edit');
+            Route::post('/{id}/update', [LiturgyTemplateController::class, 'update'])->name('update');
             Route::delete('/{id}', [LiturgyTemplateController::class, 'destroy'])->name('destroy');
         });
 

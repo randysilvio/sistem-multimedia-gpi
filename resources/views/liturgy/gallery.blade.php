@@ -13,7 +13,7 @@
         .navbar-brand { font-weight: 700; letter-spacing: 1px; font-size: 1.1rem; }
         
         /* Tombol Navbar Profesional */
-        .nav-actions .btn { font-size: 0.85rem; letter-spacing: 0.3px; }
+        .nav-actions .btn { font-size: 0.85rem; letter-spacing: 0.3px; font-weight: 600; }
         .btn-warta { background-color: #0ea5e9; color: white; border: none; }
         .btn-warta:hover { background-color: #0284c7; color: white; }
 
@@ -38,6 +38,8 @@
         .t-card-title { font-size: 1.05rem; font-weight: 800; color: #1e293b; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
         .card-action { font-size: 0.75rem; font-weight: 600; color: #3b82f6; display: flex; align-items: center; justify-content: space-between; }
+        .action-link { text-decoration: none; color: #3b82f6; font-size: 0.75rem; }
+        .action-link:hover { text-decoration: underline; }
         .delete-btn { color: #ef4444; border: none; background: transparent; padding: 0; font-size: 0.75rem; font-weight: 600; cursor: pointer; z-index: 10; position: relative; }
         .delete-btn:hover { text-decoration: underline; }
 
@@ -66,9 +68,9 @@
                 <span>Sistem Multimedia</span>
             </a>
             <div class="d-flex gap-2 nav-actions">
-                <a href="{{ route('dashboard') }}" class="btn btn-outline-light fw-medium px-3">Ke Dashboard</a>
-                <a href="{{ route('songs.index') }}" class="btn btn-light fw-bold px-4 text-primary">Database Lagu</a>
-                <a href="{{ route('announcement.index') }}" class="btn btn-warta fw-bold px-4">Kelola Warta Sinode</a>
+                <a href="{{ route('dashboard') }}" class="btn btn-outline-light px-3">Ke Dashboard</a>
+                <a href="{{ route('songs.index') }}" class="btn btn-light px-4 text-primary">Database Lagu</a>
+                <a href="{{ route('announcement.index') }}" class="btn btn-warta px-4">Kelola Warta Sinode</a>
             </div>
         </div>
     </nav>
@@ -104,10 +106,13 @@
                                 <div class="t-card-title">{{ $liturgy->name }}</div>
                                 <div class="card-action">
                                     <span>Gunakan &rarr;</span>
-                                    <form action="{{ route('liturgy.template.destroy', $liturgy->id) }}" method="POST" onclick="event.stopPropagation();" onsubmit="return confirm('Hapus template ini secara permanen?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="delete-btn">Hapus</button>
-                                    </form>
+                                    <div class="d-flex gap-3">
+                                        <a href="{{ route('liturgy.template.edit', $liturgy->id) }}" class="action-link text-secondary" onclick="event.stopPropagation();">Edit</a>
+                                        <form action="{{ route('liturgy.template.destroy', $liturgy->id) }}" method="POST" onclick="event.stopPropagation();" onsubmit="return confirm('Hapus template ini secara permanen?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="delete-btn">Hapus</button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>

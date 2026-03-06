@@ -20,30 +20,60 @@ class LiturgyTemplateController extends Controller
             'blocks' => 'required|array|min:1',
         ]);
 
-        $liturgy = Liturgy::create([
-            'name' => $request->name,
-        ]);
+        $liturgy = Liturgy::create(['name' => $request->name]);
 
-        $order = 1;
-        foreach ($request->blocks as $block) {
+        foreach ($request->blocks as $index => $block) {
             LiturgyItem::create([
                 'liturgy_id' => $liturgy->id,
                 'title' => $block['title'],
-                'is_dynamic' => true, // Semua dibuat dinamis agar bisa diisi saat jadwal dibuat
+                'is_dynamic' => true,
                 'static_content' => $block['content'] ?? null,
-                'order_number' => $order++,
+                'order_number' => $index + 1,
             ]);
         }
 
-        return redirect()->route('liturgy.gallery')->with('success', 'Template Tata Ibadah baru berhasil disimpan!');
+        return redirect()->route('liturgy.gallery')->with('success', 'Template baru berhasil disimpan!');
+    }
+
+    public function edit($id)
+    {
+        $liturgy = Liturgy::with(['items' => function($q) {
+            $q->orderBy('order_number', 'asc');
+        }])->findOrFail($id);
+
+        return view('liturgy.template_edit', compact('liturgy'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'blocks' => 'required|array|min:1',
+        ]);
+
+        $liturgy = Liturgy::findOrFail($id);
+        $liturgy->update(['name' => $request->name]);
+
+        // Hapus item lama dan ganti dengan yang baru (cara termudah untuk re-order)
+        $liturgy->items()->delete();
+
+        foreach ($request->blocks as $index => $block) {
+            LiturgyItem::create([
+                'liturgy_id' => $liturgy->id,
+                'title' => $block['title'],
+                'is_dynamic' => true,
+                'static_content' => $block['content'] ?? null,
+                'order_number' => $index + 1,
+            ]);
+        }
+
+        return redirect()->route('liturgy.gallery')->with('success', 'Template berhasil diperbarui!');
     }
 
     public function destroy($id)
     {
         $liturgy = Liturgy::findOrFail($id);
-        $liturgy->items()->delete(); 
-        $liturgy->delete(); 
-
-        return redirect()->route('liturgy.gallery')->with('success', 'Template berhasil dihapus dari Master Database.');
+        $liturgy->delete(); // Pastikan di model Liturgy sudah diset cascade delete atau hapus manual items-nya
+        return redirect()->route('liturgy.gallery')->with('success', 'Template berhasil dihapus.');
     }
 }

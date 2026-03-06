@@ -141,21 +141,15 @@
     }
 
     $allSlides = [];
-    $allSlides[] = [
-        'type' => 'cover',
-        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
-        'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
-        'theme' => strtoupper($schedule->theme ?? ''),
-        'preacher' => strtoupper($schedule->preacher_name ?? '')
-    ];
-
-    // --- SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW) ---
+    
+    // 1. SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW) - URUTAN PERTAMA
     if(isset($announcements) && $announcements->count() > 0) {
         $slideImages = [];
         foreach($announcements as $ann) {
             $slideImages[] = [
                 'image_url' => asset('storage/' . $ann->image_path),
-                'caption' => strtoupper($ann->title ?? '')
+                'caption' => strtoupper($ann->title ?? ''),
+                'duration' => $ann->duration ?? 5 // Durasi dinamis per gambar
             ];
         }
         $allSlides[] = [
@@ -164,8 +158,17 @@
             'images' => $slideImages
         ];
     }
-    // ------------------------------------------------
+    
+    // 2. COVER (LOGO & TEMA)
+    $allSlides[] = [
+        'type' => 'cover',
+        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
+        'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
+        'theme' => strtoupper($schedule->theme ?? ''),
+        'preacher' => strtoupper($schedule->preacher_name ?? '')
+    ];
 
+    // 3. TATA IBADAH
     foreach($liturgyItems as $item) {
         $detail = $scheduleDetails->get($item->id);
         $content = $detail ? $detail->dynamic_content : $item->static_content;
@@ -190,9 +193,7 @@
                         'content' => ($content['judul'] ?? '')
                     ];
                     
-                    // ===============================================
-                    // REFF DETECTION ALGORITHM (SMART NUMBERING)
-                    // ===============================================
+                    // REFF DETECTION ALGORITHM
                     $verseCounter = 1;
                     foreach($content['bait'] as $key => $bait) {
                         $baitTextRaw = trim($bait);
@@ -206,7 +207,7 @@
                         $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
 
                         $displayIndex = $isReff ? '' : $verseCounter; 
-                        if (!$isReff) $verseCounter++; // Penomoran HANYA NAIK jika itu bukan Reff!
+                        if (!$isReff) $verseCounter++; 
                         
                         $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
                         if($isReff) $slideTitle .= ' (Reff)';
@@ -229,6 +230,8 @@
                 }
             }
         }
+        
+        // 4. SISIPAN SLIDE TAMBAHAN (CUSTOM SLIDES)
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
                 $cSlidesText = autoSplitText($cSlide->content);
@@ -315,12 +318,12 @@
                     <div class="row g-1 mb-1">
                         <div class="col-12 mb-1">
                             <select id="font_family" onchange="updateDesignLive()" class="form-select form-select-sm bg-dark text-white border-secondary" style="font-size:0.75rem;">
-                                <option value="'Inter', Tahoma, sans-serif">Inter (Modern Default)</option>
-                                <option value="'Montserrat', sans-serif">Montserrat (Tegas)</option>
-                                <option value="'Roboto', sans-serif">Roboto (Bersih)</option>
-                                <option value="'Lato', sans-serif">Lato (Elegan)</option>
-                                <option value="'Oswald', sans-serif">Oswald (Tinggi/Padat)</option>
-                                <option value="'Playfair Display', serif">Playfair Display (Klasik)</option>
+                                <option value="'Inter', Tahoma, sans-serif">Inter</option>
+                                <option value="'Montserrat', sans-serif">Montserrat</option>
+                                <option value="'Roboto', sans-serif">Roboto</option>
+                                <option value="'Lato', sans-serif">Lato</option>
+                                <option value="'Oswald', sans-serif">Oswald</option>
+                                <option value="'Playfair Display', serif">Playfair Display</option>
                                 <option value="Arial, sans-serif">Arial</option>
                             </select>
                         </div>
@@ -507,7 +510,7 @@
         }
         else if (slide.type === 'announcements_slideshow') {
             let imagesHtml = slide.images.map((img, idx) => `
-                <div class="warta-item-cp" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: ${idx===0 ? 1 : 0}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
+                <div class="warta-item-cp warta-item-cp-${index}" data-duration="${img.duration || 5}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: ${idx===0 ? 1 : 0}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
                     <img src="${img.image_url}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:1;">
                     ${img.caption ? `<div style="position:relative; z-index:2; margin-bottom: 5cqh; background:rgba(0,0,0,0.8); color:#fff; padding:1.5cqh 3cqw; border-radius:50px; font-size:2.5cqw; font-weight:bold;">${img.caption}</div>` : ''}
                 </div>
@@ -715,8 +718,8 @@
     }
 
     function updateConsoleView() {
-        clearInterval(window.cpWartaInterval); 
-        clearInterval(window.cpWartaNextInterval); 
+        clearTimeout(window.cpWartaInterval); 
+        clearTimeout(window.cpWartaNextInterval); 
 
         document.getElementById('virtual-render-current').innerHTML = renderVirtualSlide(allSlidesData[currentSlide], currentSlide);
         document.getElementById('virtual-render-next').innerHTML = renderVirtualSlide(allSlidesData[currentSlide + 1], currentSlide + 1);
@@ -736,26 +739,35 @@
             fontIndicator.style.color = '#cbd5e0'; 
         }
 
-        // Animasi CP untuk Monitor Current
-        let items = document.getElementById('monitor-current').querySelectorAll('.warta-item-cp');
-        if(items.length > 1) {
-            let wIdx = 0;
-            window.cpWartaInterval = setInterval(() => {
-                items[wIdx].style.opacity = 0;
-                wIdx = (wIdx + 1) % items.length;
-                items[wIdx].style.opacity = 1;
-            }, 5000); // 5 Detik
+        // --- Logika Durasi Dinamis untuk Monitor CURRENT ---
+        let currentItems = document.getElementById('monitor-current').querySelectorAll(`.warta-item-cp-${currentSlide}`);
+        if(currentItems.length > 1) {
+            let cwIdx = 0;
+            const runNextCurrent = () => {
+                currentItems[cwIdx].style.opacity = 0;
+                cwIdx = (cwIdx + 1) % currentItems.length;
+                currentItems[cwIdx].style.opacity = 1;
+                let nextDur = (parseInt(currentItems[cwIdx].dataset.duration) || 5) * 1000;
+                window.cpWartaInterval = setTimeout(runNextCurrent, nextDur);
+            };
+            let firstDur = (parseInt(currentItems[0].dataset.duration) || 5) * 1000;
+            window.cpWartaInterval = setTimeout(runNextCurrent, firstDur);
         }
 
-        // Animasi CP untuk Monitor Next
-        let nextItems = document.getElementById('monitor-next').querySelectorAll('.warta-item-cp');
+        // --- Logika Durasi Dinamis untuk Monitor NEXT ---
+        let nextIndex = currentSlide + 1;
+        let nextItems = document.getElementById('monitor-next').querySelectorAll(`.warta-item-cp-${nextIndex}`);
         if(nextItems.length > 1) {
             let nwIdx = 0;
-            window.cpWartaNextInterval = setInterval(() => {
+            const runNextNext = () => {
                 nextItems[nwIdx].style.opacity = 0;
                 nwIdx = (nwIdx + 1) % nextItems.length;
                 nextItems[nwIdx].style.opacity = 1;
-            }, 5000); 
+                let nextDur = (parseInt(nextItems[nwIdx].dataset.duration) || 5) * 1000;
+                window.cpWartaNextInterval = setTimeout(runNextNext, nextDur);
+            };
+            let firstDur = (parseInt(nextItems[0].dataset.duration) || 5) * 1000;
+            window.cpWartaNextInterval = setTimeout(runNextNext, firstDur);
         }
 
         applyVirtualDesign(JSON.parse(localStorage.getItem('live_design_settings')));

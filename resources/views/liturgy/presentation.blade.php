@@ -93,24 +93,14 @@
     }
 
     $allSlides = [];
-    
-    // 1. COVER
-    $allSlides[] = [
-        'type' => 'cover',
-        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
-        'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
-        'theme' => strtoupper($schedule->theme ?? ''),
-        'preacher' => strtoupper($schedule->preacher_name ?? '')
-    ];
 
-    // 2. SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW)
+    // 1. SISIPAN OTOMATIS WARTA SINODE (SLIDESHOW) - PINDAH KE URUTAN 1
     if(isset($announcements) && $announcements->count() > 0) {
         $slideImages = [];
         foreach($announcements as $ann) {
             $slideImages[] = [
                 'image_url' => asset('storage/' . $ann->image_path),
-                'caption' => strtoupper($ann->title ?? ''),
-                'duration' => $ann->duration ?? 5 // Tambahkan durasi per gambar
+                'caption' => strtoupper($ann->title ?? '')
             ];
         }
         $allSlides[] = [
@@ -119,6 +109,15 @@
             'images' => $slideImages
         ];
     }
+    
+    // 2. COVER (LOGO & TEMA) - PINDAH KE URUTAN 2
+    $allSlides[] = [
+        'type' => 'cover',
+        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
+        'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
+        'theme' => strtoupper($schedule->theme ?? ''),
+        'preacher' => strtoupper($schedule->preacher_name ?? '')
+    ];
 
     // 3. TATA IBADAH
     foreach($liturgyItems as $item) {
@@ -209,7 +208,7 @@
                 @elseif($slide['type'] === 'announcements_slideshow')
                     <div style="position: absolute; top:0; left:0; width:100%; height:100%; background:#000; z-index:0;">
                         @foreach($slide['images'] as $idx => $img)
-                            <div class="warta-item warta-item-{{ $index }}" data-duration="{{ $img['duration'] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: {{ $idx==0 ? 1 : 0 }}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
+                            <div class="warta-item warta-item-{{ $index }}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: {{ $idx==0 ? 1 : 0 }}; transition: opacity 1.5s ease-in-out; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
                                 <img src="{{ $img['image_url'] }}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:1;">
                                 @if($img['caption'])
                                     <div style="position:relative; z-index:2; margin-bottom: 5vh; background:rgba(0,0,0,0.8); color:#fff; padding:1vh 3vw; border-radius:50px; font-size:2vw; font-weight:bold; text-align:center;">{{ $img['caption'] }}</div>
@@ -351,7 +350,7 @@
             if (index >= slides.length) index = slides.length - 1;
             if (index < 0) index = 0;
             
-            clearTimeout(wartaInterval); // Hentikan timer jika pindah slide
+            clearInterval(wartaInterval); // Reset timer jika pindah slide
 
             slides.forEach((slide, i) => {
                 slide.classList.remove('active');
@@ -362,25 +361,16 @@
             });
             currentSlide = index;
 
-            // Logika Slideshow Warta Dinamis
+            // Cek apakah ini Slide Warta, jika iya jalankan Animasi Interval
             let currentSlideEl = slides[index];
             let wartaItems = currentSlideEl.querySelectorAll('.warta-item-' + index);
             if(wartaItems.length > 1) {
                 let wIndex = 0;
-                
-                const runNextWarta = () => {
+                wartaInterval = setInterval(() => {
                     wartaItems[wIndex].style.opacity = 0;
                     wIndex = (wIndex + 1) % wartaItems.length;
                     wartaItems[wIndex].style.opacity = 1;
-                    
-                    // Ambil durasi dari atribut data-duration gambar selanjutnya
-                    let nextDuration = (parseInt(wartaItems[wIndex].dataset.duration) || 5) * 1000;
-                    wartaInterval = setTimeout(runNextWarta, nextDuration);
-                };
-
-                // Mulai slideshow berdasarkan durasi gambar pertama
-                let firstDuration = (parseInt(wartaItems[0].dataset.duration) || 5) * 1000;
-                wartaInterval = setTimeout(runNextWarta, firstDuration);
+                }, 5000); // 5 Detik per gambar
             }
             
             localStorage.setItem('last_slide_index', index);
