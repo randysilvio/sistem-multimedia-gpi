@@ -16,7 +16,7 @@ class AnnouncementController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi: Tambah format GIF, limit 100MB, dan kolom durasi
+        // Validasi
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:102400', 
             'title' => 'nullable|string|max:255',
@@ -27,12 +27,23 @@ class AnnouncementController extends Controller
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             
-            // Bersihkan nama file dari spasi agar tidak error
+            // Bersihkan nama file
             $cleanName = Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME));
             $fileName = time() . '_' . $cleanName . '.' . $image->getClientOriginalExtension();
             
-            // BYPASS SYMLINK: Pindahkan file fisik LANGSUNG ke folder public/storage/sinode
-            $image->move(public_path('storage/sinode'), $fileName);
+            // =======================================================
+            // SOLUSI DEPLOY HOSTING (BYPASS SYMLINK)
+            // Memaksa file masuk ke folder asli server (public_html/storage/sinode)
+            // =======================================================
+            $destinationPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/storage/sinode';
+            
+            // Jika folder belum ada di hosting, buat otomatis
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            // Pindahkan file fisik ke folder tersebut
+            $image->move($destinationPath, $fileName);
             $path = 'sinode/' . $fileName; 
 
             Announcement::create([
@@ -51,8 +62,9 @@ class AnnouncementController extends Controller
     {
         $announcement = Announcement::findOrFail($id);
         
-        // BYPASS SYMLINK: Hapus file fisik langsung dari folder public
-        $filePath = public_path('storage/' . $announcement->image_path);
+        // SOLUSI DEPLOY HOSTING: Hapus file fisik dari akar server
+        $filePath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/storage/' . $announcement->image_path;
+        
         if (file_exists($filePath)) {
             unlink($filePath);
         }
