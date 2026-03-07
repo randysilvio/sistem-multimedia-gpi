@@ -59,19 +59,13 @@
     </div>
 
     @php
-    // FUNGSI PEMBERSIH JUDUL (Mencegah teks dobel dan menghapus awalan yang tidak perlu)
     if (!function_exists('cleanSlideTitle')) {
         function cleanSlideTitle($title) {
             if (!is_string($title)) return '';
-            // Hapus kata (Opsional)
             $title = str_ireplace('(opsional)', '', $title);
-            // Hapus teks "Slide Bebas" beserta tanda titik dua/strip setelahnya
             $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
-            // Hapus awalan "Nyanyian:" atau "Nyanyian -" 
             $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
-            // Hapus jika isinya hanya kata "Nyanyian"
             $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
-            // Rapikan spasi atau tanda baca yang tersisa di ujung
             return trim($title, " -:");
         }
     }
@@ -155,7 +149,6 @@
         $isEmptyString = !is_array($content) && trim($content) === '';
         $isInstruksi = str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi');
         
-        // Eksekusi fungsi pembersih utama pada judul item liturgi
         $cleanBaseTitle = cleanSlideTitle($item->title);
 
         if($content && !$isEmptyArray && !$isEmptyString) {
@@ -163,8 +156,6 @@
                 $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content;
                 $allSlides[] = ['type' => 'instruksi', 'title' => $cleanBaseTitle, 'content' => $textInstruksi];
             } elseif(is_array($content)) {
-                
-                // Cek isi jika custom_title disematkan di array
                 if(isset($content['custom_title'])) {
                     $cTitle = cleanSlideTitle($content['custom_title']);
                     $slidesText = autoSplitText($content['content'] ?? '');
@@ -176,7 +167,6 @@
                     $songCoverTitle = $cleanBaseTitle;
                     $songCoverContent = $content['judul'] ?? '';
                     
-                    // Filter judul cover lagu yang duplikat
                     if (!empty($songCoverContent) && stripos($songCoverContent, $songCoverTitle) !== false) {
                         $songCoverTitle = ''; 
                     }
@@ -209,7 +199,6 @@
                         
                         $laguTitle = $content['judul'] ?? '';
                         if (!empty($laguTitle)) {
-                            // Cek jika laguTitle sudah mengandung cleanBaseTitle (mencegah duplikasi kata)
                             if ($cleanBaseTitle !== '' && stripos($laguTitle, $cleanBaseTitle) !== false) {
                                 $slideTitle = $laguTitle;
                             } else {
@@ -240,12 +229,9 @@
             }
         }
         
-        // Loop ini untuk Custom Slides murni yang ditambahkan jemaat/admin
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
-                // Eksekusi fungsi pembersih pada custom slide title
                 $cTitle = cleanSlideTitle($cSlide->title);
-
                 $cSlidesText = autoSplitText($cSlide->content);
                 foreach($cSlidesText as $ct) {
                     $allSlides[] = ['type' => 'custom', 'title' => $cTitle, 'content' => $ct];
@@ -321,6 +307,7 @@
     <script>
         const scheduleId = {{ $schedule->id ?? 0 }};
         let wartaInterval = null; 
+        let currentSlide = parseInt(localStorage.getItem('last_slide_index')) || 0;
 
         function launchFullscreen() {
             if (!document.fullscreenElement) {
@@ -414,10 +401,9 @@
         const savedDesign = JSON.parse(localStorage.getItem('live_design_settings'));
         if(savedDesign) applyLiveDesign(savedDesign);
 
-        const slides = document.querySelectorAll('.slide');
-        let currentSlide = parseInt(localStorage.getItem('last_slide_index')) || 0;
-
         function showSlide(index) {
+            const slides = document.querySelectorAll('.slide'); // Tarik elemen DOM terbaru
+            if (slides.length === 0) return;
             if (index >= slides.length) index = slides.length - 1;
             if (index < 0) index = 0;
             
@@ -473,7 +459,22 @@
                 if (cmd.action === 'jump') showSlide(cmd.index);
             }
             if (e.key === 'font_sync_trigger') showSlide(currentSlide); 
-            if (e.key === 'liturgy_update') location.reload();
+            
+            // PERUBAHAN: Ganti location.reload() menjadi Fetch API di Latar Belakang
+            if (e.key === 'liturgy_update') {
+                fetch(window.location.href)
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newPresentation = doc.getElementById('presentation');
+                        if (newPresentation) {
+                            document.getElementById('presentation').innerHTML = newPresentation.innerHTML;
+                            showSlide(currentSlide); // Render ulang tanpa melepaskan Fullscreen
+                        }
+                    })
+                    .catch(err => console.error('Gagal mengambil update slide:', err));
+            }
             if (e.key === 'live_design_settings') applyLiveDesign(JSON.parse(e.newValue));
         });
     </script>
