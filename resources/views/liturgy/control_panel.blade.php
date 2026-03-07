@@ -93,6 +93,18 @@
     $scheduleDetails = $schedule->details ? $schedule->details->keyBy('liturgy_item_id') : collect();
     $customSlides = $schedule->customSlides ? $schedule->customSlides->groupBy('liturgy_item_id') : collect();
 
+    // FUNGSI PEMBERSIH JUDUL (Mencegah teks dobel dan menghapus awalan yang tidak perlu)
+    if (!function_exists('cleanSlideTitle')) {
+        function cleanSlideTitle($title) {
+            if (!is_string($title)) return '';
+            $title = str_ireplace('(opsional)', '', $title);
+            $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
+            $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
+            $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
+            return trim($title, " -:");
+        }
+    }
+
     if (!function_exists('autoSplitText')) {
         function autoSplitText($text) {
             if (is_array($text)) { $text = $text['content'] ?? ''; }
@@ -163,7 +175,7 @@
     
     $allSlides[] = [
         'type' => 'cover',
-        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
+        'title' => str_replace(' (CUSTOM)', '', strtoupper($schedule->liturgy->name ?? 'IBADAH')),
         'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
         'theme' => strtoupper($schedule->theme ?? ''),
         'preacher' => strtoupper($schedule->preacher_name ?? '')
@@ -175,22 +187,32 @@
         $isEmptyArray = is_array($content) && empty($content['judul']) && empty($content['bait']) && empty($content['content']);
         $isEmptyString = !is_array($content) && trim($content) === '';
         $isInstruksi = str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi');
+        
+        $cleanBaseTitle = cleanSlideTitle($item->title);
 
         if($content && !$isEmptyArray && !$isEmptyString) {
             if($isInstruksi) {
                 $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content;
-                $allSlides[] = ['type' => 'instruksi', 'title' => $item->title, 'content' => $textInstruksi];
+                $allSlides[] = ['type' => 'instruksi', 'title' => $cleanBaseTitle, 'content' => $textInstruksi];
             } elseif(is_array($content)) {
                 if(isset($content['custom_title'])) {
+                    $cTitle = cleanSlideTitle($content['custom_title']);
                     $slidesText = autoSplitText($content['content'] ?? '');
                     foreach($slidesText as $st) {
-                        $allSlides[] = ['type' => 'text', 'title' => $content['custom_title'], 'content' => $st];
+                        $allSlides[] = ['type' => 'text', 'title' => $cTitle, 'content' => $st];
                     }
                 } elseif(!empty($content['bait'])) {
+                    
+                    $songCoverTitle = $cleanBaseTitle;
+                    $songCoverContent = $content['judul'] ?? '';
+                    if (!empty($songCoverContent) && stripos($songCoverContent, $songCoverTitle) !== false) {
+                        $songCoverTitle = ''; 
+                    }
+
                     $allSlides[] = [
                         'type' => 'song_cover', 
-                        'title' => str_replace(' (Opsional)', '', $item->title),
-                        'content' => ($content['judul'] ?? '')
+                        'title' => $songCoverTitle,
+                        'content' => $songCoverContent
                     ];
                     
                     foreach($content['bait'] as $key => $bait) {
@@ -213,7 +235,17 @@
                             }
                         }
                         
-                        $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
+                        $laguTitle = $content['judul'] ?? '';
+                        if (!empty($laguTitle)) {
+                            if ($cleanBaseTitle !== '' && stripos($laguTitle, $cleanBaseTitle) !== false) {
+                                $slideTitle = $laguTitle;
+                            } else {
+                                $slideTitle = ($cleanBaseTitle !== '' ? $cleanBaseTitle . ' - ' : '') . $laguTitle;
+                            }
+                        } else {
+                            $slideTitle = $cleanBaseTitle;
+                        }
+                        
                         if($isReff) $slideTitle .= ' (Reff)';
 
                         $baitSlides = autoSplitText($cleanBaitText);
@@ -230,16 +262,17 @@
             } else {
                 $slidesText = autoSplitText($content);
                 foreach($slidesText as $st) {
-                    $allSlides[] = ['type' => 'text', 'title' => str_replace(' (Opsional)', '', $item->title), 'content' => $st];
+                    $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st];
                 }
             }
         }
         
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
+                $cTitle = cleanSlideTitle($cSlide->title);
                 $cSlidesText = autoSplitText($cSlide->content);
                 foreach($cSlidesText as $ct) {
-                    $allSlides[] = ['type' => 'custom', 'title' => $cSlide->title, 'content' => $ct];
+                    $allSlides[] = ['type' => 'custom', 'title' => $cTitle, 'content' => $ct];
                 }
             }
         }
@@ -349,10 +382,12 @@
                     @php 
                         $detail = $schedule->details->where('liturgy_item_id', $item->id)->first();
                         $val = $detail ? $detail->dynamic_content : ($item->static_content ?? '');
+                        // Bersihkan label untuk di Form Edit
+                        $editTitleLabel = cleanSlideTitle($item->title) ?: 'SLIDE TAMBAHAN';
                     @endphp
                     
                     <div class="card-edit">
-                        <label class="form-label-header" style="color:#e2e8f0;">{{ $item->title }}</label>
+                        <label class="form-label-header" style="color:#e2e8f0;">{{ $editTitleLabel }}</label>
                         
                         @if($item->is_dynamic)
                             @if(str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi'))
@@ -427,7 +462,7 @@
                                 @if(isset($schedule->customSlides) && $schedule->customSlides->where('liturgy_item_id', $item->id)->count() > 0)
                                     @foreach($schedule->customSlides->where('liturgy_item_id', $item->id) as $index => $cSlide)
                                         <div class="custom-slide-box">
-                                            <input type="text" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][title]" class="form-control form-control-sm mb-1 fw-medium text-info" value="{{ $cSlide->title }}">
+                                            <input type="text" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][title]" class="form-control form-control-sm mb-1 fw-medium text-info" value="{{ cleanSlideTitle($cSlide->title) }}">
                                             <textarea name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][content]" class="form-control form-control-sm" rows="1">{{ $cSlide->content }}</textarea>
                                             <button type="button" class="btn btn-sm text-danger mt-1 p-0" style="font-size:0.7rem;" onclick="this.parentElement.remove()">Hapus</button>
                                         </div>
@@ -532,7 +567,7 @@
         else if (slide.type === 'song_cover') {
             innerHTML = `
                 <div style="margin: auto; text-align: center;">
-                    <div style="font-size: 2.5cqw; margin-bottom: 1.5cqh; text-transform: uppercase; color: #cbd5e0; letter-spacing: 0.2cqw;">${slide.title}</div>
+                    ${slide.title ? `<div style="font-size: 2.5cqw; margin-bottom: 1.5cqh; text-transform: uppercase; color: #cbd5e0; letter-spacing: 0.2cqw;">${slide.title}</div>` : ''}
                     <div style="font-size: 5.5cqw; font-weight: 900; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">${slide.content}</div>
                 </div>
             `;
@@ -540,7 +575,7 @@
         else if (slide.type === 'song_lyric') {
             innerHTML = `
                 ${slide.watermark !== '' ? `<div class="vp-watermark">${slide.watermark}</div>` : ''}
-                <div class="vp-title-header">${slide.title}</div>
+                ${slide.title ? `<div class="vp-title-header">${slide.title}</div>` : ''}
                 <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
             `;
         }
@@ -549,7 +584,7 @@
         }
         else { 
             innerHTML = `
-                <div class="vp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>
+                ${slide.title ? `<div class="vp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>` : ''}
                 <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
             `;
         }
@@ -573,11 +608,14 @@
     }
 
     function applyVirtualDesign(settings) {
-        document.documentElement.style.setProperty('--bg-center', settings.bgCenterColor);
-        document.documentElement.style.setProperty('--bg-edge', settings.bgEdgeColor);
-        document.documentElement.style.setProperty('--text-color', settings.textColor);
-        document.documentElement.style.setProperty('--font-family', settings.fontFamily);
-        document.documentElement.style.setProperty('--shadow-color', `rgba(${hexToRgb(settings.shadowColor)}, 0.9)`);
+        if(!settings) return;
+        document.documentElement.style.setProperty('--bg-center', settings.bgCenterColor || '#1b2735');
+        document.documentElement.style.setProperty('--bg-edge', settings.bgEdgeColor || '#050505');
+        document.documentElement.style.setProperty('--text-color', settings.textColor || '#ffffff');
+        document.documentElement.style.setProperty('--font-family', settings.fontFamily || "'Inter', Tahoma, sans-serif");
+        
+        let shadowHex = settings.shadowColor || '#000000';
+        document.documentElement.style.setProperty('--shadow-color', `rgba(${hexToRgb(shadowHex)}, 0.9)`);
 
         const speed = settings.animSpeed || 15;
         const ac1 = settings.animColor1 || '#2b6cb0';
@@ -675,7 +713,6 @@
         if (customFonts[currentSlide]) { fontIndicator.innerText = customFonts[currentSlide] + 'vw'; fontIndicator.style.color = '#fcd34d'; } 
         else { fontIndicator.innerText = 'Auto'; fontIndicator.style.color = '#cbd5e0'; }
 
-        // Animasi CP untuk Monitor Current
         let currentItems = document.getElementById('monitor-current').querySelectorAll(`.warta-item-cp-${currentSlide}`);
         if(currentItems.length > 1) {
             let cwIdx = 0;
@@ -690,7 +727,6 @@
             window.cpWartaInterval = setTimeout(runNextCurrent, firstDur);
         }
 
-        // Animasi CP untuk Monitor Next
         let nextIndex = currentSlide + 1;
         let nextItems = document.getElementById('monitor-next').querySelectorAll(`.warta-item-cp-${nextIndex}`);
         if(nextItems.length > 1) {
@@ -727,20 +763,32 @@
         });
     }
 
+    // PERBAIKAN BUG NAMA REFF DUPLIKAT
     function updateBaitName(inputElement, blockId) {
         let newName = inputElement.value.trim();
         if(newName === '') newName = 'Bait';
+        
+        let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
+        let formKey = newName;
+        
         if(newName.toLowerCase() === 'reff') {
             inputElement.classList.replace('bg-dark', 'bg-warning');
             inputElement.classList.replace('text-secondary', 'text-dark');
+            
+            // Mengamankan ID Key agar tidak kembar dengan Reff lain
+            let existingKey = hiddenInput ? hiddenInput.name.match(/\[bait\]\[(.*?)\]/) : null;
+            if (existingKey && existingKey[1].toLowerCase().includes('ref')) {
+                formKey = existingKey[1]; // Pertahankan key "ref_xxx" lama jika sudah ada
+            } else {
+                formKey = 'ref_' + Math.random().toString(36).substr(2, 5); // Buat baru jika belum ada
+            }
         } else {
             inputElement.classList.replace('bg-warning', 'bg-dark');
             inputElement.classList.replace('text-dark', 'text-secondary');
         }
         
-        let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
         if(hiddenInput) {
-            hiddenInput.name = `dynamic_content[${blockId}][bait][${newName}]`;
+            hiddenInput.name = `dynamic_content[${blockId}][bait][${formKey}]`;
         }
     }
 
@@ -776,7 +824,7 @@
             if(data.success) {
                 judulInput.value = data.judul; container.innerHTML = ''; const baits = data.text.split('===SLIDE_BREAK==='); 
                 
-                let verseCounter = 1; // LOGIKA COUNTER BAIT
+                let verseCounter = 1;
 
                 baits.forEach((bait, idx) => {
                     let baitRaw = bait.trim();
@@ -800,7 +848,7 @@
                         `;
                         container.insertAdjacentHTML('beforeend', html); 
 
-                        if (!isReff) verseCounter++; // NAIKKAN COUNTER HANYA JIKA BUKAN REFF
+                        if (!isReff) verseCounter++; 
                     }
                 });
             } else { alert(data.message); }

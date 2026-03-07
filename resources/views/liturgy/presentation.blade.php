@@ -32,7 +32,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
             text-align: center; padding: 7vh 6vw; box-sizing: border-box; 
-            opacity: 0; /* Transisi dihapus di sini agar pergantian instan */
+            opacity: 0; 
             z-index: 0; pointer-events: none; 
         }
         .slide.active { opacity: 1; z-index: 10; pointer-events: auto; }
@@ -59,6 +59,23 @@
     </div>
 
     @php
+    // FUNGSI PEMBERSIH JUDUL (Mencegah teks dobel dan menghapus awalan yang tidak perlu)
+    if (!function_exists('cleanSlideTitle')) {
+        function cleanSlideTitle($title) {
+            if (!is_string($title)) return '';
+            // Hapus kata (Opsional)
+            $title = str_ireplace('(opsional)', '', $title);
+            // Hapus teks "Slide Bebas" beserta tanda titik dua/strip setelahnya
+            $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
+            // Hapus awalan "Nyanyian:" atau "Nyanyian -" 
+            $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
+            // Hapus jika isinya hanya kata "Nyanyian"
+            $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
+            // Rapikan spasi atau tanda baca yang tersisa di ujung
+            return trim($title, " -:");
+        }
+    }
+
     if (!function_exists('autoSplitText')) {
         function autoSplitText($text) {
             if (is_array($text)) { $text = $text['content'] ?? ''; }
@@ -124,7 +141,7 @@
     // 2. COVER (LOGO & TEMA)
     $allSlides[] = [
         'type' => 'cover',
-        'title' => strtoupper($schedule->liturgy->name ?? 'IBADAH'),
+        'title' => str_replace(' (CUSTOM)', '', strtoupper($schedule->liturgy->name ?? 'IBADAH')),
         'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
         'theme' => strtoupper($schedule->theme ?? ''),
         'preacher' => strtoupper($schedule->preacher_name ?? '')
@@ -137,22 +154,37 @@
         $isEmptyArray = is_array($content) && empty($content['judul']) && empty($content['bait']) && empty($content['content']);
         $isEmptyString = !is_array($content) && trim($content) === '';
         $isInstruksi = str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi');
+        
+        // Eksekusi fungsi pembersih utama pada judul item liturgi
+        $cleanBaseTitle = cleanSlideTitle($item->title);
 
         if($content && !$isEmptyArray && !$isEmptyString) {
             if($isInstruksi) {
                 $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content;
-                $allSlides[] = ['type' => 'instruksi', 'title' => $item->title, 'content' => $textInstruksi];
+                $allSlides[] = ['type' => 'instruksi', 'title' => $cleanBaseTitle, 'content' => $textInstruksi];
             } elseif(is_array($content)) {
+                
+                // Cek isi jika custom_title disematkan di array
                 if(isset($content['custom_title'])) {
+                    $cTitle = cleanSlideTitle($content['custom_title']);
                     $slidesText = autoSplitText($content['content'] ?? '');
                     foreach($slidesText as $st) {
-                        $allSlides[] = ['type' => 'text', 'title' => $content['custom_title'], 'content' => $st];
+                        $allSlides[] = ['type' => 'text', 'title' => $cTitle, 'content' => $st];
                     }
                 } elseif(!empty($content['bait'])) {
+                    
+                    $songCoverTitle = $cleanBaseTitle;
+                    $songCoverContent = $content['judul'] ?? '';
+                    
+                    // Filter judul cover lagu yang duplikat
+                    if (!empty($songCoverContent) && stripos($songCoverContent, $songCoverTitle) !== false) {
+                        $songCoverTitle = ''; 
+                    }
+
                     $allSlides[] = [
                         'type' => 'song_cover', 
-                        'title' => str_replace(' (Opsional)', '', $item->title),
-                        'content' => ($content['judul'] ?? '')
+                        'title' => $songCoverTitle,
+                        'content' => $songCoverContent
                     ];
                     
                     foreach($content['bait'] as $key => $bait) {
@@ -166,7 +198,6 @@
                         
                         $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
                         
-                        // MENJAGA ANGKA ASLI DARI DATABASE UNTUK WATERMARK
                         $displayIndex = '';
                         if (!$isReff) {
                             if (preg_match('/\d+/', $key, $matches)) {
@@ -176,7 +207,18 @@
                             }
                         }
                         
-                        $slideTitle = str_replace(' (Opsional)', '', $item->title) . (!empty($content['judul']) ? ' - ' . $content['judul'] : '');
+                        $laguTitle = $content['judul'] ?? '';
+                        if (!empty($laguTitle)) {
+                            // Cek jika laguTitle sudah mengandung cleanBaseTitle (mencegah duplikasi kata)
+                            if ($cleanBaseTitle !== '' && stripos($laguTitle, $cleanBaseTitle) !== false) {
+                                $slideTitle = $laguTitle;
+                            } else {
+                                $slideTitle = ($cleanBaseTitle !== '' ? $cleanBaseTitle . ' - ' : '') . $laguTitle;
+                            }
+                        } else {
+                            $slideTitle = $cleanBaseTitle;
+                        }
+                        
                         if($isReff) $slideTitle .= ' (Reff)';
 
                         $baitSlides = autoSplitText($cleanBaitText);
@@ -193,16 +235,20 @@
             } else {
                 $slidesText = autoSplitText($content);
                 foreach($slidesText as $st) {
-                    $allSlides[] = ['type' => 'text', 'title' => str_replace(' (Opsional)', '', $item->title), 'content' => $st];
+                    $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st];
                 }
             }
         }
         
+        // Loop ini untuk Custom Slides murni yang ditambahkan jemaat/admin
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
+                // Eksekusi fungsi pembersih pada custom slide title
+                $cTitle = cleanSlideTitle($cSlide->title);
+
                 $cSlidesText = autoSplitText($cSlide->content);
                 foreach($cSlidesText as $ct) {
-                    $allSlides[] = ['type' => 'custom', 'title' => $cSlide->title, 'content' => $ct];
+                    $allSlides[] = ['type' => 'custom', 'title' => $cTitle, 'content' => $ct];
                 }
             }
         }
@@ -241,7 +287,9 @@
                 
                 @elseif($slide['type'] === 'song_cover')
                     <div style="margin: auto; text-align: center; position:relative; z-index:2;">
-                        <div class="welcome-sub" style="font-size: 2.5vw; margin-bottom: 15px; text-transform: uppercase; color: #cbd5e0; letter-spacing: 2px;">{{ $slide['title'] }}</div>
+                        @if(!empty($slide['title']))
+                            <div class="welcome-sub" style="font-size: 2.5vw; margin-bottom: 15px; text-transform: uppercase; color: #cbd5e0; letter-spacing: 2px;">{{ $slide['title'] }}</div>
+                        @endif
                         <div class="welcome-title" style="font-size: 5.5vw;">{{ $slide['content'] }}</div>
                     </div>
                 
@@ -249,14 +297,19 @@
                     @if($slide['watermark'] !== '')
                         <div class="bait-watermark">{{ $slide['watermark'] }}</div>
                     @endif
-                    <div class="judul-sesi">{{ $slide['title'] }}</div>
+                    
+                    @if(!empty($slide['title']))
+                        <div class="judul-sesi">{{ $slide['title'] }}</div>
+                    @endif
                     <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
                 
                 @elseif($slide['type'] === 'closing')
                     <div class="welcome-title text-center" style="margin: auto;">{!! nl2br(e($slide['content'])) !!}</div>
                 
                 @else
-                    <div class="judul-sesi {{ $slide['type'] === 'custom' ? 'judul-custom' : '' }}">{{ $slide['title'] }}</div>
+                    @if(!empty($slide['title']))
+                        <div class="judul-sesi {{ $slide['type'] === 'custom' ? 'judul-custom' : '' }}">{{ $slide['title'] }}</div>
+                    @endif
                     <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
                 @endif
             </div>
