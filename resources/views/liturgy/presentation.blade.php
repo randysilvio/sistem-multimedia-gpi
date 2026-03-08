@@ -55,39 +55,63 @@
 
         /* ========= CSS KHUSUS MODE KAMERA (LOWER THIRD) ========= */
         .slide.mode-kamera {
-            justify-content: flex-end; /* Paksa ke bawah */
+            justify-content: flex-end; 
             padding: 0;
         }
+        
+        /* LOGO KANAN ATAS ALA TV */
+        .kamera-logo {
+            position: absolute;
+            top: 5vh;
+            right: 4vw;
+            height: 9vh;
+            z-index: 10;
+            opacity: 0.85;
+            filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.7));
+        }
+
+        /* WATERMARK JUDUL KIRI ATAS ALA TV */
+        .kamera-watermark-title {
+            position: absolute;
+            top: 5vh;
+            left: 4vw;
+            font-size: 2vw;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.6); 
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            z-index: 10;
+            text-shadow: 1px 1px 5px rgba(0,0,0,0.9);
+            border-left: 4px solid rgba(99, 179, 237, 0.6);
+            padding-left: 1vw;
+            text-align: left;
+            line-height: 1.2;
+        }
+
         .kamera-wrapper {
             width: 100%;
-            /* Latar belakang semi transparan agar teks terbaca di atas video */
-            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%);
-            padding: 4vh 5vw 6vh 5vw;
-            border-top: 2px solid rgba(255,255,255,0.1);
+            /* Gradien diperhalus dan garis dihilangkan */
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 65%, transparent 100%);
+            padding: 6vh 5vw 7vh 5vw; 
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        .slide.mode-kamera .judul-sesi {
-            font-size: 2.5vw;
-            margin-top: 0;
-            margin-bottom: 1vh;
-            border-bottom: none;
-            color: #63b3ed;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
-        }
+        
         .slide.mode-kamera .isi-teks {
-            font-size: 4.2vw !important; /* Sedikit lebih kecil agar rapi di bawah */
+            font-size: 4.5vw !important; /* Dikecilkan sedikit agar rapi di bawah layar */
             margin-top: 0;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
         }
+        
         .slide.mode-kamera .instruksi-jemaat {
             font-size: 5vw !important;
             margin-top: 0;
         }
+        
         .slide.mode-kamera .bait-watermark {
-            display: none; /* Sembunyikan angka raksasa agar wajah orang tidak tertutup */
+            display: none; /* Sembunyikan angka raksasa agar wajah tak tertutup */
         }
     </style>
 </head>
@@ -230,7 +254,7 @@
                 $cUseCamera = false;
                 $cleanContent = $cSlide->content;
 
-                // Hack deteksi kamera lawas (opsional jika masih ada)
+                // Hack deteksi kamera lawas (opsional)
                 if (str_contains($cleanContent, '')) {
                     $cUseCamera = true;
                     $cleanContent = str_replace('', '', $cleanContent);
@@ -255,6 +279,13 @@
             <div class="slide" id="slide-{{ $index }}" data-camera="{{ $slide['use_camera'] ? 'true' : 'false' }}" style="{{ $slide['type'] === 'announcements_slideshow' ? 'padding: 0;' : '' }}">
                 
                 @if($slide['use_camera'] && $slide['type'] !== 'cover' && $slide['type'] !== 'closing' && $slide['type'] !== 'announcements_slideshow')
+                    
+                    <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="kamera-logo" alt="Logo GPI">
+                    
+                    @if(!empty($slide['title']))
+                        <div class="kamera-watermark-title">{{ $slide['title'] }}</div>
+                    @endif
+                    
                     <div class="kamera-wrapper">
                 @endif
 
@@ -286,7 +317,7 @@
                 
                 @elseif($slide['type'] === 'song_cover')
                     <div style="margin: auto; text-align: center; position:relative; z-index:2;">
-                        @if(!empty($slide['title']))
+                        @if(!empty($slide['title']) && !$slide['use_camera'])
                             <div class="welcome-sub" style="font-size: 2.5vw; margin-bottom: 15px; text-transform: uppercase; color: #cbd5e0; letter-spacing: 2px;">{{ $slide['title'] }}</div>
                         @endif
                         <div class="welcome-title" style="font-size: 5.5vw;">{{ $slide['content'] }}</div>
@@ -297,7 +328,7 @@
                         <div class="bait-watermark">{{ $slide['watermark'] }}</div>
                     @endif
                     
-                    @if(!empty($slide['title']))
+                    @if(!empty($slide['title']) && !$slide['use_camera'])
                         <div class="judul-sesi">{{ $slide['title'] }}</div>
                     @endif
                     <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
@@ -306,7 +337,7 @@
                     <div class="welcome-title text-center" style="margin: auto;">{!! nl2br(e($slide['content'])) !!}</div>
                 
                 @else
-                    @if(!empty($slide['title']))
+                    @if(!empty($slide['title']) && !$slide['use_camera'])
                         <div class="judul-sesi {{ $slide['type'] === 'custom' ? 'judul-custom' : '' }}">{{ $slide['title'] }}</div>
                     @endif
                     <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
@@ -397,7 +428,7 @@
             let videoEl = document.getElementById('bg-video-element');
             if (videoEl) videoEl.remove();
 
-            // Hanya apply jika BUKAN mode kamera
+            // Hanya apply latar belakang warna jika BUKAN mode kamera
             const activeSlide = document.querySelector('.slide.active');
             const isUsingCamera = activeSlide && activeSlide.dataset.camera === 'true';
 
@@ -524,7 +555,7 @@
             }
             if (e.key === 'font_sync_trigger') showSlide(currentSlide); 
             
-            // TARIK DATA DIAM-DIAM DARI BACKGROUND (Tanpa reload yang bikin keluar fullscreen)
+            // TARIK DATA DIAM-DIAM DARI BACKGROUND (Tanpa reload)
             if (e.key === 'liturgy_update') {
                 fetch(window.location.href)
                     .then(response => response.text())
