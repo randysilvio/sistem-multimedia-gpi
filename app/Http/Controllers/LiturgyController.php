@@ -253,11 +253,20 @@ class LiturgyController extends Controller
             foreach ($request->custom_slides as $itemId => $slides) {
                 foreach ($slides as $slide) {
                     if (!empty($slide['title']) && !empty($slide['content'])) {
+                        
+                        // Menangani input manual use_camera dari custom slide (hack fallback)
+                        $contentStr = $slide['content'];
+                        if (isset($slide['use_camera']) && filter_var($slide['use_camera'], FILTER_VALIDATE_BOOLEAN)) {
+                            if (!str_contains($contentStr, '')) {
+                                $contentStr .= '';
+                            }
+                        }
+
                         ScheduleCustomSlide::create([
                             'schedule_id' => $schedule->id, 
                             'liturgy_item_id' => $itemId, 
                             'title' => $slide['title'], 
-                            'content' => $slide['content']
+                            'content' => $contentStr
                         ]);
                     }
                 }
@@ -279,24 +288,45 @@ class LiturgyController extends Controller
         $url = "https://beeapi.lionbat.com/search.json?q=" . urlencode($query);
         
         try {
-            $response = Http::timeout(10)->get($url);
-            if ($response->successful() && isset($response->json()['data'])) {
-                $text = "";
-                $data = $response->json()['data'];
+            // Tambahkan withoutVerifying() untuk bypass masalah SSL & naikkan timeout jadi 15 detik
+            $response = Http::withoutVerifying()->timeout(15)->get($url);
+            
+            if ($response->successful()) {
+                $data = $response->json();
                 
-                if(count($data) == 0) return response()->json(['success' => false, 'message' => 'Ayat tidak ditemukan.']);
+                // Pastikan data yang ditarik valid
+                if (isset($data['data']) && is_array($data['data'])) {
+                    if (count($data['data']) == 0) {
+                        return response()->json(['success' => false, 'message' => 'Ayat tidak ditemukan. Pastikan format benar (contoh: Yohanes 3:16)']);
+                    }
 
-                foreach ($data as $item) {
-                    $text .= $item['verse'] . ". " . strip_tags($item['text']) . "\n";
+                    $text = "";
+                    foreach ($data['data'] as $item) {
+                        // Mengamankan teks dari tag HTML yang mungkin terbawa dari API
+                        $text .= $item['verse'] . ". " . strip_tags($item['text']) . "\n";
+                    }
+                    
+                    return response()->json(['success' => true, 'text' => trim($text)]);
                 }
                 
-                return response()->json(['success' => true, 'text' => trim($text)]);
+                return response()->json(['success' => false, 'message' => 'Server Alkitab merespons, namun format data tidak sesuai.']);
             }
+            
+            return response()->json(['success' => false, 'message' => 'Server Alkitab sedang sibuk. Status code: ' . $response->status()]);
+            
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Gagal menghubungi server Alkitab.']);
+            // Menampilkan pesan error spesifik agar kita tahu pasti apa masalahnya
+            $errMsg = $e->getMessage();
+            
+            // Menyederhanakan pesan error cURL yang panjang
+            if (str_contains($errMsg, 'cURL error 28')) {
+                $errMsg = "Koneksi ke server terputus (Timeout). Coba lagi.";
+            } elseif (str_contains($errMsg, 'cURL error 6') || str_contains($errMsg, 'Could not resolve host')) {
+                $errMsg = "Tidak ada koneksi internet pada server/komputer Anda.";
+            }
+            
+            return response()->json(['success' => false, 'message' => 'Gagal: ' . $errMsg]);
         }
-
-        return response()->json(['success' => false, 'message' => 'Terjadi kesalahan sistem.']);
     }
 
     public function exportPdf(Schedule $schedule)

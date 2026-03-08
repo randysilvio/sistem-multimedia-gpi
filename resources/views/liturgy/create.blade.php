@@ -190,7 +190,7 @@
                         <div class="form-check form-switch mt-3 pt-3 border-top">
                             <input class="form-check-input" type="checkbox" name="dynamic_content[{{ $item->id }}][use_camera]" value="true" id="cam-{{ $item->id }}">
                             <label class="form-check-label small fw-bold text-muted" for="cam-{{ $item->id }}">
-                                📽️ Sorot Pengisi Acara (Aktifkan Latar Kamera & Teks Bawah)
+                                Sorot Pengisi Acara (Aktifkan Latar Kamera & Teks Bawah)
                             </label>
                         </div>
 
