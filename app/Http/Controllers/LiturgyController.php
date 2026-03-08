@@ -277,101 +277,117 @@ class LiturgyController extends Controller
     }
 
     // =========================================================================
-    // PEMBARUAN: Sistem Ganda (Dual-Engine) Tarik Data Alkitab (Super Stabil)
+    // MESIN ALKITAB ABSOLUT (Direct Mapper ke Data Statis Internasional)
+    // Anti-Cloudflare | Anti-Mati | Mendukung Spasi Berantakan
     // =========================================================================
     public function fetchAlkitab(Request $request)
     {
-        $query = trim($request->query('q'));
-        if (!$query) return response()->json(['success' => false, 'message' => 'Query kosong.']);
+        $query = strtolower(trim($request->query('q')));
+        if (!$query) return response()->json(['success' => false, 'message' => 'Silakan masukkan ayat.']);
 
-        // PENTING: Bersihkan spasi di sekitar titik dua dan strip agar API SABDA tidak error
-        // Contoh: "Yohanes 3 : 16 - 18" otomatis dirapikan menjadi "Yohanes 3:16-18"
-        $cleanQuery = preg_replace('/\s*:\s*/', ':', $query);
-        $cleanQuery = preg_replace('/\s*-\s*/', '-', $cleanQuery);
-
-        // --- ENGINE 1: Mencoba ambil data dari API Resmi SABDA (XML) ---
-        $urlXml = "https://alkitab.sabda.org/api/passage.php?passage=" . urlencode($cleanQuery);
-        
-        try {
-            $response = Http::withoutVerifying()->timeout(15)->get($urlXml);
-            
-            if ($response->successful()) {
-                $xmlString = trim($response->body());
-                libxml_use_internal_errors(true);
-                $xml = simplexml_load_string($xmlString);
-                
-                if ($xml !== false && isset($xml->book)) {
-                    $text = "";
-                    foreach ($xml->book as $book) {
-                        foreach ($book->chapter as $chapter) {
-                            foreach ($chapter->verse as $verse) {
-                                $verseNum = (string) $verse['number'];
-                                
-                                // Ambil teks apapun bentuk node XML-nya
-                                $verseText = (string) $verse;
-                                if (isset($verse->text)) {
-                                    $verseText = (string) $verse->text;
-                                }
-                                if (empty(trim($verseText))) {
-                                    $verseText = strip_tags($verse->asXML());
-                                }
-                                
-                                // Bersihkan spasi berlebih
-                                $verseText = preg_replace('/\s+/', ' ', trim($verseText));
-                                
-                                if (!empty($verseText) && !preg_match('/^[0-9]+$/', $verseText)) {
-                                    $text .= $verseNum . ". " . $verseText . "\n";
-                                }
-                            }
-                        }
-                    }
-
-                    if (!empty(trim($text))) {
-                        return response()->json(['success' => true, 'text' => trim($text)]);
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            // Jika Engine 1 gagal, abaikan dan lanjut ke Engine 2
+        // 1. PENGURAI CERDAS FORMAT PENCARIAN (Misal: "Kisah Para Rasul 3 : 16 - 18")
+        $splitColon = explode(':', $query);
+        if (count($splitColon) !== 2) {
+            return response()->json(['success' => false, 'message' => 'Format salah! Gunakan titik dua (:). Contoh: Yohanes 3:16']);
         }
 
-        // --- ENGINE 2 (FALLBACK): Menggunakan Scraper HTML ke alkitab.mobi ---
-        $urlHtml = "https://alkitab.mobi/tb/search?q=" . urlencode($cleanQuery);
+        $leftSide = trim($splitColon[0]); // Berisi "Nama Kitab" dan "Pasal"
+        $rightSide = trim($splitColon[1]); // Berisi "Ayat" atau "Rentang Ayat"
+
+        // Mencari letak spasi terakhir untuk memisahkan Nama Kitab dan Pasal
+        $lastSpacePos = strrpos($leftSide, ' ');
+        if ($lastSpacePos === false) {
+            return response()->json(['success' => false, 'message' => 'Format salah! Beri spasi antara kitab dan pasal. Contoh: Yohanes 3:16']);
+        }
+
+        $bookName = trim(substr($leftSide, 0, $lastSpacePos));
+        $chapter = trim(substr($leftSide, $lastSpacePos + 1));
+        
+        $verseParts = explode('-', $rightSide);
+        $startVerse = (int)trim($verseParts[0]);
+        $endVerse = isset($verseParts[1]) ? (int)trim($verseParts[1]) : $startVerse;
+
+        // 2. KAMUS KITAB ALKITAB (Pemetaan 66 Kitab Kanonik)
+        $books = [
+            'kejadian' => 1, 'kej' => 1, 'keluaran' => 2, 'kel' => 2, 'imamat' => 3, 'ima' => 3,
+            'bilangan' => 4, 'bil' => 4, 'ulangan' => 5, 'ula' => 5, 'yosua' => 6, 'yos' => 6,
+            'hakim-hakim' => 7, 'hakim' => 7, 'hak' => 7, 'rut' => 8, '1 samuel' => 9, '1samuel' => 9, '1 sam' => 9,
+            '2 samuel' => 10, '2samuel' => 10, '2 sam' => 10, '1 raja-raja' => 11, '1 raja' => 11, '1raj' => 11, '1 raj' => 11,
+            '2 raja-raja' => 12, '2 raja' => 12, '2raj' => 12, '2 raj' => 12, '1 tawarikh' => 13, '1tawarikh' => 13, '1 taw' => 13,
+            '2 tawarikh' => 14, '2tawarikh' => 14, '2 taw' => 14, 'ezra' => 15, 'ezr' => 15, 'nehemia' => 16, 'neh' => 16,
+            'ester' => 17, 'est' => 17, 'ayub' => 18, 'ayu' => 18, 'mazmur' => 19, 'maz' => 19, 'amsal' => 20, 'ams' => 20,
+            'pengkhotbah' => 21, 'peng' => 21, 'kidung agung' => 22, 'kidung' => 22, 'kid' => 22, 'yesaya' => 23, 'yes' => 23,
+            'yeremia' => 24, 'yer' => 24, 'ratapan' => 25, 'rat' => 25, 'yehezkiel' => 26, 'yeh' => 26, 'daniel' => 27, 'dan' => 27,
+            'hosea' => 28, 'hos' => 28, 'yoel' => 29, 'yoe' => 29, 'amos' => 30, 'amo' => 30, 'obaja' => 31, 'oba' => 31,
+            'yunus' => 32, 'yun' => 32, 'mikha' => 33, 'mik' => 33, 'nahum' => 34, 'nah' => 34, 'habakuk' => 35, 'hab' => 35,
+            'zefanya' => 36, 'zef' => 36, 'hagai' => 37, 'hag' => 37, 'zakharia' => 38, 'zak' => 38, 'maleakhi' => 39, 'mal' => 39,
+            'matius' => 40, 'mat' => 40, 'markus' => 41, 'mar' => 41, 'mrk' => 41, 'lukas' => 42, 'luk' => 42,
+            'yohanes' => 43, 'yoh' => 43, 'kisah para rasul' => 44, 'kisah' => 44, 'kis' => 44, 'roma' => 45, 'rom' => 45,
+            '1 korintus' => 46, '1 kor' => 46, '1kor' => 46, '2 korintus' => 47, '2 kor' => 47, '2kor' => 47,
+            'galatia' => 48, 'gal' => 48, 'efesus' => 49, 'efe' => 49, 'filipi' => 50, 'fil' => 50, 'kolose' => 51, 'kol' => 51,
+            '1 tesalonika' => 52, '1 tes' => 52, '1tes' => 52, '2 tesalonika' => 53, '2 tes' => 53, '2tes' => 53,
+            '1 timotius' => 54, '1 tim' => 54, '1tim' => 54, '2 timotius' => 55, '2 tim' => 55, '2tim' => 55,
+            'titus' => 56, 'tit' => 56, 'filemon' => 57, 'flm' => 57, 'ibrani' => 58, 'ibr' => 58, 'yakobus' => 59, 'yak' => 59,
+            '1 petrus' => 60, '1 pet' => 60, '1pet' => 60, '2 petrus' => 61, '2 pet' => 61, '2pet' => 61,
+            '1 yohanes' => 62, '1 yoh' => 62, '1yoh' => 62, '2 yohanes' => 63, '2 yoh' => 63, '2yoh' => 63,
+            '3 yohanes' => 64, '3 yoh' => 64, '3yoh' => 64, 'yudas' => 65, 'yud' => 65, 'wahyu' => 66, 'wah' => 66
+        ];
+
+        if (!isset($books[$bookName])) {
+            return response()->json(['success' => false, 'message' => "Kitab '{$bookName}' tidak ditemukan dalam sistem. Cek ejaan Anda."]);
+        }
+
+        $bookId = $books[$bookName];
+
+        // 3. ENGINE TARIK DATA HTML LANGSUNG (Bypass API)
+        $url = "https://www.wordproject.org/bibles/id/{$bookId}/{$chapter}.htm";
         
         try {
-            $responseHtml = Http::withoutVerifying()->timeout(15)->get($urlHtml);
+            $response = Http::withoutVerifying()->timeout(15)->get($url);
             
-            if ($responseHtml->successful()) {
-                $html = $responseHtml->body();
+            if ($response->successful()) {
+                $html = $response->body();
                 
-                // Skenario A: Hasil pencarian menampilkan list ayat 
-                preg_match_all('/<span class="ref"><a[^>]*>(.*?)<\/a><\/span>\s*(.*?)<\/p>/is', $html, $matches);
-                if (!empty($matches[1]) && !empty($matches[2])) {
-                    $text = "";
-                    foreach ($matches[1] as $idx => $ref) {
-                        $refParts = explode(':', trim(strip_tags($ref)));
-                        $verseNum = end($refParts);
-                        $ayatText = preg_replace('/\s+/', ' ', trim(strip_tags($matches[2][$idx])));
-                        $text .= trim($verseNum) . ". " . $ayatText . "\n";
-                    }
-                    if (!empty(trim($text))) return response()->json(['success' => true, 'text' => trim($text)]);
-                }
+                // Pisahkan HTML berdasarkan struktur pembungkus ayat statis (sangat rapi dan tidak akan pernah berubah)
+                $parts = explode('<span class="verse" id="', $html);
+                $chapterVerses = [];
                 
-                // Skenario B: Hasil pencarian me-redirect ke halaman pasal utuh 
-                preg_match_all('/<div[^>]*class="v"[^>]*>.*?<span[^>]*class="v"[^>]*>.*?<b>(\d+)<\/b>.*?<\/span>\s*(.*?)<\/div>/is', $html, $matchesB);
-                if (!empty($matchesB[1]) && !empty($matchesB[2])) {
-                    $text = "";
-                    foreach ($matchesB[1] as $idx => $verseNum) {
-                        $ayatText = preg_replace('/\s+/', ' ', trim(strip_tags($matchesB[2][$idx])));
-                        $text .= trim($verseNum) . ". " . $ayatText . "\n";
-                    }
-                    if (!empty(trim($text))) return response()->json(['success' => true, 'text' => trim($text)]);
+                foreach($parts as $idx => $part) {
+                    if ($idx == 0) continue; // Abaikan Header Web
+                    
+                    $explodeBracket = explode('>', $part, 2);
+                    if (count($explodeBracket) < 2) continue;
+                    
+                    $idPart = $explodeBracket[0]; // Menghasilkan: '16"'
+                    $textPart = $explodeBracket[1]; // Menghasilkan: '16 </span> Karena begitu...'
+                    
+                    $verseNum = (int) str_replace('"', '', $idPart);
+                    
+                    // Bersihkan angka pengulangan ayat di depan kalimat dan tag HTML
+                    $textPart = preg_replace('/^\d+\s*<\/span>/', '', $textPart); 
+                    $cleanText = trim(strip_tags($textPart));
+                    $chapterVerses[$verseNum] = preg_replace('/\s+/', ' ', $cleanText);
                 }
-            }
-        } catch (\Exception $e) {}
 
-        // Jika kedua engine gagal menemukan data
-        return response()->json(['success' => false, 'message' => 'Gagal menarik ayat. Pastikan penulisan benar (Contoh: Yohanes 3:16) atau periksa koneksi internet Anda.']);
+                // 4. SUSUN HASIL SESUAI RENTANG AYAT
+                $text = "";
+                for ($v = $startVerse; $v <= $endVerse; $v++) {
+                    if (isset($chapterVerses[$v])) {
+                        $text .= $v . ". " . $chapterVerses[$v] . "\n";
+                    }
+                }
+                
+                if (!empty(trim($text))) {
+                    return response()->json(['success' => true, 'text' => trim($text)]);
+                } else {
+                    return response()->json(['success' => false, 'message' => "Ayat {$startVerse}-{$endVerse} tidak ditemukan di pasal {$chapter}."]);
+                }
+            } else {
+                 return response()->json(['success' => false, 'message' => "Server pangkalan data Alkitab sedang sibuk (Status: " . $response->status() . "). Coba beberapa saat lagi."]);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => "Koneksi ke pangkalan data terputus. Pastikan internet Anda aktif."]);
+        }
     }
 
     public function exportPdf(Schedule $schedule)
