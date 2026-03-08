@@ -276,56 +276,97 @@ class LiturgyController extends Controller
         return back()->with('success', 'Jadwal ibadah berhasil dihapus.');
     }
 
-    // PEMBARUAN: Menarik dari API Resmi XML SABDA (Lebih stabil, akurat, dan anti-error HTML)
+    // =========================================================================
+    // PEMBARUAN: Sistem Ganda (Dual-Engine) Tarik Data Alkitab (Anti Gagal)
+    // =========================================================================
     public function fetchAlkitab(Request $request)
     {
         $query = $request->query('q');
         if (!$query) return response()->json(['success' => false, 'message' => 'Query kosong.']);
 
-        // Jalur khusus API Data SABDA (XML)
-        $url = "https://alkitab.sabda.org/api/passage.php?passage=" . urlencode($query);
+        // --- ENGINE 1: Mencoba ambil data dari API Resmi SABDA (XML) ---
+        $urlXml = "https://alkitab.sabda.org/api/passage.php?passage=" . urlencode($query);
         
         try {
-            $response = Http::withoutVerifying()->timeout(15)->get($url);
+            $response = Http::withoutVerifying()->timeout(10)->get($urlXml);
             
             if ($response->successful()) {
                 $xmlString = $response->body();
-                
-                // Mencegah aplikasi crash jika terjadi error format XML dari SABDA
                 libxml_use_internal_errors(true);
                 $xml = simplexml_load_string($xmlString);
                 
-                if ($xml === false || !isset($xml->book)) {
-                    return response()->json(['success' => false, 'message' => 'Ayat tidak ditemukan. Pastikan format nama kitab benar (contoh: Yohanes 3:16)']);
-                }
-
-                $text = "";
-                // Mengurai data XML dari SABDA
-                foreach ($xml->book as $book) {
-                    foreach ($book->chapter as $chapter) {
-                        foreach ($chapter->verse as $verse) {
-                            $verseNum = (string) $verse['number'];
-                            $verseText = (string) $verse->text;
-                            
-                            // Membersihkan teks dari sisa-sisa tag catatan kaki atau spasi ganda
-                            $verseText = preg_replace('/\s+/', ' ', trim(strip_tags($verseText)));
-                            $text .= $verseNum . ". " . $verseText . "\n";
+                if ($xml !== false && isset($xml->book)) {
+                    $text = "";
+                    foreach ($xml->book as $book) {
+                        foreach ($book->chapter as $chapter) {
+                            foreach ($chapter->verse as $verse) {
+                                $verseNum = (string) $verse['number'];
+                                
+                                // PERBAIKAN: Mengekstrak teks utuh langsung dari dalam tag <verse>
+                                $verseRaw = $verse->asXML();
+                                $verseRaw = preg_replace('/^<verse[^>]*>/', '', $verseRaw);
+                                $verseRaw = preg_replace('/<\/verse>$/', '', $verseRaw);
+                                
+                                // Membersihkan semua tag HTML/XML bawaan SABDA (seperti <title> dll)
+                                $verseText = preg_replace('/\s+/', ' ', trim(strip_tags($verseRaw)));
+                                
+                                if (!empty($verseText)) {
+                                    $text .= $verseNum . ". " . $verseText . "\n";
+                                }
+                            }
                         }
                     }
-                }
 
-                if (empty(trim($text))) {
-                    return response()->json(['success' => false, 'message' => 'Ayat berhasil dihubungi, namun isinya kosong di database SABDA.']);
+                    if (!empty(trim($text))) {
+                        return response()->json(['success' => true, 'text' => trim($text)]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Abaikan error, langsung lompat ke Engine 2 (Fallback)
+        }
+
+        // --- ENGINE 2 (FALLBACK): Menggunakan Scraper HTML ke alkitab.mobi ---
+        // Jika Engine 1 (SABDA XML) down, kosong, atau gagal, sistem otomatis lari ke sini.
+        $urlHtml = "https://alkitab.mobi/tb/search?q=" . urlencode($query);
+        
+        try {
+            $responseHtml = Http::withoutVerifying()->timeout(10)->get($urlHtml);
+            
+            if ($responseHtml->successful()) {
+                $html = $responseHtml->body();
+                
+                // Skenario A: Hasil pencarian menampilkan list ayat (contoh: Yohanes 3:16)
+                preg_match_all('/<span class="ref"><a[^>]*>(.*?)<\/a><\/span>(.*?)<\/p>/is', $html, $matches);
+                if (!empty($matches[1]) && !empty($matches[2])) {
+                    $text = "";
+                    foreach ($matches[1] as $idx => $ref) {
+                        $refParts = explode(':', strip_tags($ref));
+                        $verseNum = end($refParts);
+                        $ayatText = preg_replace('/\s+/', ' ', strip_tags(trim($matches[2][$idx])));
+                        $text .= trim($verseNum) . ". " . $ayatText . "\n";
+                    }
+                    if (!empty(trim($text))) return response()->json(['success' => true, 'text' => trim($text)]);
                 }
                 
-                return response()->json(['success' => true, 'text' => trim($text)]);
+                // Skenario B: Hasil pencarian me-redirect ke halaman pasal utuh (contoh: Yohanes 3)
+                preg_match_all('/<div class="v">\s*<span class="v" id="[^"]*">(.*?)<\/span>\s*(.*?)<\/div>/is', $html, $matches2);
+                if (!empty($matches2[1]) && !empty($matches2[2])) {
+                    $text = "";
+                    foreach ($matches2[1] as $idx => $verseNum) {
+                        $ayatText = preg_replace('/\s+/', ' ', strip_tags(trim($matches2[2][$idx])));
+                        $text .= trim($verseNum) . ". " . $ayatText . "\n";
+                    }
+                    if (!empty(trim($text))) return response()->json(['success' => true, 'text' => trim($text)]);
+                }
             }
             
-            return response()->json(['success' => false, 'message' => 'Server Alkitab SABDA sedang sibuk. Status: ' . $response->status()]);
-            
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Gagal terhubung ke Server SABDA. Periksa koneksi internet Anda.']);
+            return response()->json(['success' => false, 'message' => 'Gagal terhubung ke jaringan internet. Periksa koneksi Anda.']);
         }
+
+        // Jika kedua engine gagal menemukan data
+        return response()->json(['success' => false, 'message' => 'Ayat tidak ditemukan. Pastikan format penulisan kitab benar (contoh: Yohanes 3:16-18)']);
     }
 
     public function exportPdf(Schedule $schedule)
