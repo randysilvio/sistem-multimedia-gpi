@@ -113,11 +113,9 @@ class LiturgyController extends Controller
             'theme_color' => $themeColor
         ]);
 
-        // JIKA MENGGUNAKAN MESIN BUILDER BARU (Menangani Penambahan/Penyisipan Blok)
         if ($request->has('blocks')) {
             $liturgy = $schedule->liturgy;
             
-            // Jika diedit dari Template Baku, pisahkan menjadi Custom agar master tidak rusak
             if (!str_contains($liturgy->name, '(Custom)')) {
                 $liturgy = Liturgy::create([
                     'name' => ($request->theme ?? 'Jadwal') . ' (Custom)'
@@ -133,7 +131,6 @@ class LiturgyController extends Controller
             $this->processBlocks($request->blocks, $liturgy, $schedule);
         } 
         else {
-            // Fallback Engine Lama
             $schedule->details()->delete();
             $schedule->customSlides()->delete();
             $this->saveDetails($schedule, $request);
@@ -155,15 +152,15 @@ class LiturgyController extends Controller
         $order = 1;
         foreach (array_values($blocks) as $block) {
             $type = $block['type'] ?? 'polos';
-            $title = $block['title'] ?? 'Slide';
+            $title = $block['title'] ?? '';
             $content = $block['content'] ?? '';
             
-            // AMBIL DATA BAIT UTUH TANPA ME-RESET KEY (NOMOR INDEX)
+            // Tangkap status Kamera
+            $useCamera = isset($block['use_camera']) ? true : false;
             $baitData = $block['bait'] ?? [];
 
             if ($type === 'nyanyian') {
-                $itemTitle = 'Nyanyian: ' . $title;
-                // Bersihkan nilai kosong namun pertahankan kunci (nomor bait asli)
+                $itemTitle = 'Nyanyian: ' . ($title ?: 'Pujian');
                 $filteredBait = [];
                 foreach ($baitData as $key => $value) {
                     if (!is_null($value) && trim($value) !== '') {
@@ -173,23 +170,23 @@ class LiturgyController extends Controller
 
                 $dynContent = [
                     'judul' => $block['judul'] ?? $title,
-                    'bait' => $filteredBait
+                    'bait' => $filteredBait,
+                    'use_camera' => $useCamera
                 ];
             } elseif ($type === 'alkitab') {
-                $itemTitle = 'Bacaan Alkitab: ' . $title;
-                $dynContent = is_array($content) ? ($content[0] ?? '') : $content;
-            } elseif ($type === 'votum') {
-                $itemTitle = 'Prosesi: ' . $title;
+                $itemTitle = 'Bacaan Alkitab: ' . ($title ?: 'Pelayanan Firman');
+                $dynContent = [
+                    'content' => is_array($content) ? ($content[0] ?? '') : $content,
+                    'use_camera' => $useCamera
+                ];
+            } else {
+                // Teks Bebas (Bisa digunakan sebagai Sikap/Instruksi jika title kosong)
+                $itemTitle = empty($title) ? 'Slide Bebas' : 'Slide Bebas: ' . $title;
                 $dynContent = [
                     'custom_title' => $title,
-                    'content' => is_array($content) ? ($content[0] ?? '') : $content
+                    'content' => is_array($content) ? ($content[0] ?? '') : $content,
+                    'use_camera' => $useCamera
                 ];
-            } elseif ($type === 'aksi') {
-                $itemTitle = 'Sikap Jemaat';
-                $dynContent = is_array($content) ? ($content[0] ?? '') : $content;
-            } else {
-                $itemTitle = 'Slide Bebas: ' . $title;
-                $dynContent = is_array($content) ? ($content[0] ?? '') : $content;
             }
 
             $item = $liturgy->items()->create([
@@ -226,7 +223,6 @@ class LiturgyController extends Controller
 
             if (is_array($content)) {
                 if (isset($content['bait'])) {
-                    // Jangan gunakan array_filter biasa tanpa mempertahankan key
                     $filteredBait = [];
                     foreach ($content['bait'] as $k => $v) {
                         if (!is_null($v) && trim($v) !== '') $filteredBait[$k] = $v;
@@ -234,13 +230,16 @@ class LiturgyController extends Controller
                     $content['bait'] = $filteredBait;
                 }
                 
-                if (!empty($content['judul']) || !empty($content['bait']) || !empty($content['content']) || !empty($content['custom_title'])) {
-                    ScheduleDetail::create([
-                        'schedule_id' => $schedule->id, 
-                        'liturgy_item_id' => $itemId, 
-                        'dynamic_content' => $content
-                    ]);
+                // Pastikan checkbox diconvert jadi boolean untuk konsistensi
+                if (isset($content['use_camera'])) {
+                    $content['use_camera'] = filter_var($content['use_camera'], FILTER_VALIDATE_BOOLEAN);
                 }
+
+                ScheduleDetail::create([
+                    'schedule_id' => $schedule->id, 
+                    'liturgy_item_id' => $itemId, 
+                    'dynamic_content' => $content
+                ]);
             } else {
                 ScheduleDetail::create([
                     'schedule_id' => $schedule->id, 

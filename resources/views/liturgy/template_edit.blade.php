@@ -19,7 +19,7 @@
         .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; }
         .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
         
-        /* DESAIN GARIS SISIPKAN (ELEGAN) */
+        /* DESAIN GARIS SISIPKAN */
         .insert-divider { position: relative; height: 36px; display: flex; align-items: center; justify-content: center; margin-top: -12px; margin-bottom: -12px; z-index: 10; opacity: 0; transition: opacity 0.3s; }
         .block-wrapper:hover .insert-divider, .insert-divider:hover, .insert-divider.show { opacity: 1; z-index: 950; }
         .top-divider { opacity: 1; margin-bottom: 15px; margin-top: 0; height: 40px; }
@@ -31,18 +31,29 @@
         
         /* DROPDOWN KUSTOM */
         .dropdown-menu { border-radius: 8px; padding: 8px 0; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1050 !important; min-width: 220px; }
-        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; }
+        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; cursor: pointer; }
         .dropdown-item:hover { background-color: #f8fafc; color: #0f172a; }
-        .dropdown-divider { border-top: 1px solid #e2e8f0; margin: 5px 0; }
 
-        /* SOLID BOTTOM TOOLBAR PROFESIONAL */
         .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
-        
         .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; }
         .btn-primary-custom:hover { background-color: #1e293b; color: white; }
     </style>
 </head>
 <body>
+
+    @php
+    // Logika Pintar untuk mengkategorikan data lama ke dalam 3 warna visual baru
+    function getCategoryColorAndLabel($title) {
+        $lower = strtolower($title);
+        if (str_contains($lower, 'nyanyian') || str_contains($lower, 'pujian')) {
+            return ['color' => '#2b6cb0', 'label' => 'KERANGKA NYANYIAN'];
+        } elseif (str_contains($lower, 'alkitab') || str_contains($lower, 'bacaan')) {
+            return ['color' => '#2c5282', 'label' => 'KERANGKA BACAAN ALKITAB'];
+        } else {
+            return ['color' => '#718096', 'label' => 'KERANGKA TEKS BEBAS / INSTRUKSI'];
+        }
+    }
+    @endphp
 
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3 mb-4">
         <div class="container d-flex justify-content-between align-items-center">
@@ -69,54 +80,42 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-end mt-5 mb-3">
-                <h6 class="fw-bold text-dark text-uppercase m-0" style="letter-spacing: 1px; font-size:0.85rem;">Struktur Kerangka Slide Saat Ini</h6>
+                <h6 class="fw-bold text-dark text-uppercase m-0" style="letter-spacing: 1px; font-size:0.85rem;">Struktur Kerangka Slide</h6>
                 <small class="text-muted">Arahkan kursor di antara slide untuk menyisipkan</small>
             </div>
-
+            
             <div id="canvas-area">
                 <div class="insert-divider top-divider" id="top-anchor">
                     <div class="dropdown">
                         <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Tambah Slide Paling Atas">&plus;</button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', 'top')">Tambah Kerangka Nyanyian</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', 'top')">Tambah Kerangka Bacaan Alkitab</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', 'top')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'top')">Tambah Instruksi Sikap</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('nyanyian', 'top')">Tambah Kerangka Nyanyian</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('alkitab', 'top')">Tambah Kerangka Bacaan Alkitab</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas / Instruksi</a></li>
                         </ul>
                     </div>
                 </div>
 
                 @foreach($liturgy->items as $index => $item)
                     @php
-                        $titleLower = strtolower($item->title);
-                        $cardColor = '#718096'; $typeLabel = 'SLIDE TEKS BEBAS'; $type = 'polos';
-                        if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) {
-                            $cardColor = '#2b6cb0'; $typeLabel = 'NYANYIAN JEMAAT'; $type = 'nyanyian';
-                        } elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) {
-                            $cardColor = '#2c5282'; $typeLabel = 'BACAAN ALKITAB'; $type = 'alkitab';
-                        } elseif (str_contains($titleLower, 'votum') || str_contains($titleLower, 'prosesi') || str_contains($titleLower, 'pengakuan')) {
-                            $cardColor = '#4a5568'; $typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; $type = 'votum';
-                        } elseif (str_contains($titleLower, 'sikap') || str_contains($titleLower, 'aksi')) {
-                            $cardColor = '#c53030'; $typeLabel = 'INSTRUKSI SIKAP JEMAAT'; $type = 'aksi';
-                        }
+                        $style = getCategoryColorAndLabel($item->title);
+                        $blockId = 'old_' . $item->id;
                     @endphp
-
-                    <div class="block-wrapper" id="wrapper-old-{{ $index }}">
-                        <div class="block-card" style="border-top: 4px solid {{ $cardColor }};">
+                    
+                    <div class="block-wrapper" id="wrapper-{{ $blockId }}">
+                        <div class="block-card" style="border-top: 4px solid {{ $style['color'] }};">
                             <button type="button" class="btn-delete-block" onclick="this.closest('.block-wrapper').remove()" title="Hapus Kerangka">&times;</button>
-                            <div class="mb-3 pb-2">
-                                <span class="badge text-uppercase" style="background-color: {{ $cardColor }}; letter-spacing: 0.5px;">{{ $typeLabel }}</span>
+                            <div class="mb-3 pb-2 d-flex justify-content-between align-items-center">
+                                <span class="badge text-uppercase" style="background-color: {{ $style['color'] }}; letter-spacing: 0.5px;">{{ $style['label'] }}</span>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-5">
-                                    <label class="form-label small fw-bold text-muted">Judul Sesi</label>
-                                    <input type="text" name="blocks[old_{{ $index }}][title]" class="form-control fw-bold" value="{{ $item->title }}" required>
+                                    <label class="form-label small fw-bold text-muted">Judul Sesi Default</label>
+                                    <input type="text" name="blocks[{{ $index }}][title]" class="form-control fw-bold" value="{{ $item->title }}" placeholder="Kosongkan jika untuk Teks di Tengah">
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label small fw-bold text-muted">Teks Bawaan (Opsional)</label>
-                                    <textarea name="blocks[old_{{ $index }}][content]" class="form-control bg-light" rows="2">{{ $item->static_content }}</textarea>
+                                    <textarea name="blocks[{{ $index }}][content]" class="form-control bg-light" rows="2" placeholder="Kosongkan agar diisi waktu jadwal dibuat...">{{ $item->static_content }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -125,12 +124,9 @@
                             <div class="dropdown">
                                 <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan Slide Di Sini">&plus;</button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', 'old-{{ $index }}')">Tambah Kerangka Nyanyian</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', 'old-{{ $index }}')">Tambah Kerangka Bacaan Alkitab</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', 'old-{{ $index }}')">Tambah Votum / Prosesi</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'old-{{ $index }}')">Tambah Instruksi Sikap</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'old-{{ $index }}')">Tambah Slide Teks Bebas</a></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('nyanyian', '{{ $blockId }}')">Tambah Kerangka Nyanyian</a></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('alkitab', '{{ $blockId }}')">Tambah Kerangka Bacaan Alkitab</a></li>
+                                    <li><a class="dropdown-item" onclick="insertBlock('polos', '{{ $blockId }}')">Tambah Slide Teks Bebas / Instruksi</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -149,36 +145,39 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        let blockCount = {{ $liturgy->items->count() }};
+        let blockCount = {{ count($liturgy->items) * 10 }}; 
 
         function insertBlock(type, referenceId) {
             blockCount++;
-            const newId = blockCount;
+            const newId = 'new_' + blockCount;
             let cardColor = '';
             let typeLabel = '';
             let defaultTitle = '';
-            let defaultContent = '';
+            let placeholderTitle = '';
 
-            if (type === 'nyanyian') { cardColor = '#2b6cb0'; typeLabel = 'NYANYIAN JEMAAT'; defaultTitle = 'Nyanyian Jemaat'; } 
-            else if (type === 'alkitab') { cardColor = '#2c5282'; typeLabel = 'BACAAN ALKITAB'; defaultTitle = 'Pelayanan Firman'; }
-            else if (type === 'votum') { cardColor = '#4a5568'; typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; defaultTitle = 'Votum dan Salam'; defaultContent = 'Pertolongan kita adalah dalam nama Tuhan...'; }
-            else if (type === 'aksi') { cardColor = '#c53030'; typeLabel = 'INSTRUKSI SIKAP JEMAAT'; defaultTitle = 'Sikap Jemaat'; defaultContent = '(Jemaat Berdiri)'; }
-            else { cardColor = '#718096'; typeLabel = 'SLIDE TEKS BEBAS'; defaultTitle = 'Judul Slide...'; }
+            if (type === 'nyanyian') { 
+                cardColor = '#2b6cb0'; typeLabel = 'KERANGKA NYANYIAN'; defaultTitle = 'Nyanyian Jemaat'; 
+            } else if (type === 'alkitab') { 
+                cardColor = '#2c5282'; typeLabel = 'KERANGKA BACAAN ALKITAB'; defaultTitle = 'Bacaan Alkitab'; 
+            } else { 
+                cardColor = '#718096'; typeLabel = 'KERANGKA TEKS BEBAS / INSTRUKSI'; defaultTitle = ''; 
+                placeholderTitle = 'Kosongkan jika untuk Votum/Sikap Jemaat (Teks di Tengah)';
+            }
 
             const blockHtml = `
                 <div class="block-card" style="border-top: 4px solid ${cardColor};">
                     <button type="button" class="btn-delete-block" onclick="this.closest('.block-wrapper').remove()" title="Hapus Kerangka">&times;</button>
-                    <div class="mb-3 pb-2">
+                    <div class="mb-3 pb-2 d-flex justify-content-between align-items-center">
                         <span class="badge text-uppercase" style="background-color: ${cardColor}; letter-spacing: 0.5px;">${typeLabel}</span>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-5">
-                            <label class="form-label small fw-bold text-muted">Judul Sesi</label>
-                            <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" value="${defaultTitle}" required>
+                            <label class="form-label small fw-bold text-muted">Judul Sesi Default</label>
+                            <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" value="${defaultTitle}" placeholder="${placeholderTitle}">
                         </div>
                         <div class="col-md-7">
                             <label class="form-label small fw-bold text-muted">Teks Bawaan (Opsional)</label>
-                            <textarea name="blocks[${newId}][content]" class="form-control bg-light" rows="2">${defaultContent}</textarea>
+                            <textarea name="blocks[${newId}][content]" class="form-control bg-light" rows="2" placeholder="Kosongkan agar diisi waktu jadwal dibuat..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -189,12 +188,9 @@
                     <div class="dropdown">
                         <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan Slide Di Sini">&plus;</button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', '${newId}')">Tambah Kerangka Nyanyian</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', '${newId}')">Tambah Kerangka Bacaan Alkitab</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', '${newId}')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', '${newId}')">Tambah Instruksi Sikap</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('nyanyian', '${newId}')">Tambah Kerangka Nyanyian</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('alkitab', '${newId}')">Tambah Kerangka Bacaan Alkitab</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas / Instruksi</a></li>
                         </ul>
                     </div>
                 </div>

@@ -28,12 +28,17 @@
         .start-title { color: #3182ce; font-size: 3vw; margin-bottom: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
         .start-subtitle { color: #a0aec0; font-size: 1.5vw; text-align: center; font-weight: 400; }
         
+        /* Elemen Video untuk Kamera Latar Belakang */
+        #live-webcam {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            object-fit: cover; z-index: -10; display: none;
+        }
+
         .slide { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
             text-align: center; padding: 7vh 6vw; box-sizing: border-box; 
-            opacity: 0; 
-            z-index: 0; pointer-events: none; 
+            opacity: 0; z-index: 0; pointer-events: none; 
         }
         .slide.active { opacity: 1; z-index: 10; pointer-events: auto; }
         
@@ -42,77 +47,63 @@
         .judul-sesi { position: relative; z-index: 2; flex-shrink: 0; font-size: 2.2vw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 4px; font-weight: 600; margin-top: 2vh; margin-bottom: 0; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 12px; width: 85%; }
         .judul-custom { color: #63b3ed; border-bottom-color: rgba(99, 179, 237, 0.3); }
         .isi-teks { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5vw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4px 15px rgba(0,0,0,0.9); max-width: 95%; }
-        .teks-kuning { color: #ecc94b; }
         
         .welcome-wrapper { position: relative; z-index: 2; margin: auto; }
         .welcome-title { font-size: 6.5vw; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0px 5px 20px rgba(0,0,0,0.8); line-height: 1.1; }
         .welcome-sub { font-size: 2.5vw; color: #cbd5e0; font-weight: 400; letter-spacing: 1px; }
         .nav-hint { position: absolute; bottom: 15px; right: 20px; font-size: 0.8vw; color: rgba(255,255,255,0.15); z-index: 100; font-weight: 400; }
+
+        /* ========= CSS KHUSUS MODE KAMERA (LOWER THIRD) ========= */
+        .slide.mode-kamera {
+            justify-content: flex-end; /* Paksa ke bawah */
+            padding: 0;
+        }
+        .kamera-wrapper {
+            width: 100%;
+            /* Latar belakang semi transparan agar teks terbaca di atas video */
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%);
+            padding: 4vh 5vw 6vh 5vw;
+            border-top: 2px solid rgba(255,255,255,0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .slide.mode-kamera .judul-sesi {
+            font-size: 2.5vw;
+            margin-top: 0;
+            margin-bottom: 1vh;
+            border-bottom: none;
+            color: #63b3ed;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        }
+        .slide.mode-kamera .isi-teks {
+            font-size: 4.2vw !important; /* Sedikit lebih kecil agar rapi di bawah */
+            margin-top: 0;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+        }
+        .slide.mode-kamera .instruksi-jemaat {
+            font-size: 5vw !important;
+            margin-top: 0;
+        }
+        .slide.mode-kamera .bait-watermark {
+            display: none; /* Sembunyikan angka raksasa agar wajah orang tidak tertutup */
+        }
     </style>
 </head>
 <body>
 
-    <div id="start-overlay" onclick="launchFullscreen()">
+    <video id="live-webcam" autoplay playsinline muted></video>
+
+    <div id="start-overlay" onclick="launchFullscreenAndCamera()">
         <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="GPI Papua" style="height: 100px; margin-bottom: 20px;">
         <div class="start-title">Sistem Siap Ditayangkan</div>
-        <div class="start-subtitle">Klik area ini untuk mengaktifkan Fullscreen Proyektor</div>
+        <div class="start-subtitle">Klik di sini untuk mengaktifkan Proyektor & Kamera Latar</div>
     </div>
 
+    @include('liturgy.partials.smart_splitter')
+
     @php
-    if (!function_exists('cleanSlideTitle')) {
-        function cleanSlideTitle($title) {
-            if (!is_string($title)) return '';
-            $title = str_ireplace('(opsional)', '', $title);
-            $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
-            $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
-            $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
-            return trim($title, " -:");
-        }
-    }
-
-    if (!function_exists('autoSplitText')) {
-        function autoSplitText($text) {
-            if (is_array($text)) { $text = $text['content'] ?? ''; }
-            if (!is_string($text)) $text = '';
-            if (str_contains($text, '===SLIDE_BREAK===')) return array_filter(array_map('trim', explode('===SLIDE_BREAK===', $text)));
-            
-            $text = preg_replace("/[\r\n]+/", "\n", trim($text));
-            $paragraphs = explode("\n", $text);
-            $slides = []; $currentSlide = [];
-            $maxCharsPerLine = 35; 
-
-            foreach ($paragraphs as $para) {
-                $para = trim($para); if (empty($para)) continue;
-                $words = explode(' ', $para); $currentLine = '';
-                foreach ($words as $word) {
-                    if (strlen($currentLine) + strlen($word) + 1 > $maxCharsPerLine && !empty($currentLine)) {
-                        $currentSlide[] = trim($currentLine); $currentLine = $word;
-                        if (count($currentSlide) >= 3) { $slides[] = implode("\n", $currentSlide); $currentSlide = []; }
-                    } else { $currentLine = empty($currentLine) ? $word : $currentLine . ' ' . $word; }
-                }
-                if (!empty($currentLine)) {
-                    $currentSlide[] = trim($currentLine);
-                    if (count($currentSlide) >= 3) { $slides[] = implode("\n", $currentSlide); $currentSlide = []; }
-                }
-            }
-            if (!empty($currentSlide)) { $slides[] = implode("\n", $currentSlide); }
-            
-            $finalSlides = []; $total = count($slides);
-            for ($i = 0; $i < $total; $i++) {
-                if ($i === $total - 1 && $total > 1) {
-                    $wordCount = str_word_count(strip_tags(str_replace("\n", " ", $slides[$i])));
-                    if ($wordCount <= 4) { 
-                        $lastIndex = count($finalSlides) - 1;
-                        $finalSlides[$lastIndex] .= ' ' . str_replace("\n", " ", trim($slides[$i]));
-                        continue; 
-                    }
-                }
-                $finalSlides[] = $slides[$i];
-            }
-            return empty($finalSlides) ? [$text] : $finalSlides;
-        }
-    }
-
     $allSlides = [];
     
     // 1. SISIPAN OTOMATIS WARTA SINODE
@@ -128,7 +119,8 @@
         $allSlides[] = [
             'type' => 'announcements_slideshow',
             'title' => 'WARTA SINODE',
-            'images' => $slideImages
+            'images' => $slideImages,
+            'use_camera' => false
         ];
     }
     
@@ -138,7 +130,8 @@
         'title' => str_replace(' (CUSTOM)', '', strtoupper($schedule->liturgy->name ?? 'IBADAH')),
         'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
         'theme' => strtoupper($schedule->theme ?? ''),
-        'preacher' => strtoupper($schedule->preacher_name ?? '')
+        'preacher' => strtoupper($schedule->preacher_name ?? ''),
+        'use_camera' => false
     ];
 
     // 3. TATA IBADAH
@@ -147,26 +140,28 @@
         $content = $detail ? $detail->dynamic_content : $item->static_content;
         $isEmptyArray = is_array($content) && empty($content['judul']) && empty($content['bait']) && empty($content['content']);
         $isEmptyString = !is_array($content) && trim($content) === '';
-        $isInstruksi = str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi');
         
         $cleanBaseTitle = cleanSlideTitle($item->title);
+        $useCamera = is_array($content) && isset($content['use_camera']) && $content['use_camera'] == true;
 
         if($content && !$isEmptyArray && !$isEmptyString) {
-            if($isInstruksi) {
-                $textInstruksi = is_array($content) ? ($content['content'] ?? $content[0] ?? '') : $content;
-                $allSlides[] = ['type' => 'instruksi', 'title' => $cleanBaseTitle, 'content' => $textInstruksi];
-            } elseif(is_array($content)) {
-                if(isset($content['custom_title'])) {
+            
+            // Mode Instruksi Jika Judul Kosong
+            if(is_array($content) && array_key_exists('custom_title', $content) && empty(trim($content['custom_title']))) {
+                $textInstruksi = $content['content'] ?? '';
+                $allSlides[] = ['type' => 'instruksi', 'title' => '', 'content' => $textInstruksi, 'use_camera' => $useCamera];
+            } 
+            elseif(is_array($content)) {
+                if(isset($content['custom_title']) && !empty(trim($content['custom_title']))) {
                     $cTitle = cleanSlideTitle($content['custom_title']);
-                    $slidesText = autoSplitText($content['content'] ?? '');
+                    $slidesText = smartSplitText($content['content'] ?? '');
                     foreach($slidesText as $st) {
-                        $allSlides[] = ['type' => 'text', 'title' => $cTitle, 'content' => $st];
+                        $allSlides[] = ['type' => 'text', 'title' => $cTitle, 'content' => $st, 'use_camera' => $useCamera];
                     }
-                } elseif(!empty($content['bait'])) {
-                    
+                } 
+                elseif(!empty($content['bait'])) {
                     $songCoverTitle = $cleanBaseTitle;
                     $songCoverContent = $content['judul'] ?? '';
-                    
                     if (!empty($songCoverContent) && stripos($songCoverContent, $songCoverTitle) !== false) {
                         $songCoverTitle = ''; 
                     }
@@ -174,77 +169,95 @@
                     $allSlides[] = [
                         'type' => 'song_cover', 
                         'title' => $songCoverTitle,
-                        'content' => $songCoverContent
+                        'content' => $songCoverContent,
+                        'use_camera' => $useCamera
                     ];
                     
-                    foreach($content['bait'] as $key => $bait) {
-                        $baitTextRaw = trim($bait);
+                    foreach($content['bait'] as $key => $baitText) {
+                        $baitTextRaw = trim($baitText);
                         if(empty($baitTextRaw)) continue;
 
                         $isReff = false;
                         if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
                             $isReff = true;
                         }
-                        
                         $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
                         
                         $displayIndex = '';
                         if (!$isReff) {
-                            if (preg_match('/\d+/', $key, $matches)) {
-                                $displayIndex = $matches[0];
-                            } else {
-                                $displayIndex = $key; 
-                            }
+                            if (preg_match('/\d+/', $key, $matches)) { $displayIndex = $matches[0]; } 
+                            else { $displayIndex = $key; }
                         }
                         
                         $laguTitle = $content['judul'] ?? '';
                         if (!empty($laguTitle)) {
-                            if ($cleanBaseTitle !== '' && stripos($laguTitle, $cleanBaseTitle) !== false) {
-                                $slideTitle = $laguTitle;
-                            } else {
-                                $slideTitle = ($cleanBaseTitle !== '' ? $cleanBaseTitle . ' - ' : '') . $laguTitle;
-                            }
-                        } else {
-                            $slideTitle = $cleanBaseTitle;
-                        }
+                            if ($cleanBaseTitle !== '' && stripos($laguTitle, $cleanBaseTitle) !== false) { $slideTitle = $laguTitle; } 
+                            else { $slideTitle = ($cleanBaseTitle !== '' ? $cleanBaseTitle . ' - ' : '') . $laguTitle; }
+                        } else { $slideTitle = $cleanBaseTitle; }
                         
                         if($isReff) $slideTitle .= ' (Reff)';
 
-                        $baitSlides = autoSplitText($cleanBaitText);
+                        $baitSlides = smartSplitText($cleanBaitText);
                         foreach($baitSlides as $bSlide) {
                             $allSlides[] = [
                                 'type' => 'song_lyric',
                                 'watermark' => $displayIndex,
                                 'title' => $slideTitle,
-                                'content' => $bSlide
+                                'content' => $bSlide,
+                                'use_camera' => $useCamera
                             ];
                         }
                     }
+                } 
+                elseif(isset($content['content'])) {
+                     $slidesText = smartSplitText($content['content']);
+                     foreach($slidesText as $st) {
+                         $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st, 'use_camera' => $useCamera];
+                     }
                 }
             } else {
-                $slidesText = autoSplitText($content);
+                $slidesText = smartSplitText($content);
                 foreach($slidesText as $st) {
-                    $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st];
+                    $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st, 'use_camera' => $useCamera];
                 }
             }
         }
         
+        // Custom Slides Processing
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
                 $cTitle = cleanSlideTitle($cSlide->title);
-                $cSlidesText = autoSplitText($cSlide->content);
-                foreach($cSlidesText as $ct) {
-                    $allSlides[] = ['type' => 'custom', 'title' => $cTitle, 'content' => $ct];
+                $cUseCamera = false;
+                $cleanContent = $cSlide->content;
+
+                // Hack deteksi kamera lawas (opsional jika masih ada)
+                if (str_contains($cleanContent, '')) {
+                    $cUseCamera = true;
+                    $cleanContent = str_replace('', '', $cleanContent);
+                }
+
+                if (empty($cTitle)) {
+                    $allSlides[] = ['type' => 'instruksi', 'title' => '', 'content' => $cleanContent, 'use_camera' => $cUseCamera];
+                } else {
+                    $cSlidesText = smartSplitText($cleanContent);
+                    foreach($cSlidesText as $ct) {
+                        $allSlides[] = ['type' => 'custom', 'title' => $cTitle, 'content' => $ct, 'use_camera' => $cUseCamera];
+                    }
                 }
             }
         }
     }
-    $allSlides[] = ['type' => 'closing', 'title' => 'PENUTUP', 'content' => "TUHAN YESUS\nMEMBERKATI"];
+    $allSlides[] = ['type' => 'closing', 'title' => 'PENUTUP', 'content' => "TUHAN YESUS\nMEMBERKATI", 'use_camera' => false];
     @endphp
 
     <div id="presentation">
         @foreach($allSlides as $index => $slide)
-            <div class="slide" id="slide-{{ $index }}" style="{{ $slide['type'] === 'announcements_slideshow' ? 'padding: 0;' : '' }}">
+            <div class="slide" id="slide-{{ $index }}" data-camera="{{ $slide['use_camera'] ? 'true' : 'false' }}" style="{{ $slide['type'] === 'announcements_slideshow' ? 'padding: 0;' : '' }}">
+                
+                @if($slide['use_camera'] && $slide['type'] !== 'cover' && $slide['type'] !== 'closing' && $slide['type'] !== 'announcements_slideshow')
+                    <div class="kamera-wrapper">
+                @endif
+
                 @if($slide['type'] === 'cover')
                     <div class="welcome-wrapper">
                         <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" style="height: 18vh; margin: 0 auto 3vh auto; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));">
@@ -269,7 +282,7 @@
                     </div>
 
                 @elseif($slide['type'] === 'instruksi')
-                    <div class="instruksi-jemaat">{{ $slide['content'] }}</div>
+                    <div class="instruksi-jemaat">{!! nl2br(e($slide['content'])) !!}</div>
                 
                 @elseif($slide['type'] === 'song_cover')
                     <div style="margin: auto; text-align: center; position:relative; z-index:2;">
@@ -298,24 +311,45 @@
                     @endif
                     <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
                 @endif
+
+                @if($slide['use_camera'] && $slide['type'] !== 'cover' && $slide['type'] !== 'closing' && $slide['type'] !== 'announcements_slideshow')
+                    </div> @endif
             </div>
         @endforeach
     </div>
 
-    <div class="nav-hint">Navigasi: Panah Kiri/Kanan, Atas/Bawah | F: Layar Penuh</div>
+    <div class="nav-hint">Navigasi: Panah Kiri/Kanan | F: Layar Penuh</div>
 
     <script>
         const scheduleId = {{ $schedule->id ?? 0 }};
         let wartaInterval = null; 
         let currentSlide = parseInt(localStorage.getItem('last_slide_index')) || 0;
+        let isCameraInitialized = false;
 
-        function launchFullscreen() {
+        // Inisialisasi Akses Kamera
+        async function initCamera() {
+            if (isCameraInitialized) return;
+            const videoElement = document.getElementById('live-webcam');
+            try {
+                // Minta izin ke browser untuk akses Webcam/Capture Card
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                videoElement.srcObject = stream;
+                isCameraInitialized = true;
+            } catch (err) {
+                console.warn("Gagal akses kamera (Mungkin belum diizinkan atau tidak pakai HTTPS/localhost):", err);
+            }
+        }
+
+        function launchFullscreenAndCamera() {
             if (!document.fullscreenElement) {
                 if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
                 else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
             }
             const overlay = document.getElementById('start-overlay');
             if (overlay) overlay.style.display = 'none';
+            
+            // Nyalakan kamera saat operator pertama kali klik layar
+            initCamera();
         }
 
         function adjustAdaptiveText(slide, slideIndex) {
@@ -331,8 +365,10 @@
                     const htmlContent = textEl.innerHTML.toLowerCase();
                     const lines = (htmlContent.match(/<br\s*\/?>/g) || []).length + 1;
                     let size = '5vw'; 
-                    if (lines === 1) { size = textEl.innerText.trim().length < 25 ? '7.5vw' : '6.5vw'; } 
-                    else if (lines === 2) { size = '5.8vw'; }
+                    // Pengecilan otomatis jika teks panjang, dan khusus mode kamera sedikit dikecilkan
+                    if (lines === 1) { size = textEl.innerText.trim().length < 25 ? '6vw' : '5.5vw'; } 
+                    else if (lines === 2) { size = '5vw'; }
+                    else if (lines >= 3) { size = '4.5vw'; }
                     textEl.style.fontSize = size;
                 }
             }
@@ -342,7 +378,7 @@
                     instruksiEl.style.fontSize = customSize + 'vw';
                 } else {
                     const length = instruksiEl.innerText.trim().length;
-                    instruksiEl.style.fontSize = length < 25 ? '7vw' : '5vw';
+                    instruksiEl.style.fontSize = length < 30 ? '6vw' : '5vw';
                 }
             }
         }
@@ -361,28 +397,34 @@
             let videoEl = document.getElementById('bg-video-element');
             if (videoEl) videoEl.remove();
 
-            document.body.style.background = '';
-            document.body.style.backgroundColor = '';
-            document.body.style.backgroundImage = '';
-            document.body.style.backgroundSize = '';
-            document.body.style.animation = '';
+            // Hanya apply jika BUKAN mode kamera
+            const activeSlide = document.querySelector('.slide.active');
+            const isUsingCamera = activeSlide && activeSlide.dataset.camera === 'true';
 
-            if (bgType === 'gradient') { document.body.style.background = `radial-gradient(circle at center, ${bgCenter} 0%, ${bgEdge} 100%)`; } 
-            else if (bgType === 'anim-linear') { document.body.style.background = `linear-gradient(-45deg, ${bgCenter}, ${bgEdge}, ${ac1}, ${ac2})`; document.body.style.backgroundSize = '400% 400%'; document.body.style.animation = `gradientBG ${speed}s ease infinite`; } 
-            else if (bgType === 'anim-radial') { document.body.style.background = `radial-gradient(circle, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2})`; document.body.style.backgroundSize = '400% 400%'; document.body.style.animation = `gradientBG ${speed}s ease infinite`; } 
-            else if (bgType === 'anim-sweep') { document.body.style.background = `linear-gradient(90deg, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2}, ${bgCenter})`; document.body.style.backgroundSize = '400% 100%'; document.body.style.animation = `gradientBG ${speed}s linear infinite`; }
-            else if (bgType === 'pattern-grid') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; document.body.style.backgroundSize = '4vw 4vw'; }
-            else if (bgType === 'pattern-grid-anim') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; document.body.style.backgroundSize = '4vw 4vw'; document.body.style.animation = `moveGrid ${speed}s linear infinite`; } 
-            else if (bgType === 'pattern-dots') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `radial-gradient(${bgCenter} 3px, transparent 3px)`; document.body.style.backgroundSize = '4vw 4vw'; } 
-            else if (bgType === 'pattern-stripes') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`; document.body.style.backgroundSize = '4vw 4vw'; }
-            else if (bgType === 'pattern-stripes-anim') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`; document.body.style.backgroundSize = '4vw 4vw'; document.body.style.animation = `moveStripes ${speed}s linear infinite`; }
-            else if (bgType === 'video' && settings.bgVideoUrl) {
-                document.body.style.backgroundColor = '#000';
-                const vid = document.createElement('video');
-                vid.id = 'bg-video-element'; vid.src = settings.bgVideoUrl;
-                vid.autoplay = true; vid.loop = true; vid.muted = true;
-                vid.style.position = 'fixed'; vid.style.top = '0'; vid.style.left = '0'; vid.style.width = '100vw'; vid.style.height = '100vh'; vid.style.objectFit = 'cover'; vid.style.zIndex = '-1'; vid.style.opacity = '0.6';
-                document.body.insertBefore(vid, document.body.firstChild);
+            if (!isUsingCamera) {
+                document.body.style.background = '';
+                document.body.style.backgroundColor = '';
+                document.body.style.backgroundImage = '';
+                document.body.style.backgroundSize = '';
+                document.body.style.animation = '';
+
+                if (bgType === 'gradient') { document.body.style.background = `radial-gradient(circle at center, ${bgCenter} 0%, ${bgEdge} 100%)`; } 
+                else if (bgType === 'anim-linear') { document.body.style.background = `linear-gradient(-45deg, ${bgCenter}, ${bgEdge}, ${ac1}, ${ac2})`; document.body.style.backgroundSize = '400% 400%'; document.body.style.animation = `gradientBG ${speed}s ease infinite`; } 
+                else if (bgType === 'anim-radial') { document.body.style.background = `radial-gradient(circle, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2})`; document.body.style.backgroundSize = '400% 400%'; document.body.style.animation = `gradientBG ${speed}s ease infinite`; } 
+                else if (bgType === 'anim-sweep') { document.body.style.background = `linear-gradient(90deg, ${bgCenter}, ${ac1}, ${bgEdge}, ${ac2}, ${bgCenter})`; document.body.style.backgroundSize = '400% 100%'; document.body.style.animation = `gradientBG ${speed}s linear infinite`; }
+                else if (bgType === 'pattern-grid') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; document.body.style.backgroundSize = '4vw 4vw'; }
+                else if (bgType === 'pattern-grid-anim') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; document.body.style.backgroundSize = '4vw 4vw'; document.body.style.animation = `moveGrid ${speed}s linear infinite`; } 
+                else if (bgType === 'pattern-dots') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `radial-gradient(${bgCenter} 3px, transparent 3px)`; document.body.style.backgroundSize = '4vw 4vw'; } 
+                else if (bgType === 'pattern-stripes') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`; document.body.style.backgroundSize = '4vw 4vw'; }
+                else if (bgType === 'pattern-stripes-anim') { document.body.style.backgroundColor = bgEdge; document.body.style.backgroundImage = `repeating-linear-gradient(45deg, ${bgCenter} 0, ${bgCenter} 2px, transparent 2px, transparent 50%)`; document.body.style.backgroundSize = '4vw 4vw'; document.body.style.animation = `moveStripes ${speed}s linear infinite`; }
+                else if (bgType === 'video' && settings.bgVideoUrl) {
+                    document.body.style.backgroundColor = '#000';
+                    const vid = document.createElement('video');
+                    vid.id = 'bg-video-element'; vid.src = settings.bgVideoUrl;
+                    vid.autoplay = true; vid.loop = true; vid.muted = true;
+                    vid.style.position = 'fixed'; vid.style.top = '0'; vid.style.left = '0'; vid.style.width = '100vw'; vid.style.height = '100vh'; vid.style.objectFit = 'cover'; vid.style.zIndex = '-1'; vid.style.opacity = '0.6';
+                    document.body.insertBefore(vid, document.body.firstChild);
+                }
             }
 
             const shadowIntensity = settings.textShadow || '0.9';
@@ -397,12 +439,9 @@
                 el.style.color = settings.textColor; el.style.textShadow = `0px 5px 20px rgba(${r}, ${g}, ${b}, ${shadowIntensity})`;
             });
         }
-        
-        const savedDesign = JSON.parse(localStorage.getItem('live_design_settings'));
-        if(savedDesign) applyLiveDesign(savedDesign);
 
         function showSlide(index) {
-            const slides = document.querySelectorAll('.slide'); // Tarik elemen DOM terbaru
+            let slides = document.querySelectorAll('.slide');
             if (slides.length === 0) return;
             if (index >= slides.length) index = slides.length - 1;
             if (index < 0) index = 0;
@@ -411,8 +450,27 @@
 
             slides.forEach((slide, i) => {
                 slide.classList.remove('active');
+                slide.classList.remove('mode-kamera');
+                
                 if (i === index) {
                     slide.classList.add('active');
+                    
+                    // LOGIKA KAMERA VS BACKGROUND STANDAR
+                    if (slide.dataset.camera === 'true') {
+                        slide.classList.add('mode-kamera');
+                        document.body.style.background = 'transparent';
+                        document.getElementById('live-webcam').style.display = 'block';
+                        
+                        let bgVideo = document.getElementById('bg-video-element');
+                        if (bgVideo) bgVideo.style.display = 'none';
+                        
+                        initCamera(); // Panggil aman jika sebelumnya belum terpanggil
+                    } else {
+                        document.getElementById('live-webcam').style.display = 'none';
+                        const savedDesign = JSON.parse(localStorage.getItem('live_design_settings'));
+                        applyLiveDesign(savedDesign); 
+                    }
+
                     adjustAdaptiveText(slide, i); 
                 }
             });
@@ -438,6 +496,9 @@
             localStorage.setItem('last_slide_index', index);
         }
 
+        const savedDesign = JSON.parse(localStorage.getItem('live_design_settings'));
+        if(savedDesign) applyLiveDesign(savedDesign);
+
         showSlide(currentSlide);
 
         document.addEventListener('keydown', (e) => {
@@ -446,7 +507,10 @@
             else if (e.key.toLowerCase() === 'f') {
                 const overlay = document.getElementById('start-overlay');
                 if (overlay) overlay.style.display = 'none';
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                    initCamera();
+                }
                 else document.exitFullscreen();
             }
         });
@@ -460,7 +524,7 @@
             }
             if (e.key === 'font_sync_trigger') showSlide(currentSlide); 
             
-            // PERUBAHAN: Ganti location.reload() menjadi Fetch API di Latar Belakang
+            // TARIK DATA DIAM-DIAM DARI BACKGROUND (Tanpa reload yang bikin keluar fullscreen)
             if (e.key === 'liturgy_update') {
                 fetch(window.location.href)
                     .then(response => response.text())
@@ -470,12 +534,17 @@
                         const newPresentation = doc.getElementById('presentation');
                         if (newPresentation) {
                             document.getElementById('presentation').innerHTML = newPresentation.innerHTML;
-                            showSlide(currentSlide); // Render ulang tanpa melepaskan Fullscreen
+                            showSlide(currentSlide); // Render ulang slide saat ini
                         }
                     })
-                    .catch(err => console.error('Gagal mengambil update slide:', err));
+                    .catch(err => console.error('Gagal mengambil pembaruan slide:', err));
             }
-            if (e.key === 'live_design_settings') applyLiveDesign(JSON.parse(e.newValue));
+            if (e.key === 'live_design_settings') {
+                const currentSlideEl = document.querySelector('.slide.active');
+                if (currentSlideEl && currentSlideEl.dataset.camera !== 'true') {
+                    applyLiveDesign(JSON.parse(e.newValue));
+                }
+            }
         });
     </script>
 </body>

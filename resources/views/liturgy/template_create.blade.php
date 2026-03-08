@@ -31,7 +31,7 @@
         
         /* DROPDOWN KUSTOM */
         .dropdown-menu { border-radius: 8px; padding: 8px 0; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1050 !important; min-width: 220px; }
-        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; }
+        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; cursor: pointer; }
         .dropdown-item:hover { background-color: #f8fafc; color: #0f172a; }
         .dropdown-divider { border-top: 1px solid #e2e8f0; margin: 5px 0; }
 
@@ -78,16 +78,13 @@
                     <div class="dropdown">
                         <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Tambah Slide Paling Atas">&plus;</button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', 'top')">Tambah Kerangka Nyanyian</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', 'top')">Tambah Kerangka Bacaan Alkitab</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', 'top')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'top')">Tambah Instruksi Sikap Jemaat</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('nyanyian', 'top')">Tambah Kerangka Nyanyian</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('alkitab', 'top')">Tambah Kerangka Bacaan Alkitab</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas / Instruksi</a></li>
                         </ul>
                     </div>
                 </div>
-                </div>
+            </div>
 
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
@@ -108,29 +105,44 @@
             let cardColor = '';
             let typeLabel = '';
             let defaultTitle = '';
-            let defaultContent = '';
+            let placeholderTitle = '';
+            let isTitleRequired = '';
 
-            // Palette Warna & Default
-            if (type === 'nyanyian') { cardColor = '#2b6cb0'; typeLabel = 'NYANYIAN JEMAAT'; defaultTitle = 'Nyanyian Jemaat'; } 
-            else if (type === 'alkitab') { cardColor = '#2c5282'; typeLabel = 'BACAAN ALKITAB'; defaultTitle = 'Pelayanan Firman'; }
-            else if (type === 'votum') { cardColor = '#4a5568'; typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; defaultTitle = 'Votum dan Salam'; defaultContent = 'Pertolongan kita adalah dalam nama Tuhan...'; }
-            else if (type === 'aksi') { cardColor = '#c53030'; typeLabel = 'INSTRUKSI SIKAP JEMAAT'; defaultTitle = 'Sikap Jemaat'; defaultContent = '(Jemaat Berdiri)'; }
-            else { cardColor = '#718096'; typeLabel = 'SLIDE TEKS BEBAS'; defaultTitle = 'Judul Slide...'; }
+            // Palette Warna & Default untuk 3 Opsi
+            if (type === 'nyanyian') { 
+                cardColor = '#2b6cb0'; 
+                typeLabel = 'KERANGKA NYANYIAN'; 
+                defaultTitle = 'Nyanyian Jemaat'; 
+                isTitleRequired = 'required';
+            } 
+            else if (type === 'alkitab') { 
+                cardColor = '#2c5282'; 
+                typeLabel = 'KERANGKA BACAAN ALKITAB'; 
+                defaultTitle = 'Bacaan Alkitab'; 
+                isTitleRequired = 'required';
+            }
+            else { 
+                cardColor = '#718096'; 
+                typeLabel = 'KERANGKA TEKS BEBAS / INSTRUKSI'; 
+                defaultTitle = ''; 
+                placeholderTitle = 'Kosongkan jika untuk Votum/Sikap Jemaat (Teks di Tengah)';
+                isTitleRequired = ''; // Boleh kosong agar memicu fitur Smart Text Free
+            }
 
             const blockHtml = `
                 <div class="block-card" style="border-top: 4px solid ${cardColor};">
                     <button type="button" class="btn-delete-block" onclick="this.closest('.block-wrapper').remove()" title="Hapus Kerangka">&times;</button>
-                    <div class="mb-3 pb-2">
+                    <div class="mb-3 pb-2 d-flex justify-content-between align-items-center">
                         <span class="badge text-uppercase" style="background-color: ${cardColor}; letter-spacing: 0.5px;">${typeLabel}</span>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-5">
-                            <label class="form-label small fw-bold text-muted">Judul Sesi (Bisa Diubah)</label>
-                            <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" value="${defaultTitle}" required>
+                            <label class="form-label small fw-bold text-muted">Judul Sesi Default</label>
+                            <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" value="${defaultTitle}" placeholder="${placeholderTitle}" ${isTitleRequired}>
                         </div>
                         <div class="col-md-7">
-                            <label class="form-label small fw-bold text-muted">Teks Bawaan (Kosongkan bila perlu)</label>
-                            <textarea name="blocks[${newId}][content]" class="form-control bg-light" rows="2" placeholder="Kosongkan agar diisi waktu jadwal dibuat...">${defaultContent}</textarea>
+                            <label class="form-label small fw-bold text-muted">Teks Bawaan (Opsional)</label>
+                            <textarea name="blocks[${newId}][content]" class="form-control bg-light" rows="2" placeholder="Kosongkan agar diisi waktu jadwal dibuat..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -141,12 +153,9 @@
                     <div class="dropdown">
                         <button type="button" class="btn-insert" data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan Slide Di Sini">&plus;</button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', '${newId}')">Tambah Kerangka Nyanyian</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', '${newId}')">Tambah Kerangka Bacaan Alkitab</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', '${newId}')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', '${newId}')">Tambah Instruksi Sikap</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('nyanyian', '${newId}')">Tambah Kerangka Nyanyian</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('alkitab', '${newId}')">Tambah Kerangka Bacaan Alkitab</a></li>
+                            <li><a class="dropdown-item" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas / Instruksi</a></li>
                         </ul>
                     </div>
                 </div>

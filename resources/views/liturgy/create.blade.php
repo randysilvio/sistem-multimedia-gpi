@@ -30,6 +30,19 @@
 </head>
 <body>
 
+    @php
+    if (!function_exists('cleanSlideTitle')) {
+        function cleanSlideTitle($title) {
+            if (!is_string($title)) return '';
+            $title = str_ireplace('(opsional)', '', $title);
+            $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
+            $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
+            $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
+            return trim($title, " -:");
+        }
+    }
+    @endphp
+
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3 mb-4">
         <div class="container d-flex justify-content-between align-items-center">
             <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
@@ -102,13 +115,23 @@
                     $reqRule = $isOptional ? '' : 'required';
                     $val = $item->static_content ?? '';
                     
-                    // Deteksi Tipe Warna
+                    // PENYEDERHANAAN LOGIKA: 3 JENIS KONTEN SAJA
                     $titleLower = strtolower($item->title);
-                    $cardColor = '#718096'; $typeLabel = 'TEKS BEBAS';
-                    if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) { $cardColor = '#2b6cb0'; $typeLabel = 'NYANYIAN JEMAAT'; } 
-                    elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) { $cardColor = '#2c5282'; $typeLabel = 'BACAAN ALKITAB'; } 
-                    elseif (str_contains($titleLower, 'votum') || str_contains($titleLower, 'prosesi') || str_contains($titleLower, 'pengakuan')) { $cardColor = '#4a5568'; $typeLabel = 'VOTUM / PROSESI / PENGAKUAN'; } 
-                    elseif (str_contains($titleLower, 'sikap') || str_contains($titleLower, 'aksi')) { $cardColor = '#c53030'; $typeLabel = 'INSTRUKSI SIKAP JEMAAT'; }
+                    $cleanTitle = cleanSlideTitle($item->title);
+
+                    $type = 'teks_bebas';
+                    $cardColor = '#718096'; 
+                    $typeLabel = 'TEKS BEBAS / INSTRUKSI'; 
+
+                    if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) { 
+                        $type = 'nyanyian'; 
+                        $cardColor = '#2b6cb0'; 
+                        $typeLabel = 'NYANYIAN JEMAAT'; 
+                    } elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) { 
+                        $type = 'alkitab'; 
+                        $cardColor = '#2c5282'; 
+                        $typeLabel = 'BACAAN ALKITAB'; 
+                    }
                 @endphp
 
                 <div class="block-card" style="border-top: 4px solid {{ $cardColor }};">
@@ -119,11 +142,7 @@
 
                     @if($item->is_dynamic)
                         
-                        @if(str_contains(strtolower($item->title), 'pra-ibadah') || str_contains(strtolower($item->title), 'prosesi'))
-                            <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-2 fw-medium text-dark" placeholder="Judul Tampil" value="{{ str_replace(' (Opsional)', '', $item->title) }}">
-                            <textarea name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="4" placeholder="Ketik teks di sini..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id.'.content', $val) }}</textarea>
-                            
-                        @elseif(str_contains(strtolower($item->title), 'nyanyian') || str_contains(strtolower($item->title), 'pujian'))
+                        @if($type === 'nyanyian')
                             <div class="row g-2 mb-2">
                                 <div class="col-md-3">
                                     <select id="buku-lagu-{{ $item->id }}" class="form-select bg-light">
@@ -152,24 +171,29 @@
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="tambahBait({{ $item->id }})">&plus; Tambah Bait Lirik</button>
                             
-                        @elseif(str_contains(strtolower($item->title), 'alkitab') || str_contains(strtolower($item->title), 'bacaan'))
+                        @elseif($type === 'alkitab')
                             <div class="input-group mb-2">
                                 <input type="text" id="input-alkitab-{{ $item->id }}" class="form-control bg-light" placeholder="Cari Kitab (Cth: Yohanes 3:16)">
                                 <button type="button" class="btn btn-secondary px-4" onclick="tarikAlkitab({{ $item->id }}, event)">Tarik</button>
                             </div>
-                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control" rows="4" placeholder="Teks ayat..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id, $val) }}</textarea>
-
-                        @elseif(str_contains(strtolower($item->title), 'sikap') || str_contains(strtolower($item->title), 'aksi'))
-                            <select name="dynamic_content[{{ $item->id }}]" class="form-select fw-bold border-secondary text-dark">
-                                <option value="(Jemaat Berdiri)">(Jemaat Berdiri)</option>
-                                <option value="(Jemaat Duduk)">(Jemaat Duduk)</option>
-                                <option value="(Saat Teduh / Lilin Dipadamkan)">(Saat Teduh / Lilin Dipadamkan)</option>
-                            </select>
+                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="4" placeholder="Teks ayat..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id.'.content', $val) }}</textarea>
 
                         @else
-                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}]" class="form-control" rows="4" placeholder="Ketik teks di sini..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id, $val) }}</textarea>
+                            {{-- LOGIKA PINTAR TEKS BEBAS: Jika judul dihapus, otomatis tulisan akan ke tengah dan membesar di proyektor --}}
+                            <label class="form-label small fw-bold text-secondary">Judul Sesi (Opsional)</label>
+                            <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-2 fw-bold text-dark" placeholder="Kosongkan jika ingin teks di tengah layar (Utk Sikap Jemaat)" value="{{ $cleanTitle }}">
+                            
+                            <label class="form-label small fw-bold text-secondary">Isi Teks</label>
+                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="3" placeholder="Ketik pengumuman, votum, atau sikap jemaat di sini..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id.'.content', $val) }}</textarea>
                         @endif
                         
+                        <div class="form-check form-switch mt-3 pt-3 border-top">
+                            <input class="form-check-input" type="checkbox" name="dynamic_content[{{ $item->id }}][use_camera]" value="true" id="cam-{{ $item->id }}">
+                            <label class="form-check-label small fw-bold text-muted" for="cam-{{ $item->id }}">
+                                📽️ Sorot Pengisi Acara (Aktifkan Latar Kamera & Teks Bawah)
+                            </label>
+                        </div>
+
                     @else
                         <textarea name="dynamic_content[{{ $item->id }}]" class="form-control text-secondary bg-light" rows="2" readonly>{{ $val }}</textarea>
                     @endif
@@ -192,7 +216,6 @@
     </div>
 
     <script>
-        // FUNGSI MENGGANTI NAMA BAIT (KEY ARRAY)
         function updateBaitName(inputElement, itemId) {
             let newName = inputElement.value.trim();
             if(newName === '') newName = 'Bait';
@@ -236,9 +259,14 @@
                 <div class="p-3 mb-2 border rounded bg-light position-relative">
                     <button type="button" class="btn-delete-block" onclick="this.parentElement.remove()" style="top:5px; right:5px;">&times;</button>
                     <div class="mb-2 pe-4">
-                        <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control fw-medium" placeholder="Judul Slide Sisipan" required>
+                        <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control fw-medium" placeholder="Judul Slide Sisipan (Kosongkan jika teks di tengah)" >
                     </div>
                     <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control" rows="3" placeholder="Isi konten slide..." required></textarea>
+                    
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="custom_slides[${itemId}][${slideId}][use_camera]" value="true" id="cam-custom-${slideId}">
+                        <label class="form-check-label small fw-bold text-muted" for="cam-custom-${slideId}">📽️ Latar Kamera (Lower Third)</label>
+                    </div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html);
@@ -264,15 +292,15 @@
                         container.innerHTML = ''; 
                         
                         const baits = data.text.split('===SLIDE_BREAK===');
-                        
+                        let verseCounter = 1;
+
                         baits.forEach((bait, idx) => {
                             let baitRaw = bait.trim();
                             if(baitRaw !== '') {
                                 let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                                 let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                                 
-                                // LOGIKA KUNCI: Biarkan nomor Index Asli (idx+1) menjadi Label
-                                let labelText = isReff ? 'Reff' : (idx + 1);
+                                let labelText = isReff ? 'Reff' : verseCounter;
                                 let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
                                 
                                 const html = `
@@ -280,11 +308,13 @@
                                         <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
                                             <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${itemId}')" value="${labelText}">
                                         </div>
-                                        <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${labelText}]" value="${isReff ? '[REFF]\n' + cleanBait : cleanBait}">
-                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
+                                        <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${labelText}]" value="${isReff ? '[REFF]\\n' + cleanBait : cleanBait}">
+                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\\n' + cleanBait : cleanBait}</textarea>
                                         <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
+                                
+                                if(!isReff) verseCounter++;
                             }
                         });
                     } else { alert(data.message); }

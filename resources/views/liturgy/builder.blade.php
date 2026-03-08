@@ -19,7 +19,6 @@
         .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; }
         .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
         
-        /* DESAIN GARIS SISIPKAN (ELEGAN) */
         .insert-divider { position: relative; height: 36px; display: flex; align-items: center; justify-content: center; margin-top: -12px; margin-bottom: -12px; z-index: 10; opacity: 0; transition: opacity 0.3s; }
         .block-wrapper:hover .insert-divider, .insert-divider:hover, .insert-divider.show { opacity: 1; z-index: 950; }
         .top-divider { opacity: 1; margin-bottom: 15px; margin-top: 0; height: 40px; }
@@ -29,18 +28,15 @@
         .btn-insert { position: relative; z-index: 2; background: #ffffff; color: #475569; border: 1px solid #cbd5e1; border-radius: 50%; width: 34px; height: 34px; font-weight: 400; font-size: 22px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; line-height: 1; }
         .btn-insert:hover, .btn-insert[aria-expanded="true"] { border-color: #2b6cb0; color: #2b6cb0; background: #ebf8ff; transform: scale(1.1); box-shadow: 0 4px 10px rgba(43, 108, 176, 0.15); }
         
-        /* DROPDOWN KUSTOM */
         .dropdown-menu { border-radius: 8px; padding: 8px 0; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1050 !important; min-width: 220px; }
         .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; }
         .dropdown-item:hover { background-color: #f8fafc; color: #0f172a; }
         .dropdown-divider { border-top: 1px solid #e2e8f0; margin: 5px 0; }
 
-        /* SOLID BOTTOM TOOLBAR PROFESIONAL */
         .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
         .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; }
         .btn-primary-custom:hover { background-color: #1e293b; color: white; }
 
-        /* Input khusus modifikasi nama bait */
         .bait-label-input { width: 100%; border: none; font-size: 0.8rem; font-weight: 700; text-align: center; background: transparent; color: inherit; }
         .bait-label-input:focus { outline: none; background: rgba(0,0,0,0.05); }
     </style>
@@ -96,10 +92,7 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', 'top')">Tambah Nyanyian Jemaat</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', 'top')">Tambah Bacaan Alkitab</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', 'top')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', 'top')">Tambah Instruksi Sikap Jemaat</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', 'top')">Tambah Slide Teks Bebas / Sikap</a></li>
                         </ul>
                     </div>
                 </div>
@@ -124,6 +117,16 @@
             let cardColor = '';
             let typeLabel = '';
             let contentHtml = '';
+
+            // Fitur Kamera HTML (Bisa dipakai di semua blok)
+            const cameraToggleHtml = `
+                <div class="form-check form-switch mt-3 pt-2 border-top">
+                    <input class="form-check-input" type="checkbox" name="blocks[${newId}][use_camera]" value="1" id="cam-${newId}">
+                    <label class="form-check-label small fw-bold text-muted" for="cam-${newId}">
+                        📽️ Sorot Pengisi Acara (Kamera Latar & Teks Lower Third)
+                    </label>
+                </div>
+            `;
 
             if (type === 'nyanyian') {
                 cardColor = '#2b6cb0'; typeLabel = 'NYANYIAN JEMAAT';
@@ -155,7 +158,7 @@
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary mt-1" style="font-size:0.75rem; font-weight:600;" onclick="tambahBaitLagu(${newId})">+ Tambah Bait Manual</button>
                     </div>
-                `;
+                ` + cameraToggleHtml;
             } 
             else if (type === 'alkitab') {
                 cardColor = '#2c5282'; typeLabel = 'BACAAN ALKITAB';
@@ -172,50 +175,20 @@
                         </div>
                         <textarea name="blocks[${newId}][content][]" id="text-kitab-${newId}" class="form-control bg-light" rows="4" placeholder="Teks ayat..."></textarea>
                     </div>
-                `;
-            }
-            else if (type === 'votum') {
-                cardColor = '#4a5568'; typeLabel = 'VOTUM / PROSESI / PENGAKUAN';
-                contentHtml = `
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold text-muted">Judul Sesi</label>
-                        <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" placeholder="Cth: Votum & Salam" required>
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label small fw-bold text-muted">Teks Pembacaan</label>
-                        <textarea name="blocks[${newId}][content][]" class="form-control" rows="3" placeholder="Ketik teks yang akan dibaca..."></textarea>
-                    </div>
-                `;
-            }
-            else if (type === 'aksi') {
-                cardColor = '#c53030'; typeLabel = 'INSTRUKSI SIKAP JEMAAT';
-                contentHtml = `
-                    <div class="col-md-5">
-                        <label class="form-label small fw-bold text-muted">Keterangan Internal</label>
-                        <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold text-muted" value="Instruksi Sikap Jemaat" readonly>
-                    </div>
-                    <div class="col-md-7">
-                        <label class="form-label small fw-bold text-muted">Pilih Instruksi Tayang</label>
-                        <select name="blocks[${newId}][content][]" class="form-select fw-bold border-secondary text-dark">
-                            <option value="(Jemaat Berdiri)">(Jemaat Berdiri)</option>
-                            <option value="(Jemaat Duduk)">(Jemaat Duduk)</option>
-                            <option value="(Saat Teduh / Lilin Dipadamkan)">(Saat Teduh / Lilin Dipadamkan)</option>
-                        </select>
-                    </div>
-                `;
+                ` + cameraToggleHtml;
             }
             else {
                 cardColor = '#718096'; typeLabel = 'SLIDE TEKS BEBAS';
                 contentHtml = `
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold text-muted">Judul Slide (Header)</label>
-                        <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" placeholder="Judul besar..." required>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">Judul Slide (Opsional)</label>
+                        <input type="text" name="blocks[${newId}][title]" class="form-control fw-bold" placeholder="Kosongkan jika ingin teks di tengah layar (Instruksi)">
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-7">
                         <label class="form-label small fw-bold text-muted">Isi Konten Teks</label>
-                        <textarea name="blocks[${newId}][content][]" class="form-control" rows="3" placeholder="Ketik teks bebas..."></textarea>
+                        <textarea name="blocks[${newId}][content][]" class="form-control" rows="3" placeholder="Ketik pengumuman, votum, atau sikap jemaat di sini..."></textarea>
                     </div>
-                `;
+                ` + cameraToggleHtml;
             }
 
             const blockHtml = `
@@ -238,10 +211,7 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('nyanyian', '${newId}')">Tambah Nyanyian Jemaat</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('alkitab', '${newId}')">Tambah Bacaan Alkitab</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('votum', '${newId}')">Tambah Votum / Prosesi</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('aksi', '${newId}')">Tambah Instruksi Sikap</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="insertBlock('polos', '${newId}')">Tambah Slide Teks Bebas / Sikap</a></li>
                         </ul>
                     </div>
                 </div>
@@ -258,7 +228,6 @@
             document.getElementById('wrapper-' + newId).scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // FUNGSI MENGGANTI NAMA BAIT (KEY ARRAY SECARA DINAMIS TANPA REINDEX)
         function updateBaitName(inputElement, blockId) {
             let newName = inputElement.value.trim();
             if(newName === '') newName = 'Bait';
@@ -322,7 +291,6 @@
                                 let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                                 let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                                 
-                                // LOGIKA PENTING: Gunakan nomor indeks + 1 sebagai label agar sesuai aslinya (misal: 1, Reff, 3)
                                 let labelText = isReff ? 'Reff' : (idx + 1);
                                 let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
 
