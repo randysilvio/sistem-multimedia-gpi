@@ -155,7 +155,6 @@ class LiturgyController extends Controller
             $title = $block['title'] ?? '';
             $content = $block['content'] ?? '';
             
-            // Tangkap status Kamera
             $useCamera = isset($block['use_camera']) ? true : false;
             $baitData = $block['bait'] ?? [];
 
@@ -180,7 +179,6 @@ class LiturgyController extends Controller
                     'use_camera' => $useCamera
                 ];
             } else {
-                // Teks Bebas (Bisa digunakan sebagai Sikap/Instruksi jika title kosong)
                 $itemTitle = empty($title) ? 'Slide Bebas' : 'Slide Bebas: ' . $title;
                 $dynContent = [
                     'custom_title' => $title,
@@ -230,7 +228,6 @@ class LiturgyController extends Controller
                     $content['bait'] = $filteredBait;
                 }
                 
-                // Pastikan checkbox diconvert jadi boolean untuk konsistensi
                 if (isset($content['use_camera'])) {
                     $content['use_camera'] = filter_var($content['use_camera'], FILTER_VALIDATE_BOOLEAN);
                 }
@@ -254,7 +251,6 @@ class LiturgyController extends Controller
                 foreach ($slides as $slide) {
                     if (!empty($slide['title']) && !empty($slide['content'])) {
                         
-                        // Menangani input manual use_camera dari custom slide (hack fallback)
                         $contentStr = $slide['content'];
                         if (isset($slide['use_camera']) && filter_var($slide['use_camera'], FILTER_VALIDATE_BOOLEAN)) {
                             if (!str_contains($contentStr, '')) {
@@ -280,52 +276,55 @@ class LiturgyController extends Controller
         return back()->with('success', 'Jadwal ibadah berhasil dihapus.');
     }
 
+    // PEMBARUAN: Scraper Alkitab Anti-Mati (Mengambil langsung dari sumber SABDA)
     public function fetchAlkitab(Request $request)
     {
         $query = $request->query('q');
         if (!$query) return response()->json(['success' => false, 'message' => 'Query kosong.']);
 
-        $url = "https://beeapi.lionbat.com/search.json?q=" . urlencode($query);
+        // Menggunakan alkitab.mobi (SABDA) sebagai sumber data yang sangat stabil
+        $url = "https://alkitab.mobi/tb/search?q=" . urlencode($query);
         
         try {
-            // Tambahkan withoutVerifying() untuk bypass masalah SSL & naikkan timeout jadi 15 detik
+            // withoutVerifying() mem-bypass error SSL di localhost/Laragon
             $response = Http::withoutVerifying()->timeout(15)->get($url);
             
             if ($response->successful()) {
-                $data = $response->json();
+                $html = $response->body();
                 
-                // Pastikan data yang ditarik valid
-                if (isset($data['data']) && is_array($data['data'])) {
-                    if (count($data['data']) == 0) {
-                        return response()->json(['success' => false, 'message' => 'Ayat tidak ditemukan. Pastikan format benar (contoh: Yohanes 3:16)']);
-                    }
-
+                // Pola 1: Jika pencarian mengembalikan hasil ayat (Misal: "Yohanes 3:16")
+                preg_match_all('/<span class="ref"><a[^>]*>(.*?)<\/a><\/span>(.*?)<\/p>/is', $html, $matches);
+                
+                if (!empty($matches[1]) && !empty($matches[2])) {
                     $text = "";
-                    foreach ($data['data'] as $item) {
-                        // Mengamankan teks dari tag HTML yang mungkin terbawa dari API
-                        $text .= $item['verse'] . ". " . strip_tags($item['text']) . "\n";
+                    foreach ($matches[1] as $idx => $ref) {
+                        $refParts = explode(':', $ref);
+                        $verseNum = end($refParts);
+                        // Bersihkan teks dari tag HTML dan spasi berlebih
+                        $ayatText = preg_replace('/\s+/', ' ', strip_tags(trim($matches[2][$idx])));
+                        $text .= $verseNum . ". " . $ayatText . "\n";
                     }
-                    
                     return response()->json(['success' => true, 'text' => trim($text)]);
                 }
                 
-                return response()->json(['success' => false, 'message' => 'Server Alkitab merespons, namun format data tidak sesuai.']);
+                // Pola 2: Jika pencarian me-redirect ke 1 pasal penuh (Misal: "Yohanes 3")
+                preg_match_all('/<div class="v">\s*<span class="v" id="[^"]*">(.*?)<\/span>\s*(.*?)<\/div>/is', $html, $matches2);
+                if (!empty($matches2[1]) && !empty($matches2[2])) {
+                    $text = "";
+                    foreach ($matches2[1] as $idx => $verseNum) {
+                        $ayatText = preg_replace('/\s+/', ' ', strip_tags(trim($matches2[2][$idx])));
+                        $text .= trim($verseNum) . ". " . $ayatText . "\n";
+                    }
+                    return response()->json(['success' => true, 'text' => trim($text)]);
+                }
+
+                return response()->json(['success' => false, 'message' => 'Ayat tidak ditemukan. Pastikan format benar (contoh: Yohanes 3:16)']);
             }
             
-            return response()->json(['success' => false, 'message' => 'Server Alkitab sedang sibuk. Status code: ' . $response->status()]);
+            return response()->json(['success' => false, 'message' => 'Server Alkitab SABDA sedang sibuk. Status code: ' . $response->status()]);
             
         } catch (\Exception $e) {
-            // Menampilkan pesan error spesifik agar kita tahu pasti apa masalahnya
-            $errMsg = $e->getMessage();
-            
-            // Menyederhanakan pesan error cURL yang panjang
-            if (str_contains($errMsg, 'cURL error 28')) {
-                $errMsg = "Koneksi ke server terputus (Timeout). Coba lagi.";
-            } elseif (str_contains($errMsg, 'cURL error 6') || str_contains($errMsg, 'Could not resolve host')) {
-                $errMsg = "Tidak ada koneksi internet pada server/komputer Anda.";
-            }
-            
-            return response()->json(['success' => false, 'message' => 'Gagal: ' . $errMsg]);
+            return response()->json(['success' => false, 'message' => 'Koneksi internet Anda terputus atau server lokal memblokir permintaan keluar.']);
         }
     }
 
