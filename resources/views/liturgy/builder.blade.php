@@ -118,7 +118,7 @@
             let typeLabel = '';
             let contentHtml = '';
 
-            // Fitur Kamera HTML (Bisa dipakai di semua blok)
+            // Fitur Kamera HTML
             const cameraToggleHtml = `
                 <div class="form-check form-switch mt-3 pt-2 border-top">
                     <input class="form-check-input" type="checkbox" name="blocks[${newId}][use_camera]" value="1" id="cam-${newId}">
@@ -228,6 +228,7 @@
             document.getElementById('wrapper-' + newId).scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
+        // PERBAIKAN: Fungsi Update Nama Bait dengan Unique Key (Mencegah Reff tertimpa)
         function updateBaitName(inputElement, blockId) {
             let newName = inputElement.value.trim();
             if(newName === '') newName = 'Bait';
@@ -244,7 +245,16 @@
             
             let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
             if(hiddenInput) {
-                hiddenInput.name = `blocks[${blockId}][bait][${newName}]`;
+                let formKey = newName;
+                if(newName.toLowerCase() === 'reff') {
+                    let existingKey = hiddenInput.name.match(/\[bait\]\[(.*?)\]/);
+                    if (existingKey && existingKey[1].toLowerCase().includes('ref')) {
+                        formKey = existingKey[1]; 
+                    } else {
+                        formKey = 'ref_' + Math.random().toString(36).substr(2, 5); 
+                    }
+                }
+                hiddenInput.name = `blocks[${blockId}][bait][${formKey}]`;
             }
         }
 
@@ -285,26 +295,32 @@
                         container.innerHTML = ''; 
                         const baits = data.text.split('===SLIDE_BREAK===');
                         
+                        // PERBAIKAN: Penomoran bait tidak menghitung bagian Reff
+                        let verseCounter = 1;
+
                         baits.forEach((bait, idx) => {
                             let baitRaw = bait.trim();
                             if(baitRaw !== '') {
                                 let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                                 let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                                 
-                                let labelText = isReff ? 'Reff' : (idx + 1);
+                                let labelText = isReff ? 'Reff' : verseCounter;
                                 let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
+                                let formKey = isReff ? 'ref_' + idx : verseCounter;
 
                                 const html = `
                                     <div class="input-group mb-2 position-relative bait-item shadow-sm">
                                         <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
                                             <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${blockId}')" value="${labelText}">
                                         </div>
-                                        <input type="hidden" class="bait-hidden-key" name="blocks[${blockId}][bait][${labelText}]" value="${isReff ? '[REFF]\n' + cleanBait : cleanBait}">
-                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\n' + cleanBait : cleanBait}</textarea>
+                                        <input type="hidden" class="bait-hidden-key" name="blocks[${blockId}][bait][${formKey}]" value="${isReff ? '[REFF]\\n' + cleanBait : cleanBait}">
+                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\\n' + cleanBait : cleanBait}</textarea>
                                         <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>
                                 `;
                                 container.insertAdjacentHTML('beforeend', html);
+                                
+                                if(!isReff) verseCounter++; // Hanya tambah nomor jika bukan Reff
                             }
                         });
                     } else { alert(data.message); }

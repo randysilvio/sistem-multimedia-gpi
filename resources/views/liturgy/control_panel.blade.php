@@ -7,14 +7,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@600;800&family=Playfair+Display:wght@600;800&family=Roboto:wght@500;700&family=Oswald:wght@500;700&family=Lato:wght@700;900&display=swap');
         
-        body { background: #121212; color: #e0e0e0; height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; }
+        body { background: #121212; color: #e0e0e0; height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; margin: 0; padding: 0;}
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
         
         /* TRANSISI LAYOUT */
         .layout-wrapper { display: flex; width: 100vw; height: 100vh; overflow: hidden; transition: 0.3s ease; }
         
-        /* SIDEBAR EDITOR */
+        /* SIDEBAR EDITOR (KIRI) */
         .sidebar { width: 28%; height: 100vh; overflow-y: auto; background: #1a1a1a; border-right: 1px solid #2d2d2d; padding: 15px; position: relative; transition: 0.3s ease; flex-shrink: 0; display: flex; flex-direction: column;}
         .sidebar.collapsed { width: 0; padding: 0; border: none; overflow: hidden; opacity: 0; }
         .sidebar-content { flex-grow: 1; overflow-y: auto; padding-bottom: 20px; }
@@ -29,76 +29,86 @@
         .btn-add-slide:hover { border-color: #cbd5e0; color: #fff; background: #2d2d2d; }
         .btn-primary-custom { background-color: #2b6cb0; color: white; border: none; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.5px; transition: 0.2s;}
         .btn-primary-custom:hover { background-color: #2c5282; color: white; }
+        .floating-save { position: sticky; bottom: -15px; margin-left: -15px; margin-right: -15px; padding: 15px; background: rgba(26,26,26,0.95); border-top: 1px solid #333; z-index: 100; backdrop-filter: blur(5px); }
 
-        /* AREA MONITOR UTAMA */
-        .presenter-view { flex-grow: 1; height: 100vh; background: #0d0d0d; display: flex; flex-direction: column; transition: 0.3s ease; position: relative; min-width: 0;}
-        .preview-header { padding: 10px 24px; background: #141414; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; }
-        .slide-monitor { flex-grow: 1; display: flex; padding: 20px; gap: 20px; justify-content: center; align-items: center; transition: 0.3s ease; min-height: 0;}
+        /* AREA PRESENTER */
+        .presenter-view { flex-grow: 1; height: 100vh; background: #0f0f0f; display: flex; flex-direction: column; transition: 0.3s ease; min-width: 0; position: relative;}
         
+        .ppt-topbar { padding: 10px 24px; background: #1a1a1a; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; z-index: 1050; position: relative;}
+        .btn-ui-toggle { background: transparent; border: 1px solid #4a5568; color: #a0aec0; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
+        .btn-ui-toggle:hover, .btn-ui-toggle.active { background: #4a5568; color: #fff; }
+        .timer-display { font-family: 'Inter', monospace; font-size: 0.9rem; color: #a0aec0; font-weight: 600; display: flex; gap: 15px; align-items: center;}
+
+        /* GRID GAYA POWERPOINT */
+        .ppt-layout {
+            display: flex;
+            gap: 30px;
+            padding: 30px;
+            flex-grow: 1;
+            min-height: 0;
+            position: relative;
+        }
+        .ppt-main-col { flex: 2.5; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .ppt-side-col { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
         .monitor-box { background: #000; position: relative; border-radius: 6px; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; container-type: size; }
-        .current-slide-box { width: 55%; aspect-ratio: 16/9; border: 2px solid #4299e1; box-shadow: 0 0 20px rgba(66, 153, 225, 0.15); transition: 0.3s ease;}
-        .next-slide-box { width: 25%; aspect-ratio: 16/9; border: 1px solid #333; opacity: 0.8; transition: 0.3s ease;}
-        .label-badge { position: absolute; top: 10px; left: 10px; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 3px; background: #2b6cb0; color: white; z-index: 50; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
+        .current-slide-box { width: 100%; aspect-ratio: 16/9; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.8);}
+        .next-slide-box { width: 100%; aspect-ratio: 16/9; border: 1px solid #333; opacity: 0.85; }
+        
+        /* PRATINJAU KAMERA LOKAL */
+        .preview-cam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; }
 
-        /* MESIN VIRTUAL PROYEKTOR */
-        :root {
-            --bg-center: #1b2735; --bg-edge: #050505; --text-color: #ffffff;
-            --shadow-color: rgba(0,0,0,0.9); --font-family: 'Inter', sans-serif;
+        /* KONTROL NAVIGASI BAWAH LAYAR UTAMA */
+        .ppt-controls { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 25px; width: 100%; }
+        .ppt-btn-nav { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #a0aec0; background: transparent; color: #a0aec0; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold;}
+        .ppt-btn-nav:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); transform: scale(1.05);}
+        .ppt-slide-counter { color: #e2e8f0; font-size: 1rem; font-weight: 600; min-width: 120px; text-align: center; }
+
+        /* OVERLAY GALERI LAYAR PENUH */
+        .fullscreen-gallery-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 15, 15, 0.98); z-index: 1000;
+            display: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px; padding: 30px; align-content: flex-start; overflow-y: auto;
+            backdrop-filter: blur(10px);
         }
-        .sp-container {
-            width: 100%; height: 100%;
-            background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%);
-            color: var(--text-color); font-family: var(--font-family);
-            display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center;
-            padding: 6cqh 4cqw; box-sizing: border-box; position: absolute; top:0; left:0; border-radius: inherit;
+        .fullscreen-gallery-overlay.expanded { display: grid; }
+
+        /* THUMBNAIL GALERI VISUAL ASLI */
+        .mini-slide-thumb {
+            width: 100%; aspect-ratio: 16/9; background: #000;
+            position: relative; border-radius: 6px; overflow: hidden;
+            container-type: size; cursor: pointer; border: 2px solid #333; transition: 0.2s;
         }
-        
-        /* OVERRIDE JIKA MODE KAMERA AKTIF */
-        .sp-container.mode-kamera { background: #111111; justify-content: flex-end; padding: 0; }
-        .sp-container.mode-kamera .vp-inner-wrapper { width: 100%; background: rgba(0,0,0,0.75); padding: 3cqh 4cqw; border-top: 2px solid rgba(255,255,255,0.1); box-sizing: border-box; display: flex; flex-direction: column; align-items: center;}
-        
+        .mini-slide-thumb:hover { border-color: #63b3ed; transform: scale(1.03); z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+        .mini-slide-thumb.active { border-color: #4299e1; border-width: 3px; box-shadow: 0 0 20px rgba(66,153,225,0.6); }
+        .mini-thumb-badge {
+            position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.85); color: #fff;
+            font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; z-index: 50; border: 1px solid #444; font-weight: bold;
+        }
+
+        /* VIRTUAL RENDERER CSS */
+        :root { --bg-center: #1b2735; --bg-edge: #050505; --text-color: #ffffff; --shadow-color: rgba(0,0,0,0.9); --font-family: 'Inter', sans-serif; }
+        .sp-container { width: 100%; height: 100%; background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%); color: var(--text-color); font-family: var(--font-family); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding: 6cqh 4cqw; box-sizing: border-box; position: absolute; top:0; left:0; border-radius: inherit; z-index: 5;}
+        .sp-container.mode-kamera { background: transparent; justify-content: flex-end; padding: 0; }
+        .sp-container.mode-kamera .vp-inner-wrapper { width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 65%, transparent 100%); padding: 5cqh 4cqw 6cqh 4cqw; border-top: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;}
         .vp-watermark { position: absolute; top: -3cqh; left: 3cqw; font-size: 55cqh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .vp-title-header { position: relative; z-index: 2; font-size: 2.2cqw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.4cqw; font-weight: 600; margin-top: 2cqh; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 1.5cqh; width: 85%; flex-shrink:0;}
-        .sp-container.mode-kamera .vp-title-header { margin-top: 0; padding-bottom: 1cqh; margin-bottom: 1cqh; font-size: 2cqw; }
         .vp-title-header.text-info { color: #63b3ed !important; border-bottom-color: rgba(99, 179, 237, 0.3) !important; }
         .vp-content { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5cqw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4cqh 15cqw var(--shadow-color); max-width: 95%; }
-        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4cqw; text-shadow: none; }
+        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4cqw; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); }
         .vp-instruksi { position: relative; z-index: 2; margin: auto; font-size: 5.5cqw; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4cqw; text-shadow: 0px 4cqh 20cqw var(--shadow-color); }
+        
+        .kamera-logo-preview { position: absolute; top: 5cqh; right: 4cqw; height: 9cqh; z-index: 10; opacity: 0.85; filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.7)); }
+        .kamera-watermark-title-preview { position: absolute; top: 5cqh; left: 4cqw; font-size: 2cqw; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.3cqw; z-index: 10; text-shadow: 1px 1px 5px rgba(0,0,0,0.9); border-left: 4px solid rgba(99, 179, 237, 0.6); padding-left: 1cqw; text-align: left; line-height: 1.2; }
 
         .per-slide-font-control { position: absolute; bottom: 10px; right: 10px; background: rgba(20,20,20,0.85); border: 1px solid #4299e1; border-radius: 6px; padding: 4px 10px; display: flex; gap: 8px; align-items: center; z-index: 50; backdrop-filter: blur(5px); }
         .per-slide-font-control button { background: #2d2d2d; color: white; border: 1px solid #444; padding: 2px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         .per-slide-font-control button:hover { background: #4299e1; border-color: #4299e1; }
         #slide-font-indicator { color: #fcd34d; font-size: 0.75rem; font-weight: bold; min-width: 45px; text-align: center; }
 
-        /* GALERI BAWAH */
-        .slide-gallery-container { height: 160px; background: #141414; border-top: 1px solid #2d2d2d; overflow-x: auto; overflow-y: hidden; white-space: nowrap; padding: 15px; scroll-behavior: smooth; transition: 0.3s ease;}
-        .slide-gallery-container.expanded { position: absolute; top: 55px; left: 0; width: 100%; height: calc(100vh - 120px); background: #0d0d0d; z-index: 100; white-space: normal; overflow-y: auto; align-content: flex-start; padding: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-        
-        .slide-thumb-simple {
-            display: inline-flex; flex-direction: column; width: 220px; height: 130px;
-            background: #111; border: 2px solid #333; margin-right: 15px; padding: 12px 15px;
-            cursor: pointer; position: relative; transition: 0.2s; border-radius: 6px;
-            vertical-align: top; overflow: hidden; white-space: normal;
-        }
-        .slide-gallery-container.expanded .slide-thumb-simple { width: 100%; margin-right: 0; height: 140px; }
-        .slide-thumb-simple:hover { border-color: #718096; background: #1a1a1a; transform: translateY(-2px); }
-        .slide-thumb-simple.active { border-color: #4299e1; background: #0f172a; box-shadow: 0 0 15px rgba(66, 153, 225, 0.4); }
-        
-        .thumb-num-badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; font-size: 0.65rem; font-weight: bold; padding: 3px 6px; border-radius: 4px; z-index: 10; border: 1px solid #444;}
-        .thumb-simple-title { font-size: 0.65rem; color: #63b3ed; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; padding-right: 25px;}
-        .thumb-simple-content { font-size: 0.9rem; color: #e2e8f0; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
-        
-        .nav-controls { background: #141414; border-top: 1px solid #2d2d2d; display: flex; justify-content: center; align-items: center; gap: 50px; padding: 10px; position: relative; z-index: 105; }
-        .nav-btn { background: #2d2d2d; border: 1px solid #4a5568; color: #e2e8f0; padding: 8px 30px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; transition: 0.2s; letter-spacing: 0.5px;}
-        .nav-btn:hover { background: #4a5568; color: #fff; }
-        
-        .bait-label-input { width: 65px; border: none; font-size: 0.75rem; font-weight: 700; text-align: center; }
-        .bait-label-input:focus { outline: none; background: #e2e8f0; }
-
-        .btn-ui-toggle { background: transparent; border: 1px solid #4a5568; color: #a0aec0; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
-        .btn-ui-toggle:hover, .btn-ui-toggle.active { background: #4a5568; color: #fff; }
-        
-        .floating-save { position: sticky; bottom: -15px; margin-left: -15px; margin-right: -15px; padding: 15px; background: rgba(26,26,26,0.95); border-top: 1px solid #333; z-index: 100; backdrop-filter: blur(5px); }
+        /* Toast Notifikasi AJAX */
+        #toastAjax { position: fixed; bottom: 20px; left: 20px; background: #2b6cb0; color: white; padding: 10px 20px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); opacity: 0; transition: 0.3s; z-index: 9999; pointer-events: none;}
     </style>
 </head>
 <body onkeydown="handleKeyboard(event)">
@@ -108,7 +118,6 @@
     $scheduleDetails = $schedule->details ? $schedule->details->keyBy('liturgy_item_id') : collect();
     $customSlides = $schedule->customSlides ? $schedule->customSlides->groupBy('liturgy_item_id') : collect();
 
-    // IMPLEMENTASI SMART SPLITTER
     if (!function_exists('cleanSlideTitle')) {
         function cleanSlideTitle($title) {
             if (!is_string($title)) return '';
@@ -135,7 +144,6 @@
             $slides = [];
             $currentSlideLines = [];
             $currentLine = '';
-            
             $maxCharsPerLine = 24; 
             $tolerance = 8; 
 
@@ -185,7 +193,6 @@
 
     $allSlides = [];
     
-    // 1. WARTA SINODE
     if(isset($announcements) && $announcements->count() > 0) {
         $slideImages = [];
         foreach($announcements as $ann) {
@@ -203,7 +210,6 @@
         ];
     }
     
-    // 2. COVER
     $allSlides[] = [
         'type' => 'cover',
         'title' => str_replace(' (CUSTOM)', '', strtoupper($schedule->liturgy->name ?? 'IBADAH')),
@@ -213,7 +219,6 @@
         'use_camera' => false
     ];
 
-    // 3. KONTEN LITURGI
     foreach($liturgyItems as $item) {
         $detail = $scheduleDetails->get($item->id);
         $content = $detail ? $detail->dynamic_content : $item->static_content;
@@ -221,11 +226,10 @@
         $isEmptyString = !is_array($content) && trim($content) === '';
         
         $cleanBaseTitle = cleanSlideTitle($item->title);
-        $useCamera = is_array($content) && isset($content['use_camera']) && $content['use_camera'] == true;
+        $useCamera = is_array($content) && isset($content['use_camera']) && filter_var($content['use_camera'], FILTER_VALIDATE_BOOLEAN) == true;
 
         if($content && !$isEmptyArray && !$isEmptyString) {
             
-            // Mode Instruksi Jika Judul Kosong
             if(is_array($content) && array_key_exists('custom_title', $content) && empty(trim($content['custom_title']))) {
                 $textInstruksi = $content['content'] ?? '';
                 $allSlides[] = ['type' => 'instruksi', 'title' => '', 'content' => $textInstruksi, 'use_camera' => $useCamera];
@@ -303,16 +307,15 @@
             }
         }
         
-        // Custom Slides Processing
         if(isset($customSlides[$item->id])) {
             foreach($customSlides[$item->id] as $cSlide) {
                 $cTitle = cleanSlideTitle($cSlide->title);
                 $cUseCamera = false;
                 $cleanContent = $cSlide->content;
 
-                if (str_contains($cleanContent, '')) {
+                if (str_contains($cleanContent, '[KAMERA_AKTIF]')) {
                     $cUseCamera = true;
-                    $cleanContent = str_replace('', '', $cleanContent);
+                    $cleanContent = str_replace('[KAMERA_AKTIF]', '', $cleanContent);
                 }
 
                 if (empty($cTitle)) {
@@ -329,27 +332,22 @@
     $allSlides[] = ['type' => 'closing', 'title' => 'PENUTUP', 'content' => "TUHAN YESUS\nMEMBERKATI", 'use_camera' => false];
 @endphp
 
+<div id="toastAjax">Tersimpan Sinkron ⚡</div>
+
 <div class="layout-wrapper">
-    <div class="sidebar" id="sidebarPanel">
+    <div class="sidebar collapsed" id="sidebarPanel">
         <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
             <h6 class="fw-bold m-0 text-white text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;">Kontrol Data</h6>
-            <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-secondary btn-sm py-0" style="font-size: 0.65rem;">Tutup</a>
         </div>
         
         <div class="sidebar-content">
-            @if(session('success'))
-                <div class="alert alert-success py-2 px-3 mb-3 text-center" style="font-size: 0.75rem;">
-                    <strong>Data Tersimpan!</strong> Layar berhasil disinkronkan.
-                </div>
-            @endif
-
             <form id="liveForm" action="{{ route('liturgy.update', $schedule->id) }}" method="POST">
                 @csrf
 
                 <div class="card-edit" style="border-left: 3px solid #3182ce;">
                     <label class="form-label-header text-info">Desain Latar & Huruf</label>
                     <div class="mb-2">
-                        <select id="bg_type" onchange="toggleBgSettings(); updateDesignLive()" class="form-select form-select-sm bg-dark text-white border-secondary fw-medium">
+                        <select id="bg_type" name="bg_type" onchange="toggleBgSettings(); updateDesignLive()" class="form-select form-select-sm bg-dark text-white border-secondary fw-medium">
                             <option value="gradient">Gradien Statis (Standar)</option>
                             <option value="anim-linear">Animasi Gradien Garis</option>
                             <option value="anim-radial">Animasi Gradien Bulat</option>
@@ -434,7 +432,7 @@
                         if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) $type = 'nyanyian'; 
                         elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) $type = 'alkitab'; 
                         
-                        $useCamera = is_array($val) && isset($val['use_camera']) && $val['use_camera'] == true;
+                        $useCamera = is_array($val) && isset($val['use_camera']) && filter_var($val['use_camera'], FILTER_VALIDATE_BOOLEAN) == true;
                     @endphp
                     
                     <div class="card-edit">
@@ -467,7 +465,7 @@
                                                 </div>
                                                 <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][{{ $key }}]" value="{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}">
                                                 <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value">{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}</textarea>
-                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
+                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
                                             </div>
                                         @endforeach
                                     @else
@@ -477,7 +475,7 @@
                                             </div>
                                             <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][1]" value="">
                                             <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value"></textarea>
-                                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
+                                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
                                         </div>
                                     @endif
                                 </div>
@@ -500,7 +498,8 @@
                             @endif
 
                             <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="dynamic_content[{{ $item->id }}][use_camera]" value="true" id="cam-cp-{{ $item->id }}" {{ $useCamera ? 'checked' : '' }}>
+                                <input type="hidden" name="dynamic_content[{{ $item->id }}][use_camera]" value="0">
+                                <input class="form-check-input" type="checkbox" name="dynamic_content[{{ $item->id }}][use_camera]" value="1" id="cam-cp-{{ $item->id }}" {{ $useCamera ? 'checked' : '' }}>
                                 <label class="form-check-label text-secondary" style="font-size: 0.7rem;" for="cam-cp-{{ $item->id }}">Aktifkan Latar Kamera</label>
                             </div>
 
@@ -509,8 +508,8 @@
                                     @if(isset($schedule->customSlides) && $schedule->customSlides->where('liturgy_item_id', $item->id)->count() > 0)
                                         @foreach($schedule->customSlides->where('liturgy_item_id', $item->id) as $index => $cSlide)
                                             @php 
-                                                $isCameraCustom = is_string($cSlide->content) && str_contains($cSlide->content, ''); 
-                                                $cleanCustomContent = str_replace('', '', $cSlide->content);
+                                                $isCameraCustom = is_string($cSlide->content) && str_contains($cSlide->content, '[KAMERA_AKTIF]'); 
+                                                $cleanCustomContent = str_replace('[KAMERA_AKTIF]', '', $cSlide->content);
                                             @endphp
                                             <div class="custom-slide-box">
                                                 <input type="text" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][title]" class="form-control form-control-sm mb-1 fw-medium text-info" value="{{ cleanSlideTitle($cSlide->title) }}" placeholder="Judul">
@@ -518,10 +517,11 @@
                                                 
                                                 <div class="d-flex justify-content-between align-items-center mt-1">
                                                     <div class="form-check form-switch m-0">
-                                                        <input class="form-check-input" type="checkbox" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][use_camera]" value="true" id="cam-cus-{{ $cSlide->id }}" {{ $isCameraCustom ? 'checked' : '' }}>
+                                                        <input type="hidden" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][use_camera]" value="0">
+                                                        <input class="form-check-input" type="checkbox" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][use_camera]" value="1" id="cam-cus-{{ $cSlide->id }}" {{ $isCameraCustom ? 'checked' : '' }}>
                                                         <label class="form-check-label text-secondary" style="font-size: 0.65rem;" for="cam-cus-{{ $cSlide->id }}">Kamera</label>
                                                     </div>
-                                                    <button type="button" class="btn btn-sm text-danger p-0" style="font-size:0.7rem;" onclick="this.parentElement.parentElement.remove()">Hapus</button>
+                                                    <button type="button" class="btn btn-sm text-danger p-0" style="font-size:0.7rem;" onclick="this.parentElement.parentElement.remove(); silentSyncLive(false);">Hapus</button>
                                                 </div>
                                             </div>
                                         @endforeach
@@ -538,52 +538,63 @@
             </form>
             
             <div class="floating-save">
-                <button type="submit" form="liveForm" class="btn btn-primary-custom w-100 py-2">Terapkan Perubahan</button>
+                <button type="button" onclick="silentSyncLive(true)" id="btnSaveLive" class="btn btn-primary-custom w-100 py-2">Terapkan Perubahan</button>
             </div>
         </div>
     </div>
 
     <div class="presenter-view" id="mainPanel">
-        <div class="preview-header">
-            <div>
-                <button type="button" id="btnToggleSidebar" class="btn-ui-toggle me-2" onclick="toggleSidebar()">Sembunyikan Editor</button>
-                <span class="fw-medium text-info d-none d-sm-inline" style="font-size: 0.85rem; letter-spacing: 0.5px;">STATUS LAYAR: {{ strtoupper($schedule->liturgy->name ?? 'IBADAH') }}</span>
+        <div class="ppt-topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button type="button" id="btnToggleSidebar" class="btn-ui-toggle active" onclick="toggleSidebar()">Tampilkan Editor</button>
+                <button type="button" id="btnToggleGallery" class="btn-ui-toggle" onclick="toggleGallery()">Buka Galeri</button>
+                <div class="timer-display" style="margin-left: 10px;">
+                    <span id="liveTimer">00:00:00</span>
+                    <span class="text-info" style="font-size:0.7rem;">| {{ strtoupper($schedule->liturgy->name ?? 'IBADAH') }}</span>
+                </div>
             </div>
-            <div>
-                <button type="button" id="btnToggleGallery" class="btn-ui-toggle me-3" onclick="toggleGallery()">Perluas Galeri</button>
-                <button onclick="openProjector()" class="btn btn-primary-custom btn-sm px-4">Tampilkan Proyektor</button>
+            <div class="d-flex align-items-center">
+                <button onclick="openProjectorMultiMonitor()" class="btn btn-primary-custom btn-sm px-4">Tampilkan Proyektor</button>
+                <a href="{{ route('liturgy.gallery') }}" class="btn btn-danger ms-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; border-radius: 50%; text-decoration: none; font-size: 1.2rem; font-weight: bold; padding:0; line-height: 1;" title="Tutup & Kembali ke Daftar">&times;</a>
             </div>
         </div>
 
-        <div class="slide-monitor" id="monitorArea">
-            <div class="current-slide-box monitor-box" id="monitor-current">
-                <span class="label-badge">TAYANGAN SAAT INI</span>
-                <div id="virtual-render-current" style="width: 100%; height: 100%;"></div>
+        <div class="ppt-layout">
+            
+            <div class="ppt-main-col">
+                <div class="current-slide-box monitor-box" id="monitor-current">
+                    <video id="preview-cam-current" class="preview-cam" autoplay playsinline muted></video>
+                    <span class="label-badge">TAYANGAN SAAT INI</span>
+                    <div id="virtual-render-current" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
+                    
+                    <div class="per-slide-font-control">
+                        <button type="button" onclick="changeSlideFont(-0.5)">-</button>
+                        <span id="slide-font-indicator">Otomatis</span>
+                        <button type="button" onclick="changeSlideFont(0.5)">+</button>
+                        <button type="button" onclick="resetSlideFont()" style="background:transparent; border-color:#666; font-size:0.65rem; font-weight:normal;">Reset</button>
+                    </div>
+                </div>
                 
-                <div class="per-slide-font-control">
-                    <span style="font-size:0.7rem; color:#a0aec0; margin-right:4px;">Ukuran Teks:</span>
-                    <button type="button" onclick="changeSlideFont(-0.5)">-</button>
-                    <span id="slide-font-indicator">Otomatis</span>
-                    <button type="button" onclick="changeSlideFont(0.5)">+</button>
-                    <button type="button" onclick="resetSlideFont()" style="background:transparent; border-color:#666; font-size:0.65rem; font-weight:normal;">Reset</button>
+                <div class="ppt-controls">
+                    <button class="ppt-btn-nav" onclick="controlProjector('prev')" title="Slide Sebelumnya">&#8593;</button>
+                    <div class="ppt-slide-counter" id="slide-num">Slide 0 dari 0</div>
+                    <button class="ppt-btn-nav" onclick="controlProjector('next')" title="Slide Selanjutnya">&#8595;</button>
                 </div>
             </div>
 
-            <div class="next-slide-box monitor-box" id="monitor-next">
-                <span class="label-badge" style="background: #4a5568;">BERIKUTNYA</span>
-                <div id="virtual-render-next" style="width: 100%; height: 100%;"></div>
+            <div class="ppt-side-col">
+                <div>
+                    <div class="text-secondary mb-2" style="font-size: 0.85rem; font-weight: 600;">Tayangan Berikutnya</div>
+                    <div class="next-slide-box monitor-box" id="monitor-next">
+                        <video id="preview-cam-next" class="preview-cam" autoplay playsinline muted></video>
+                        <div id="virtual-render-next" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="slide-gallery-container" id="slideGallery"></div>
+            <div class="fullscreen-gallery-overlay" id="slideGallery">
+                </div>
 
-        <div class="nav-controls">
-            <button class="nav-btn" onclick="controlProjector('prev')">KEMBALI</button>
-            <div class="text-center">
-                <div id="slide-num" class="fw-bold fs-5 text-white">0 / 0</div>
-                <div style="font-size: 0.65rem; color: #718096; margin-top: 2px;">Navigasi: Panah Kiri/Kanan Keyboard</div>
-            </div>
-            <button class="nav-btn" onclick="controlProjector('next')">LANJUT</button>
         </div>
     </div>
 </div>
@@ -591,55 +602,159 @@
 <script>
     window.cpWartaInterval = null;
     window.cpWartaNextInterval = null;
+    let isCameraInitialized = false;
 
-    @if(session('success'))
-        localStorage.setItem('liturgy_update', Date.now());
-    @endif
+    // Timer Logika
+    let startTime = Date.now();
+    setInterval(() => {
+        let diff = Math.floor((Date.now() - startTime) / 1000);
+        let h = Math.floor(diff / 3600).toString().padStart(2, '0');
+        let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+        let s = (diff % 60).toString().padStart(2, '0');
+        document.getElementById('liveTimer').innerText = `${h}:${m}:${s}`;
+    }, 1000);
 
     const scheduleId = {{ $schedule->id ?? 0 }};
-    const allSlidesData = @json($allSlides);
+    let allSlidesData = @json($allSlides); 
     let currentSlide = parseInt(localStorage.getItem('last_slide_index')) || 0;
     let customFonts = JSON.parse(localStorage.getItem('custom_fonts_' + scheduleId)) || {};
 
-    // FUNGSI TOGGLE UI
+    // =========================================================================
+    // FITUR: AUTO-SAVE & REALTIME SYNC (TANPA RELOAD)
+    // =========================================================================
+    let liveTypingTimer;
+    
+    document.getElementById('liveForm').addEventListener('input', function() {
+        clearTimeout(liveTypingTimer);
+        liveTypingTimer = setTimeout(() => { silentSyncLive(false); }, 800); 
+    });
+    
+    document.getElementById('liveForm').addEventListener('change', function() {
+        silentSyncLive(false);
+    });
+
+    function silentSyncLive(showButtonEffect = false) {
+        const form = document.getElementById('liveForm');
+        const btn = document.getElementById('btnSaveLive');
+        const formData = new FormData(form);
+
+        if(showButtonEffect) {
+            btn.innerText = 'Menyimpan & Sync...';
+            btn.disabled = true;
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(() => {
+            localStorage.setItem('liturgy_update', Date.now()); 
+            
+            fetch(window.location.href)
+                .then(res => res.text())
+                .then(html => {
+                    const match = html.match(/let allSlidesData = (\[.*?\]);/s);
+                    if(match && match[1]) {
+                        allSlidesData = JSON.parse(match[1]);
+                        buildGallery();
+                        updateConsoleView();
+                    }
+                });
+        })
+        .catch(err => {
+            console.warn("Internet terputus! Data tidak tersimpan di Cloud.");
+        })
+        .finally(() => {
+            if(showButtonEffect) {
+                btn.innerText = 'Terapkan Perubahan';
+                btn.disabled = false;
+            }
+            const toast = document.getElementById('toastAjax');
+            toast.style.opacity = 1;
+            setTimeout(() => { toast.style.opacity = 0; }, 3000);
+        });
+    }
+
+    // =========================================================================
+    // FITUR: LAYAR 2 OTOMATIS
+    // =========================================================================
+    async function openProjectorMultiMonitor() {
+        const url = "{{ route('liturgy.presentation', $schedule->id) }}";
+        let features = `width=${window.screen.availWidth},height=${window.screen.availHeight},left=0,top=0,menubar=no,toolbar=no,location=no,status=no`;
+        
+        try {
+            if ('getScreenDetails' in window) {
+                const screenDetails = await window.getScreenDetails();
+                const secondaryScreen = screenDetails.screens.find(s => s !== screenDetails.currentScreen);
+                
+                if (secondaryScreen) {
+                    features = `left=${secondaryScreen.availLeft},top=${secondaryScreen.availTop},width=${secondaryScreen.availWidth},height=${secondaryScreen.availHeight},menubar=no,toolbar=no,location=no,status=no`;
+                } else {
+                    const primary = screenDetails.screens[0];
+                    features = `left=${primary.availLeft},top=${primary.availTop},width=${primary.availWidth},height=${primary.availHeight},menubar=no,toolbar=no,location=no,status=no`;
+                }
+            }
+        } catch (err) {}
+        window.open(url, "ProjectorWindow", features);
+    }
+
+    // =========================================================================
+    // FITUR: PRATINJAU KAMERA LIVE
+    // =========================================================================
+    async function initPreviewCamera() {
+        if (isCameraInitialized) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            document.getElementById('preview-cam-current').srcObject = stream;
+            document.getElementById('preview-cam-next').srcObject = stream;
+            isCameraInitialized = true;
+        } catch(e) { console.log("Gagal akses kamera untuk preview", e); }
+    }
+
+
+    // =========================================================================
+    // FUNGSI UI & RENDER VIRTUAL
+    // =========================================================================
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebarPanel');
         const btn = document.getElementById('btnToggleSidebar');
         sidebar.classList.toggle('collapsed');
         if (sidebar.classList.contains('collapsed')) {
-            btn.innerText = "Tampilkan Editor";
-            btn.classList.add('active');
+            btn.innerText = "Tampilkan Editor"; btn.classList.add('active');
         } else {
-            btn.innerText = "Sembunyikan Editor";
-            btn.classList.remove('active');
+            btn.innerText = "Sembunyikan Editor"; btn.classList.remove('active');
         }
     }
 
     function toggleGallery() {
         const gallery = document.getElementById('slideGallery');
         const btn = document.getElementById('btnToggleGallery');
-        const monitorArea = document.getElementById('monitorArea');
+        
         gallery.classList.toggle('expanded');
+        
         if (gallery.classList.contains('expanded')) {
             btn.innerText = "Tutup Galeri";
             btn.classList.add('active');
-            monitorArea.style.opacity = '0.3';
+            const activeThumb = gallery.querySelector('.mini-slide-thumb.active');
+            if(activeThumb) {
+                activeThumb.scrollIntoView({ behavior: 'auto', block: 'center' }); 
+            }
         } else {
-            btn.innerText = "Perluas Galeri";
+            btn.innerText = "Buka Galeri";
             btn.classList.remove('active');
-            monitorArea.style.opacity = '1';
-            updateConsoleView(); 
         }
     }
 
     function renderVirtualSlide(slide, index) {
-        if(!slide) return '<div class="sp-container"><div class="vp-content">SELESAI</div></div>';
+        if(!slide) return '<div class="sp-container"><div class="vp-content" style="color:#666;">SELESAI</div></div>';
 
         let customSize = customFonts[index];
         let fontSizeStyle = customSize ? `font-size: ${customSize}cqw !important;` : '';
         let innerHTML = '';
         
-        let containerClass = slide.use_camera ? 'sp-container mode-kamera' : 'sp-container';
+        let isCamActive = (slide.use_camera === true || slide.use_camera === 'true' || slide.use_camera == 1);
+        let containerClass = isCamActive ? 'sp-container mode-kamera' : 'sp-container';
 
         if(slide.type === 'cover') {
             innerHTML = `
@@ -672,8 +787,8 @@
         }
         else if (slide.type === 'song_lyric') {
             innerHTML = `
-                ${slide.watermark !== '' && !slide.use_camera ? `<div class="vp-watermark">${slide.watermark}</div>` : ''}
-                ${slide.title ? `<div class="vp-title-header">${slide.title}</div>` : ''}
+                ${slide.watermark !== '' && !isCamActive ? `<div class="vp-watermark">${slide.watermark}</div>` : ''}
+                ${slide.title && !isCamActive ? `<div class="vp-title-header">${slide.title}</div>` : ''}
                 <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
             `;
         }
@@ -682,13 +797,18 @@
         }
         else { 
             innerHTML = `
-                ${slide.title ? `<div class="vp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>` : ''}
+                ${slide.title && !isCamActive ? `<div class="vp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>` : ''}
                 <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
             `;
         }
 
-        if (slide.use_camera && slide.type !== 'cover' && slide.type !== 'closing') {
-            innerHTML = `<div class="vp-inner-wrapper">${innerHTML}</div>`;
+        // Tampilan khusus "TV Broadcast" bila Mode Kamera aktif
+        if (isCamActive && slide.type !== 'cover' && slide.type !== 'closing' && slide.type !== 'announcements_slideshow') {
+            innerHTML = `
+                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="kamera-logo-preview" alt="Logo">
+                ${slide.title ? `<div class="kamera-watermark-title-preview">${slide.title}</div>` : ''}
+                <div class="vp-inner-wrapper">${innerHTML}</div>
+            `;
         }
 
         return `<div class="${containerClass}">${innerHTML}</div>`;
@@ -778,17 +898,16 @@
         
         if(document.getElementById('slideGallery').classList.contains('expanded') && action === 'jump') {
             toggleGallery(); 
-        } else {
-            updateConsoleView();
         }
+        
+        updateConsoleView();
     }
 
-    function openProjector() { window.open("{{ route('liturgy.presentation', $schedule->id) }}", "ProjectorWindow", `width=${window.screen.width},height=${window.screen.height},left=${window.screen.width},top=0,menubar=no,toolbar=no,location=no,status=no`); }
-
+    // Penyesuaian Keyboard: Arrow Down & Right = Next | Arrow Up & Left = Prev
     function handleKeyboard(e) {
         if (['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
-        if (['ArrowRight', 'ArrowUp', ' '].includes(e.key)) { e.preventDefault(); controlProjector('next'); }
-        if (['ArrowLeft', 'ArrowDown'].includes(e.key)) { e.preventDefault(); controlProjector('prev'); }
+        if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); controlProjector('next'); }
+        if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); controlProjector('prev'); }
     }
 
     function updateConsoleView() {
@@ -797,14 +916,19 @@
         
         document.getElementById('virtual-render-current').innerHTML = renderVirtualSlide(allSlidesData[currentSlide], currentSlide);
         document.getElementById('virtual-render-next').innerHTML = renderVirtualSlide(allSlidesData[currentSlide + 1], currentSlide + 1);
-        document.getElementById('slide-num').innerText = `${currentSlide + 1} / ${allSlidesData.length}`;
+        document.getElementById('slide-num').innerText = `Slide ${currentSlide + 1} dari ${allSlidesData.length}`;
         
+        let isCurrentCam = allSlidesData[currentSlide] && (allSlidesData[currentSlide].use_camera == 1 || allSlidesData[currentSlide].use_camera === true || allSlidesData[currentSlide].use_camera === 'true');
+        let isNextCam = allSlidesData[currentSlide + 1] && (allSlidesData[currentSlide + 1].use_camera == 1 || allSlidesData[currentSlide + 1].use_camera === true || allSlidesData[currentSlide + 1].use_camera === 'true');
+        
+        document.getElementById('preview-cam-current').style.display = isCurrentCam ? 'block' : 'none';
+        document.getElementById('preview-cam-next').style.display = isNextCam ? 'block' : 'none';
+        
+        if (isCurrentCam || isNextCam) { initPreviewCamera(); }
+
         const gallery = document.getElementById('slideGallery');
-        document.querySelectorAll('.slide-thumb-simple').forEach((thumb, i) => { 
+        document.querySelectorAll('.mini-slide-thumb').forEach((thumb, i) => { 
             thumb.classList.toggle('active', i === currentSlide); 
-            if(i === currentSlide && !gallery.classList.contains('expanded')) {
-                thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
-            }
         });
 
         const fontIndicator = document.getElementById('slide-font-indicator');
@@ -836,24 +960,31 @@
     }
 
     function buildGallery() {
-        const gallery = document.getElementById('slideGallery'); gallery.innerHTML = '';
+        const gallery = document.getElementById('slideGallery'); 
+        gallery.innerHTML = '';
         allSlidesData.forEach((slide, i) => {
-            const thumb = document.createElement('div'); thumb.className = 'slide-thumb-simple';
-            let displayTitle = slide.title || ''; let displayContent = slide.content || '';
+            const thumb = document.createElement('div'); 
+            thumb.className = 'mini-slide-thumb';
+            thumb.title = "Klik ganda (2x) untuk menampilkan slide ini"; 
             
-            if(slide.type === 'cover') { displayTitle = 'SAMPUL DEPAN'; displayContent = slide.title + ' - ' + slide.date; }
-            else if(slide.type === 'announcements_slideshow') { displayTitle = 'WARTA SINODE'; displayContent = slide.images.length + ' Gambar berjalan otomatis...'; }
-            else if(slide.type === 'song_lyric') { displayTitle = slide.title + (slide.watermark ? ' (Bait ' + slide.watermark + ')' : ''); }
+            const badge = document.createElement('div');
+            badge.className = 'mini-thumb-badge';
+            badge.innerText = i + 1;
+            thumb.appendChild(badge);
 
-            if (slide.use_camera) { displayTitle = '[KAMERA] ' + displayTitle; }
-
-            let shortContent = displayContent.replace(/<[^>]*>?/gm, '').substring(0, 90);
-            if(displayContent.length > 90) shortContent += '...';
-
-            thumb.innerHTML = `<div class="thumb-num-badge">${i+1}</div><div class="thumb-simple-title">${displayTitle}</div><div class="thumb-simple-content">${shortContent}</div>`;
-            thumb.onclick = () => controlProjector('jump', i); 
+            const slideContent = document.createElement('div');
+            slideContent.style.width = '100%';
+            slideContent.style.height = '100%';
+            slideContent.innerHTML = renderVirtualSlide(slide, i);
+            
+            thumb.appendChild(slideContent);
+            thumb.ondblclick = () => { 
+                controlProjector('jump', i); 
+            }; 
             gallery.appendChild(thumb);
         });
+        
+        applyVirtualDesign(JSON.parse(localStorage.getItem('live_design_settings')));
     }
 
     function updateBaitName(inputElement, blockId) {
@@ -870,6 +1001,7 @@
             inputElement.classList.replace('bg-warning', 'bg-dark'); inputElement.classList.replace('text-dark', 'text-secondary');
         }
         if(hiddenInput) { hiddenInput.name = `dynamic_content[${blockId}][bait][${formKey}]`; }
+        silentSyncLive(false);
     }
 
     function tambahBaitLagu(blockId) {
@@ -882,7 +1014,7 @@
                 </div>
                 <input type="hidden" class="bait-hidden-key" name="dynamic_content[${blockId}][bait][${baitNum}]" value="">
                 <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value"></textarea>
-                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
+                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', html);
@@ -896,10 +1028,11 @@
                 <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control form-control-sm" rows="1" placeholder="Isi teks..."></textarea>
                 <div class="d-flex justify-content-between align-items-center mt-1">
                     <div class="form-check form-switch m-0">
-                        <input class="form-check-input" type="checkbox" name="custom_slides[${itemId}][${slideId}][use_camera]" value="true" id="cam-cus-${slideId}">
+                        <input type="hidden" name="custom_slides[${itemId}][${slideId}][use_camera]" value="0">
+                        <input class="form-check-input" type="checkbox" name="custom_slides[${itemId}][${slideId}][use_camera]" value="1" id="cam-cus-${slideId}">
                         <label class="form-check-label text-secondary" style="font-size: 0.65rem;" for="cam-cus-${slideId}">Kamera</label>
                     </div>
-                    <button type="button" class="btn btn-sm text-danger p-0" style="font-size:0.7rem;" onclick="this.parentElement.parentElement.remove()">Hapus</button>
+                    <button type="button" class="btn btn-sm text-danger p-0" style="font-size:0.7rem;" onclick="this.parentElement.parentElement.remove(); silentSyncLive(false);">Hapus</button>
                 </div>
             </div>`;
         container.insertAdjacentHTML('beforeend', html); 
@@ -930,13 +1063,14 @@
                                 </div>
                                 <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${uniqueKey}]" value="${isReff ? '[REFF]\\n' + cleanBait : cleanBait}">
                                 <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\\n' + cleanBait : cleanBait}</textarea>
-                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove()" style="font-size: 14px;">&times;</button>
+                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
                             </div>
                         `;
                         container.insertAdjacentHTML('beforeend', html); 
                         if (!isReff) verseCounter++; 
                     }
                 });
+                silentSyncLive(false); 
             } else { alert(data.message); }
         }).catch(err => alert('Data tidak ditemukan.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
@@ -947,11 +1081,12 @@
         if(!query) return alert('Ketik referensi ayat.'); 
         const originalText = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
         fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`).then(res => res.json()).then(data => {
-            if(data.success) { textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text; } else alert(data.message);
+            if(data.success) { 
+                textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text; 
+                silentSyncLive(false); 
+            } else alert(data.message);
         }).catch(() => alert('Terjadi gangguan jaringan.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
     }
-
-    setInterval(function() { fetch('{{ url('/') }}').catch(() => console.log('Session keep-alive ping failed')); }, 10 * 60 * 1000);
 
     window.addEventListener('storage', (e) => { 
         if (e.key === 'last_slide_index') { currentSlide = parseInt(e.newValue); updateConsoleView(); }

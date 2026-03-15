@@ -254,10 +254,10 @@
                 $cUseCamera = false;
                 $cleanContent = $cSlide->content;
 
-                // Hack deteksi kamera lawas (opsional)
-                if (str_contains($cleanContent, '')) {
+                // Cek penanda kamera dari Control Panel
+                if (str_contains($cleanContent, '[KAMERA_AKTIF]')) {
                     $cUseCamera = true;
-                    $cleanContent = str_replace('', '', $cleanContent);
+                    $cleanContent = str_replace('[KAMERA_AKTIF]', '', $cleanContent);
                 }
 
                 if (empty($cTitle)) {
@@ -334,7 +334,10 @@
                     <div class="isi-teks">{!! nl2br(e(is_string($slide['content']) ? trim($slide['content']) : '')) !!}</div>
                 
                 @elseif($slide['type'] === 'closing')
-                    <div class="welcome-title text-center" style="margin: auto;">{!! nl2br(e($slide['content'])) !!}</div>
+                    <div class="welcome-title text-center" style="margin: auto;">
+                        TUHAN YESUS<br>
+                        <span style="color:#fcd34d;">MEMBERKATI</span>
+                    </div>
                 
                 @else
                     @if(!empty($slide['title']) && !$slide['use_camera'])
@@ -344,12 +347,13 @@
                 @endif
 
                 @if($slide['use_camera'] && $slide['type'] !== 'cover' && $slide['type'] !== 'closing' && $slide['type'] !== 'announcements_slideshow')
-                    </div> @endif
+                    </div>
+                @endif
             </div>
         @endforeach
     </div>
 
-    <div class="nav-hint">Navigasi: Panah Kiri/Kanan | F: Layar Penuh</div>
+    <div class="nav-hint">Navigasi: Panah Kiri/Kanan/Atas/Bawah | F: Layar Penuh</div>
 
     <script>
         const scheduleId = {{ $schedule->id ?? 0 }};
@@ -532,9 +536,16 @@
 
         showSlide(currentSlide);
 
+        // PEMBARUAN NAVIGASI KEYBOARD
         document.addEventListener('keydown', (e) => {
-            if (['ArrowRight', 'ArrowUp', ' ', 'PageDown', 'Enter'].includes(e.key)) showSlide(currentSlide + 1);
-            else if (['ArrowLeft', 'ArrowDown', 'PageUp'].includes(e.key)) showSlide(currentSlide - 1);
+            if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) {
+                e.preventDefault();
+                showSlide(currentSlide + 1);
+            }
+            else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) {
+                e.preventDefault();
+                showSlide(currentSlide - 1);
+            }
             else if (e.key.toLowerCase() === 'f') {
                 const overlay = document.getElementById('start-overlay');
                 if (overlay) overlay.style.display = 'none';

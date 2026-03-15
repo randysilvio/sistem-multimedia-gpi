@@ -155,7 +155,7 @@ class LiturgyController extends Controller
             $title = $block['title'] ?? 'Slide';
             $content = $block['content'] ?? '';
             
-            $useCamera = isset($block['use_camera']) ? true : false;
+            $useCamera = isset($block['use_camera']) ? filter_var($block['use_camera'], FILTER_VALIDATE_BOOLEAN) : false;
             $baitData = $block['bait'] ?? [];
 
             if ($type === 'nyanyian') {
@@ -230,6 +230,8 @@ class LiturgyController extends Controller
                 
                 if (isset($content['use_camera'])) {
                     $content['use_camera'] = filter_var($content['use_camera'], FILTER_VALIDATE_BOOLEAN);
+                } else {
+                    $content['use_camera'] = false;
                 }
 
                 ScheduleDetail::create([
@@ -252,10 +254,14 @@ class LiturgyController extends Controller
                     if (!empty($slide['title']) && !empty($slide['content'])) {
                         
                         $contentStr = $slide['content'];
+                        
+                        // PERBAIKAN: Menggunakan penanda aman [KAMERA_AKTIF]
                         if (isset($slide['use_camera']) && filter_var($slide['use_camera'], FILTER_VALIDATE_BOOLEAN)) {
-                            if (!str_contains($contentStr, '')) {
-                                $contentStr .= '';
+                            if (!str_contains($contentStr, '[KAMERA_AKTIF]')) {
+                                $contentStr .= '[KAMERA_AKTIF]';
                             }
+                        } else {
+                            $contentStr = str_replace('[KAMERA_AKTIF]', '', $contentStr);
                         }
 
                         ScheduleCustomSlide::create([
@@ -276,25 +282,19 @@ class LiturgyController extends Controller
         return back()->with('success', 'Jadwal ibadah berhasil dihapus.');
     }
 
-    // =========================================================================
-    // MESIN ALKITAB ABSOLUT (Direct Mapper ke Data Statis Internasional)
-    // Anti-Cloudflare | Anti-Mati | Mendukung Spasi Berantakan
-    // =========================================================================
     public function fetchAlkitab(Request $request)
     {
         $query = strtolower(trim($request->query('q')));
         if (!$query) return response()->json(['success' => false, 'message' => 'Silakan masukkan ayat.']);
 
-        // 1. PENGURAI CERDAS FORMAT PENCARIAN (Misal: "Kisah Para Rasul 3 : 16 - 18")
         $splitColon = explode(':', $query);
         if (count($splitColon) !== 2) {
             return response()->json(['success' => false, 'message' => 'Format salah! Gunakan titik dua (:). Contoh: Yohanes 3:16']);
         }
 
-        $leftSide = trim($splitColon[0]); // Berisi "Nama Kitab" dan "Pasal"
-        $rightSide = trim($splitColon[1]); // Berisi "Ayat" atau "Rentang Ayat"
+        $leftSide = trim($splitColon[0]);
+        $rightSide = trim($splitColon[1]);
 
-        // Mencari letak spasi terakhir untuk memisahkan Nama Kitab dan Pasal
         $lastSpacePos = strrpos($leftSide, ' ');
         if ($lastSpacePos === false) {
             return response()->json(['success' => false, 'message' => 'Format salah! Beri spasi antara kitab dan pasal. Contoh: Yohanes 3:16']);
@@ -307,7 +307,6 @@ class LiturgyController extends Controller
         $startVerse = (int)trim($verseParts[0]);
         $endVerse = isset($verseParts[1]) ? (int)trim($verseParts[1]) : $startVerse;
 
-        // 2. KAMUS KITAB ALKITAB (Pemetaan 66 Kitab Kanonik)
         $books = [
             'kejadian' => 1, 'kej' => 1, 'keluaran' => 2, 'kel' => 2, 'imamat' => 3, 'ima' => 3,
             'bilangan' => 4, 'bil' => 4, 'ulangan' => 5, 'ula' => 5, 'yosua' => 6, 'yos' => 6,
@@ -339,7 +338,6 @@ class LiturgyController extends Controller
 
         $bookId = $books[$bookName];
 
-        // 3. ENGINE TARIK DATA HTML LANGSUNG (Bypass API)
         $url = "https://www.wordproject.org/bibles/id/{$bookId}/{$chapter}.htm";
         
         try {
@@ -348,28 +346,25 @@ class LiturgyController extends Controller
             if ($response->successful()) {
                 $html = $response->body();
                 
-                // Pisahkan HTML berdasarkan struktur pembungkus ayat statis (sangat rapi dan tidak akan pernah berubah)
                 $parts = explode('<span class="verse" id="', $html);
                 $chapterVerses = [];
                 
                 foreach($parts as $idx => $part) {
-                    if ($idx == 0) continue; // Abaikan Header Web
+                    if ($idx == 0) continue;
                     
                     $explodeBracket = explode('>', $part, 2);
                     if (count($explodeBracket) < 2) continue;
                     
-                    $idPart = $explodeBracket[0]; // Menghasilkan: '16"'
-                    $textPart = $explodeBracket[1]; // Menghasilkan: '16 </span> Karena begitu...'
+                    $idPart = $explodeBracket[0];
+                    $textPart = $explodeBracket[1];
                     
                     $verseNum = (int) str_replace('"', '', $idPart);
                     
-                    // Bersihkan angka pengulangan ayat di depan kalimat dan tag HTML
                     $textPart = preg_replace('/^\d+\s*<\/span>/', '', $textPart); 
                     $cleanText = trim(strip_tags($textPart));
                     $chapterVerses[$verseNum] = preg_replace('/\s+/', ' ', $cleanText);
                 }
 
-                // 4. SUSUN HASIL SESUAI RENTANG AYAT
                 $text = "";
                 for ($v = $startVerse; $v <= $endVerse; $v++) {
                     if (isset($chapterVerses[$v])) {

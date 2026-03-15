@@ -22,13 +22,16 @@ class LiturgyTemplateController extends Controller
 
         $liturgy = Liturgy::create(['name' => $request->name]);
 
-        foreach ($request->blocks as $index => $block) {
+        // Perbaikan 1: Gunakan $order manual agar terhindar dari bentrok huruf (new_1) & angka saat edit
+        $order = 1;
+        foreach ($request->blocks as $block) {
             LiturgyItem::create([
                 'liturgy_id' => $liturgy->id,
-                'title' => $block['title'],
+                // Perbaikan 2: Jika judul kosong (null), otomatis isi dengan 'Slide Bebas' agar DB tidak menolak
+                'title' => !empty($block['title']) ? $block['title'] : 'Slide Bebas',
                 'is_dynamic' => true,
                 'static_content' => $block['content'] ?? null,
-                'order_number' => $index + 1,
+                'order_number' => $order++,
             ]);
         }
 
@@ -57,13 +60,16 @@ class LiturgyTemplateController extends Controller
         // Hapus item lama dan ganti dengan yang baru (cara termudah untuk re-order)
         $liturgy->items()->delete();
 
-        foreach ($request->blocks as $index => $block) {
+        // Perbaikan 1: Gunakan $order manual
+        $order = 1;
+        foreach ($request->blocks as $block) {
             LiturgyItem::create([
                 'liturgy_id' => $liturgy->id,
-                'title' => $block['title'],
+                // Perbaikan 2: Cegah kolom title bernilai null
+                'title' => !empty($block['title']) ? $block['title'] : 'Slide Bebas',
                 'is_dynamic' => true,
                 'static_content' => $block['content'] ?? null,
-                'order_number' => $index + 1,
+                'order_number' => $order++,
             ]);
         }
 
@@ -73,7 +79,8 @@ class LiturgyTemplateController extends Controller
     public function destroy($id)
     {
         $liturgy = Liturgy::findOrFail($id);
-        $liturgy->delete(); // Pastikan di model Liturgy sudah diset cascade delete atau hapus manual items-nya
-        return redirect()->route('liturgy.gallery')->with('success', 'Template berhasil dihapus.');
+        $liturgy->delete();
+
+        return back()->with('success', 'Template berhasil dihapus.');
     }
 }
