@@ -68,16 +68,16 @@
         .fullscreen-gallery-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 15, 15, 0.98); z-index: 1000;
-            display: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px; padding: 30px; align-content: flex-start; overflow-y: auto;
+            display: none; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px; padding: 40px; align-content: flex-start; overflow-y: auto;
             backdrop-filter: blur(10px);
         }
         .fullscreen-gallery-overlay.expanded { display: grid; }
 
         /* THUMBNAIL GALERI VISUAL ASLI */
         .mini-slide-thumb {
-            width: 100%; aspect-ratio: 16/9; background: #000;
-            position: relative; border-radius: 6px; overflow: hidden;
+            width: 100%; aspect-ratio: 16/9; background: #000; display: flex; flex-direction: column;
+            position: relative; border-radius: 6px; overflow: hidden; box-sizing: border-box;
             container-type: size; cursor: pointer; border: 2px solid #333; transition: 0.2s;
         }
         .mini-slide-thumb:hover { border-color: #63b3ed; transform: scale(1.03); z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
@@ -87,28 +87,44 @@
             font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; z-index: 50; border: 1px solid #444; font-weight: bold;
         }
 
-        /* VIRTUAL RENDERER CSS (PENYEMPURNAAN ANTI-OVERFLOW) */
+        /* ================= VIRTUAL RENDERER CSS (DISINKRONKAN DENGAN PROYEKTOR TV 55 INCH) ================= */
         :root { --bg-center: #1b2735; --bg-edge: #050505; --text-color: #ffffff; --shadow-color: rgba(0,0,0,0.9); --font-family: 'Inter', sans-serif; }
-        .sp-container { width: 100%; height: 100%; background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%); color: var(--text-color); font-family: var(--font-family); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding: 6cqh 4cqw; box-sizing: border-box; position: absolute; top:0; left:0; border-radius: inherit; z-index: 5;}
+        
+        .sp-container { 
+            width: 100%; height: 100%; 
+            background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%); 
+            color: var(--text-color); font-family: var(--font-family); 
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
+            text-align: center; padding: 8cqh 8cqw; box-sizing: border-box; 
+            position: absolute; top:0; left:0; border-radius: inherit; z-index: 5; overflow: hidden;
+        }
         .sp-container.mode-kamera { background: transparent; justify-content: flex-end; padding: 0; }
-        .sp-container.mode-kamera .vp-inner-wrapper { width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 65%, transparent 100%); padding: 5cqh 4cqw 6cqh 4cqw; border-top: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;}
-        .vp-watermark { position: absolute; top: -3cqh; left: 3cqw; font-size: 55cqh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .vp-title-header { position: relative; z-index: 2; font-size: 2.2cqw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.4cqw; font-weight: 600; margin-top: 2cqh; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 1.5cqh; width: 85%; flex-shrink:0;}
+        
+        .sp-container.mode-kamera .vp-inner-wrapper { 
+            width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.0) 100%); 
+            padding: 10cqh 8cqw 6cqh 8cqw; border-top: none; box-sizing: border-box; 
+            display: flex; flex-direction: column; align-items: center;
+        }
+        
+        .vp-watermark { position: absolute; top: -2cqh; left: 4cqw; font-size: 50cqh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .vp-title-header { position: relative; z-index: 2; font-size: 2.2cqw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.4cqw; font-weight: 600; margin-top: 1cqh; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 1.5cqh; width: 80%; flex-shrink:0;}
         .vp-title-header.text-info { color: #63b3ed !important; border-bottom-color: rgba(99, 179, 237, 0.3) !important; }
         
-        .vp-content { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5cqw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4cqh 15cqw var(--shadow-color); max-width: 95%; word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance; }
-        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4cqw; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); }
-        .vp-instruksi { position: relative; z-index: 2; margin: auto; font-size: 5.5cqw; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4cqw; text-shadow: 0px 4cqh 20cqw var(--shadow-color); word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance; }
+        .vp-content { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5.2cqw; font-weight: 700; line-height: 1.4; text-shadow: 0px 4cqh 20cqw rgba(0,0,0,0.9), 0px 1cqh 5cqw rgba(0,0,0,0.8); max-width: 95%; word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance; }
+        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4.5cqw; text-shadow: 0px 2cqh 4cqw rgba(0,0,0,0.9), 0px 4cqh 15cqw rgba(0,0,0,1); }
         
-        .kamera-logo-preview { position: absolute; top: 5cqh; right: 4cqw; height: 9cqh; z-index: 10; opacity: 0.85; filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.7)); }
-        .kamera-watermark-title-preview { position: absolute; top: 5cqh; left: 4cqw; font-size: 2cqw; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.3cqw; z-index: 10; text-shadow: 1px 1px 5px rgba(0,0,0,0.9); border-left: 4px solid rgba(99, 179, 237, 0.6); padding-left: 1cqw; text-align: left; line-height: 1.2; }
+        .vp-instruksi { position: relative; z-index: 2; margin: auto; font-size: 5.5cqw; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4cqw; text-shadow: 0px 4cqh 20cqw var(--shadow-color); word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance;}
+        .sp-container.mode-kamera .vp-instruksi { font-size: 5cqw; text-shadow: 0px 2cqh 4cqw rgba(0,0,0,0.9), 0px 4cqh 15cqw rgba(0,0,0,1); }
+        
+        .kamera-logo-preview { position: absolute; top: 6cqh; right: 5cqw; height: 9cqh; z-index: 10; opacity: 0.85; filter: drop-shadow(0px 2cqh 6cqw rgba(0,0,0,0.8)); }
+        .kamera-watermark-title-preview { position: absolute; top: 6cqh; left: 5cqw; font-size: 2.2cqw; font-weight: 700; color: rgba(255, 255, 255, 0.65); text-transform: uppercase; letter-spacing: 0.3cqw; z-index: 10; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); border-left: 4px solid rgba(99, 179, 237, 0.6); padding-left: 1.5cqw; text-align: left; line-height: 1.2; max-width: 40cqw;}
 
         .per-slide-font-control { position: absolute; bottom: 10px; right: 10px; background: rgba(20,20,20,0.85); border: 1px solid #4299e1; border-radius: 6px; padding: 4px 10px; display: flex; gap: 8px; align-items: center; z-index: 50; backdrop-filter: blur(5px); }
         .per-slide-font-control button { background: #2d2d2d; color: white; border: 1px solid #444; padding: 2px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         .per-slide-font-control button:hover { background: #4299e1; border-color: #4299e1; }
         #slide-font-indicator { color: #fcd34d; font-size: 0.75rem; font-weight: bold; min-width: 45px; text-align: center; }
 
-        /* Toast Notifikasi AJAX */
         #toastAjax { position: fixed; bottom: 20px; left: 20px; background: #2b6cb0; color: white; padding: 10px 20px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); opacity: 0; transition: 0.3s; z-index: 9999; pointer-events: none;}
     </style>
 </head>
@@ -131,7 +147,7 @@
     }
 
     // =========================================================================================
-    // FUNGSI SMART SPLITTER YANG DIPERBARUI (Mencegah Teks Keluar Layar)
+    // FUNGSI SMART SPLITTER (Disamakan 100% dengan Layar TV 55 Inch: 45 Char, 4 Baris)
     // =========================================================================================
     if (!function_exists('smartSplitText')) {
         function smartSplitText($text) {
@@ -143,8 +159,8 @@
             }
             
             $text = preg_replace("/[\r\n]+/", "\n", trim($text));
-            $maxCharsPerLine = 38; // Karakter ideal agar tidak terlalu rapat di pinggir layar
-            $maxLinesPerSlide = 4; // Maksimal 4 baris per slide
+            $maxCharsPerLine = 45; 
+            $maxLinesPerSlide = 4; 
             
             $rawLines = explode("\n", $text);
             $processedLines = [];
@@ -736,6 +752,9 @@
         }
     }
 
+    // ====================================================================================
+    // FUNGSI RENDER VIRTUAL (Telah di-update menggunakan CQW/CQH yang sinkron penuh)
+    // ====================================================================================
     function renderVirtualSlide(slide, index) {
         if(!slide) return '<div class="sp-container"><div class="vp-content" style="color:#666;">SELESAI</div></div>';
 
@@ -922,7 +941,6 @@
         updateConsoleView();
     }
 
-    // Penyesuaian Keyboard: Arrow Down & Right = Next | Arrow Up & Left = Prev
     function handleKeyboard(e) {
         if (['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
         if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); controlProjector('next'); }
