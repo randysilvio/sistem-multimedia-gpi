@@ -39,37 +39,37 @@
         .btn-ui-toggle:hover, .btn-ui-toggle.active { background: #4a5568; color: #fff; }
         .timer-display { font-family: 'Inter', monospace; font-size: 0.9rem; color: #a0aec0; font-weight: 600; display: flex; gap: 15px; align-items: center;}
 
-        /* GRID GAYA POWERPOINT (LAYAR TUNGGAL) */
+        /* GRID GAYA POWERPOINT */
         .ppt-layout {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            gap: 30px;
             padding: 30px;
             flex-grow: 1;
+            min-height: 0;
             position: relative;
         }
+        .ppt-main-col { flex: 2.5; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .ppt-side-col { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
         .monitor-box { background: #000; position: relative; border-radius: 6px; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; container-type: size; }
-        .current-slide-box { width: 75%; max-width: 1000px; aspect-ratio: 16/9; border: 2px solid #4299e1; box-shadow: 0 10px 30px rgba(66, 153, 225, 0.2);}
+        .current-slide-box { width: 100%; aspect-ratio: 16/9; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.8);}
+        .next-slide-box { width: 100%; aspect-ratio: 16/9; border: 1px solid #333; opacity: 0.85; }
         
         /* PRATINJAU KAMERA LOKAL */
         .preview-cam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; }
 
         /* KONTROL NAVIGASI BAWAH LAYAR UTAMA */
-        .ppt-controls { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 35px; width: 100%; }
-        .ppt-btn-nav { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #a0aec0; background: transparent; color: #a0aec0; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold;}
+        .ppt-controls { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 25px; width: 100%; }
+        .ppt-btn-nav { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #a0aec0; background: transparent; color: #a0aec0; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold;}
         .ppt-btn-nav:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); transform: scale(1.05);}
-        .ppt-slide-counter { color: #e2e8f0; font-size: 1.1rem; font-weight: 600; min-width: 130px; text-align: center; }
+        .ppt-slide-counter { color: #e2e8f0; font-size: 1rem; font-weight: 600; min-width: 120px; text-align: center; }
 
-        /* OVERLAY GALERI LAYAR PENUH (ANTI-TUMPANG TINDIH) */
+        /* OVERLAY GALERI LAYAR PENUH */
         .fullscreen-gallery-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 15, 15, 0.98); z-index: 1000;
-            display: none; 
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            grid-auto-rows: max-content;
-            gap: 25px; padding: 40px; align-content: flex-start; overflow-y: auto;
+            display: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px; padding: 30px; align-content: flex-start; overflow-y: auto;
             backdrop-filter: blur(10px);
         }
         .fullscreen-gallery-overlay.expanded { display: grid; }
@@ -77,7 +77,7 @@
         /* THUMBNAIL GALERI VISUAL ASLI */
         .mini-slide-thumb {
             width: 100%; aspect-ratio: 16/9; background: #000;
-            position: relative; border-radius: 6px; overflow: hidden; box-sizing: border-box;
+            position: relative; border-radius: 6px; overflow: hidden;
             container-type: size; cursor: pointer; border: 2px solid #333; transition: 0.2s;
         }
         .mini-slide-thumb:hover { border-color: #63b3ed; transform: scale(1.03); z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
@@ -87,22 +87,21 @@
             font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; z-index: 50; border: 1px solid #444; font-weight: bold;
         }
 
-        /* ================= VIRTUAL RENDERER CSS (DISINKRONKAN DENGAN PROYEKTOR TV) ================= */
+        /* VIRTUAL RENDERER CSS (PENYEMPURNAAN ANTI-OVERFLOW) */
         :root { --bg-center: #1b2735; --bg-edge: #050505; --text-color: #ffffff; --shadow-color: rgba(0,0,0,0.9); --font-family: 'Inter', sans-serif; }
-        .sp-container { width: 100%; height: 100%; background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%); color: var(--text-color); font-family: var(--font-family); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding: 8cqh 8cqw; box-sizing: border-box; position: absolute; top:0; left:0; border-radius: inherit; z-index: 5;}
+        .sp-container { width: 100%; height: 100%; background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%); color: var(--text-color); font-family: var(--font-family); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding: 6cqh 4cqw; box-sizing: border-box; position: absolute; top:0; left:0; border-radius: inherit; z-index: 5;}
         .sp-container.mode-kamera { background: transparent; justify-content: flex-end; padding: 0; }
-        .sp-container.mode-kamera .vp-inner-wrapper { width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.0) 100%); padding: 10cqh 8cqw 6cqh 8cqw; border-top: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;}
-        .vp-watermark { position: absolute; top: -2cqh; left: 4cqw; font-size: 50cqh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .vp-title-header { position: relative; z-index: 2; font-size: 2.2cqw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.4cqw; font-weight: 600; margin-top: 1cqh; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 1.5cqh; width: 80%; flex-shrink:0;}
+        .sp-container.mode-kamera .vp-inner-wrapper { width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 65%, transparent 100%); padding: 5cqh 4cqw 6cqh 4cqw; border-top: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;}
+        .vp-watermark { position: absolute; top: -3cqh; left: 3cqw; font-size: 55cqh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .vp-title-header { position: relative; z-index: 2; font-size: 2.2cqw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.4cqw; font-weight: 600; margin-top: 2cqh; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 1.5cqh; width: 85%; flex-shrink:0;}
         .vp-title-header.text-info { color: #63b3ed !important; border-bottom-color: rgba(99, 179, 237, 0.3) !important; }
         
-        .vp-content { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5.2cqw; font-weight: 700; line-height: 1.4; text-shadow: 0px 4cqh 20cqw rgba(0,0,0,0.9), 0px 1cqh 5cqw rgba(0,0,0,0.8); max-width: 95%; text-wrap: balance;}
-        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4.5cqw; text-shadow: 0px 2cqh 4cqw rgba(0,0,0,0.9), 0px 4cqh 15cqw rgba(0,0,0,1); }
-        .vp-instruksi { position: relative; z-index: 2; margin: auto; font-size: 5.5cqw; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4cqw; text-shadow: 0px 4cqh 20cqw var(--shadow-color); text-wrap: balance;}
-        .sp-container.mode-kamera .vp-instruksi { font-size: 5cqw; text-shadow: 0px 2cqh 4cqw rgba(0,0,0,0.9), 0px 4cqh 15cqw rgba(0,0,0,1); }
+        .vp-content { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5cqw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4cqh 15cqw var(--shadow-color); max-width: 95%; word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance; }
+        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4cqw; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); }
+        .vp-instruksi { position: relative; z-index: 2; margin: auto; font-size: 5.5cqw; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4cqw; text-shadow: 0px 4cqh 20cqw var(--shadow-color); word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance; }
         
-        .kamera-logo-preview { position: absolute; top: 6cqh; right: 5cqw; height: 9cqh; z-index: 10; opacity: 0.85; filter: drop-shadow(0px 2cqh 6cqw rgba(0,0,0,0.8)); }
-        .kamera-watermark-title-preview { position: absolute; top: 6cqh; left: 5cqw; font-size: 2.2cqw; font-weight: 700; color: rgba(255, 255, 255, 0.65); text-transform: uppercase; letter-spacing: 0.3cqw; z-index: 10; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); border-left: 4px solid rgba(99, 179, 237, 0.6); padding-left: 1.5cqw; text-align: left; line-height: 1.2; max-width: 40cqw;}
+        .kamera-logo-preview { position: absolute; top: 5cqh; right: 4cqw; height: 9cqh; z-index: 10; opacity: 0.85; filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.7)); }
+        .kamera-watermark-title-preview { position: absolute; top: 5cqh; left: 4cqw; font-size: 2cqw; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.3cqw; z-index: 10; text-shadow: 1px 1px 5px rgba(0,0,0,0.9); border-left: 4px solid rgba(99, 179, 237, 0.6); padding-left: 1cqw; text-align: left; line-height: 1.2; }
 
         .per-slide-font-control { position: absolute; bottom: 10px; right: 10px; background: rgba(20,20,20,0.85); border: 1px solid #4299e1; border-radius: 6px; padding: 4px 10px; display: flex; gap: 8px; align-items: center; z-index: 50; backdrop-filter: blur(5px); }
         .per-slide-font-control button { background: #2d2d2d; color: white; border: 1px solid #444; padding: 2px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;}
@@ -132,7 +131,7 @@
     }
 
     // =========================================================================================
-    // FUNGSI SMART SPLITTER PRESENTER PRO (SINKRON DENGAN TV 55 INCH)
+    // FUNGSI SMART SPLITTER YANG DIPERBARUI (Mencegah Teks Keluar Layar)
     // =========================================================================================
     if (!function_exists('smartSplitText')) {
         function smartSplitText($text) {
@@ -144,8 +143,8 @@
             }
             
             $text = preg_replace("/[\r\n]+/", "\n", trim($text));
-            $maxCharsPerLine = 45; 
-            $maxLinesPerSlide = 4; 
+            $maxCharsPerLine = 38; // Karakter ideal agar tidak terlalu rapat di pinggir layar
+            $maxLinesPerSlide = 4; // Maksimal 4 baris per slide
             
             $rawLines = explode("\n", $text);
             $processedLines = [];
@@ -176,9 +175,7 @@
                 }
             }
 
-            if (!empty($currentSlideLines)) { 
-                $slides[] = implode("\n", $currentSlideLines); 
-            }
+            if (!empty($currentSlideLines)) { $slides[] = implode("\n", $currentSlideLines); }
             
             return empty($slides) ? [$text] : $slides;
         }
@@ -554,23 +551,35 @@
 
         <div class="ppt-layout">
             
-            <div class="current-slide-box monitor-box" id="monitor-current">
-                <video id="preview-cam-current" class="preview-cam" autoplay playsinline muted></video>
-                <span class="label-badge">TAYANGAN SAAT INI</span>
-                <div id="virtual-render-current" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
+            <div class="ppt-main-col">
+                <div class="current-slide-box monitor-box" id="monitor-current">
+                    <video id="preview-cam-current" class="preview-cam" autoplay playsinline muted></video>
+                    <span class="label-badge">TAYANGAN SAAT INI</span>
+                    <div id="virtual-render-current" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
+                    
+                    <div class="per-slide-font-control">
+                        <button type="button" onclick="changeSlideFont(-0.5)">-</button>
+                        <span id="slide-font-indicator">Otomatis</span>
+                        <button type="button" onclick="changeSlideFont(0.5)">+</button>
+                        <button type="button" onclick="resetSlideFont()" style="background:transparent; border-color:#666; font-size:0.65rem; font-weight:normal;">Reset</button>
+                    </div>
+                </div>
                 
-                <div class="per-slide-font-control">
-                    <button type="button" onclick="changeSlideFont(-0.5)">-</button>
-                    <span id="slide-font-indicator">Otomatis</span>
-                    <button type="button" onclick="changeSlideFont(0.5)">+</button>
-                    <button type="button" onclick="resetSlideFont()" style="background:transparent; border-color:#666; font-size:0.65rem; font-weight:normal;">Reset</button>
+                <div class="ppt-controls">
+                    <button class="ppt-btn-nav" onclick="controlProjector('prev')" title="Slide Sebelumnya">&#8593;</button>
+                    <div class="ppt-slide-counter" id="slide-num">Slide 0 dari 0</div>
+                    <button class="ppt-btn-nav" onclick="controlProjector('next')" title="Slide Selanjutnya">&#8595;</button>
                 </div>
             </div>
-            
-            <div class="ppt-controls">
-                <button class="ppt-btn-nav" onclick="controlProjector('prev')" title="Slide Sebelumnya">&#8593;</button>
-                <div class="ppt-slide-counter" id="slide-num">Slide 0 dari 0</div>
-                <button class="ppt-btn-nav" onclick="controlProjector('next')" title="Slide Selanjutnya">&#8595;</button>
+
+            <div class="ppt-side-col">
+                <div>
+                    <div class="text-secondary mb-2" style="font-size: 0.85rem; font-weight: 600;">Tayangan Berikutnya</div>
+                    <div class="next-slide-box monitor-box" id="monitor-next">
+                        <video id="preview-cam-next" class="preview-cam" autoplay playsinline muted></video>
+                        <div id="virtual-render-next" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="fullscreen-gallery-overlay" id="slideGallery">
@@ -582,6 +591,7 @@
 
 <script>
     window.cpWartaInterval = null;
+    window.cpWartaNextInterval = null;
     let isCameraInitialized = false;
 
     // Timer Logika
@@ -687,13 +697,14 @@
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             document.getElementById('preview-cam-current').srcObject = stream;
+            document.getElementById('preview-cam-next').srcObject = stream;
             isCameraInitialized = true;
         } catch(e) { console.log("Gagal akses kamera untuk preview", e); }
     }
 
 
     // =========================================================================
-    // FUNGSI UI & RENDER VIRTUAL
+    // FUNGSI UI & RENDER VIRTUAL (SINKRON DENGAN 55 INCH)
     // =========================================================================
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebarPanel');
@@ -811,7 +822,6 @@
             `;
         }
 
-        // Tampilan khusus "TV Broadcast" bila Mode Kamera aktif
         if (isCamActive && slide.type !== 'cover' && slide.type !== 'closing' && slide.type !== 'announcements_slideshow') {
             innerHTML = `
                 <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="kamera-logo-preview" alt="Logo">
@@ -921,15 +931,19 @@
 
     function updateConsoleView() {
         clearTimeout(window.cpWartaInterval); 
+        clearTimeout(window.cpWartaNextInterval); 
         
         document.getElementById('virtual-render-current').innerHTML = renderVirtualSlide(allSlidesData[currentSlide], currentSlide);
+        document.getElementById('virtual-render-next').innerHTML = renderVirtualSlide(allSlidesData[currentSlide + 1], currentSlide + 1);
         document.getElementById('slide-num').innerText = `Slide ${currentSlide + 1} dari ${allSlidesData.length}`;
         
         let isCurrentCam = allSlidesData[currentSlide] && (allSlidesData[currentSlide].use_camera == 1 || allSlidesData[currentSlide].use_camera === true || allSlidesData[currentSlide].use_camera === 'true');
+        let isNextCam = allSlidesData[currentSlide + 1] && (allSlidesData[currentSlide + 1].use_camera == 1 || allSlidesData[currentSlide + 1].use_camera === true || allSlidesData[currentSlide + 1].use_camera === 'true');
         
         document.getElementById('preview-cam-current').style.display = isCurrentCam ? 'block' : 'none';
+        document.getElementById('preview-cam-next').style.display = isNextCam ? 'block' : 'none';
         
-        if (isCurrentCam) { initPreviewCamera(); }
+        if (isCurrentCam || isNextCam) { initPreviewCamera(); }
 
         const gallery = document.getElementById('slideGallery');
         document.querySelectorAll('.mini-slide-thumb').forEach((thumb, i) => { 
@@ -948,6 +962,17 @@
                 window.cpWartaInterval = setTimeout(runNextCurrent, (parseInt(currentItems[cwIdx].dataset.duration) || 5) * 1000);
             };
             window.cpWartaInterval = setTimeout(runNextCurrent, (parseInt(currentItems[0].dataset.duration) || 5) * 1000);
+        }
+
+        let nextIndex = currentSlide + 1;
+        let nextItems = document.getElementById('monitor-next').querySelectorAll(`.warta-item-cp-${nextIndex}`);
+        if(nextItems.length > 1) {
+            let nwIdx = 0;
+            const runNextNext = () => {
+                nextItems[nwIdx].style.opacity = 0; nwIdx = (nwIdx + 1) % nextItems.length; nextItems[nwIdx].style.opacity = 1;
+                window.cpWartaNextInterval = setTimeout(runNextNext, (parseInt(nextItems[nwIdx].dataset.duration) || 5) * 1000);
+            };
+            window.cpWartaNextInterval = setTimeout(runNextNext, (parseInt(nextItems[0].dataset.duration) || 5) * 1000);
         }
 
         applyVirtualDesign(JSON.parse(localStorage.getItem('live_design_settings')));
