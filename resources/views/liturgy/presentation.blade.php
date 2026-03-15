@@ -28,71 +28,80 @@
         .start-title { color: #3182ce; font-size: 3vw; margin-bottom: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
         .start-subtitle { color: #a0aec0; font-size: 1.5vw; text-align: center; font-weight: 400; }
         
-        /* Elemen Video untuk Kamera Latar Belakang */
+        /* Elemen Video untuk Kamera Latar Belakang (TV SAFE FULLSCREEN) */
         #live-webcam {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             object-fit: cover; z-index: -10; display: none;
         }
 
+        /* ZONA AMAN LAYAR TV (Title Safe Area) */
         .slide { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
-            text-align: center; padding: 7vh 6vw; box-sizing: border-box; 
+            text-align: center; padding: 8vh 8vw; box-sizing: border-box; 
             opacity: 0; z-index: 0; pointer-events: none; 
         }
         .slide.active { opacity: 1; z-index: 10; pointer-events: auto; }
         
-        .bait-watermark { position: absolute; top: -3vh; left: 3vw; font-size: 55vh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; user-select: none; pointer-events: none;}
-        .instruksi-jemaat { position: relative; z-index: 2; margin: auto; font-size: 5.5vw; color: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 4px 20px rgba(0,0,0,0.8); }
-        .judul-sesi { position: relative; z-index: 2; flex-shrink: 0; font-size: 2.2vw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 4px; font-weight: 600; margin-top: 2vh; margin-bottom: 0; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 12px; width: 85%; }
+        .bait-watermark { position: absolute; top: -2vh; left: 4vw; font-size: 50vh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; user-select: none; pointer-events: none;}
+        .instruksi-jemaat { position: relative; z-index: 2; margin: auto; font-size: 5.5vw; color: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0px 4px 20px rgba(0,0,0,0.8); text-wrap: balance; }
+        .judul-sesi { position: relative; z-index: 2; flex-shrink: 0; font-size: 2.2vw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 4px; font-weight: 600; margin-top: 1vh; margin-bottom: 0; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 12px; width: 80%; }
         .judul-custom { color: #63b3ed; border-bottom-color: rgba(99, 179, 237, 0.3); }
-        .isi-teks { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5vw; font-weight: 700; line-height: 1.45; text-shadow: 0px 4px 15px rgba(0,0,0,0.9); max-width: 95%; }
         
-        .welcome-wrapper { position: relative; z-index: 2; margin: auto; }
+        /* TIPOGRAFI PRESENTER UTAMA */
+        .isi-teks { 
+            position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; 
+            font-size: 5.2vw; font-weight: 700; line-height: 1.4; 
+            text-shadow: 0px 4px 20px rgba(0,0,0,0.9), 0px 1px 5px rgba(0,0,0,0.8); 
+            max-width: 95%; text-wrap: balance; 
+        }
+        
+        .welcome-wrapper { position: relative; z-index: 2; margin: auto; text-wrap: balance; }
         .welcome-title { font-size: 6.5vw; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0px 5px 20px rgba(0,0,0,0.8); line-height: 1.1; }
         .welcome-sub { font-size: 2.5vw; color: #cbd5e0; font-weight: 400; letter-spacing: 1px; }
         .nav-hint { position: absolute; bottom: 15px; right: 20px; font-size: 0.8vw; color: rgba(255,255,255,0.15); z-index: 100; font-weight: 400; }
 
-        /* ========= CSS KHUSUS MODE KAMERA (LOWER THIRD) ========= */
+        /* ========= CSS KHUSUS MODE KAMERA (LOWER THIRD TV) ========= */
         .slide.mode-kamera {
             justify-content: flex-end; 
             padding: 0;
         }
         
-        /* LOGO KANAN ATAS ALA TV */
+        /* LOGO KANAN ATAS ALA TV BROADCAST */
         .kamera-logo {
             position: absolute;
-            top: 5vh;
-            right: 4vw;
+            top: 6vh;
+            right: 5vw;
             height: 9vh;
             z-index: 10;
             opacity: 0.85;
-            filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.7));
+            filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.8));
         }
 
         /* WATERMARK JUDUL KIRI ATAS ALA TV */
         .kamera-watermark-title {
             position: absolute;
-            top: 5vh;
-            left: 4vw;
-            font-size: 2vw;
+            top: 6vh;
+            left: 5vw;
+            font-size: 2.2vw;
             font-weight: 700;
-            color: rgba(255, 255, 255, 0.6); 
+            color: rgba(255, 255, 255, 0.65); 
             text-transform: uppercase;
             letter-spacing: 3px;
             z-index: 10;
-            text-shadow: 1px 1px 5px rgba(0,0,0,0.9);
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
             border-left: 4px solid rgba(99, 179, 237, 0.6);
-            padding-left: 1vw;
+            padding-left: 1.5vw;
             text-align: left;
             line-height: 1.2;
+            max-width: 40vw;
         }
 
+        /* FADE GRADIENT BAWAH (SUPER SMOOTH) */
         .kamera-wrapper {
             width: 100%;
-            /* Gradien diperhalus dan garis dihilangkan */
-            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 65%, transparent 100%);
-            padding: 6vh 5vw 7vh 5vw; 
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.0) 100%);
+            padding: 10vh 8vw 6vh 8vw; 
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -100,18 +109,20 @@
         }
         
         .slide.mode-kamera .isi-teks {
-            font-size: 4.5vw !important; /* Dikecilkan sedikit agar rapi di bawah layar */
+            font-size: 4.5vw !important; 
             margin-top: 0;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+            /* Lapisan bayangan ganda untuk keterbacaan ekstrem di atas kamera */
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.9), 0px 4px 15px rgba(0,0,0,1);
         }
         
         .slide.mode-kamera .instruksi-jemaat {
             font-size: 5vw !important;
             margin-top: 0;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.9), 0px 4px 15px rgba(0,0,0,1);
         }
         
         .slide.mode-kamera .bait-watermark {
-            display: none; /* Sembunyikan angka raksasa agar wajah tak tertutup */
+            display: none; 
         }
     </style>
 </head>
@@ -125,9 +136,84 @@
         <div class="start-subtitle">Klik di sini untuk mengaktifkan Proyektor & Kamera Latar</div>
     </div>
 
-    @include('liturgy.partials.smart_splitter')
-
     @php
+    // =========================================================================================
+    // FUNGSI SMART SPLITTER PRESENTER PRO (STANDAR INDUSTRI)
+    // Disesuaikan untuk keterbacaan TV 55 Inch (Maks 45 Karakter/Baris, Maks 3-4 Baris/Slide)
+    // =========================================================================================
+    if (!function_exists('cleanSlideTitle')) {
+        function cleanSlideTitle($title) {
+            if (!is_string($title)) return '';
+            $title = str_ireplace('(opsional)', '', $title);
+            $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
+            $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
+            $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
+            return trim($title, " -:");
+        }
+    }
+
+    if (!function_exists('smartSplitText')) {
+        function smartSplitText($text) {
+            if (is_array($text)) { $text = $text['content'] ?? ''; }
+            if (!is_string($text)) $text = '';
+            
+            // Bypass jika user sudah memotong manual via kode ===SLIDE_BREAK===
+            if (str_contains($text, '===SLIDE_BREAK===')) {
+                return array_filter(array_map('trim', explode('===SLIDE_BREAK===', $text)));
+            }
+            
+            // Bersihkan jeda baris kotor
+            $text = preg_replace("/[\r\n]+/", "\n", trim($text));
+            
+            // Pengaturan Batas ProPresenter Standar
+            $maxCharsPerLine = 45; // Ideal untuk layar 16:9 agar font bisa besar
+            $maxLinesPerSlide = 4; // Maksimal baris sebelum dilempar ke slide berikutnya
+            
+            // 1. Lakukan Wordwrap cerdas berdasarkan karakter
+            $rawLines = explode("\n", $text);
+            $processedLines = [];
+            
+            foreach ($rawLines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+                
+                // Pisahkan kalimat panjang secara otomatis tanpa memotong kata
+                $wrapped = wordwrap($line, $maxCharsPerLine, "\n", false);
+                $splitWrapped = explode("\n", $wrapped);
+                foreach ($splitWrapped as $wl) {
+                    $processedLines[] = trim($wl);
+                }
+            }
+            
+            // 2. Gabungkan baris-baris ke dalam slide
+            $slides = [];
+            $currentSlideLines = [];
+            
+            foreach ($processedLines as $line) {
+                $currentSlideLines[] = $line;
+                
+                // Deteksi natural pause (Tanda baca)
+                $endsInPunctuation = preg_match('/[.?!,;:]$/', $line);
+                $isLongEnough = count($currentSlideLines) >= 2;
+                
+                // Potong ke slide baru jika: 
+                // A. Sudah mencapai batas baris maksimal, ATAU
+                // B. Sudah 2 baris atau lebih DAN kalimat berakhiran tanda baca kuat
+                if (count($currentSlideLines) >= $maxLinesPerSlide || ($isLongEnough && $endsInPunctuation)) {
+                    $slides[] = implode("\n", $currentSlideLines);
+                    $currentSlideLines = [];
+                }
+            }
+
+            // Masukkan sisa baris terakhir jika ada
+            if (!empty($currentSlideLines)) { 
+                $slides[] = implode("\n", $currentSlideLines); 
+            }
+            
+            return empty($slides) ? [$text] : $slides;
+        }
+    }
+
     $allSlides = [];
     
     // 1. SISIPAN OTOMATIS WARTA SINODE
@@ -254,7 +340,7 @@
                 $cUseCamera = false;
                 $cleanContent = $cSlide->content;
 
-                // Cek penanda kamera dari Control Panel
+                // Cek penanda kamera
                 if (str_contains($cleanContent, '[KAMERA_AKTIF]')) {
                     $cUseCamera = true;
                     $cleanContent = str_replace('[KAMERA_AKTIF]', '', $cleanContent);
@@ -353,7 +439,7 @@
         @endforeach
     </div>
 
-    <div class="nav-hint">Navigasi: Panah Kiri/Kanan/Atas/Bawah | F: Layar Penuh</div>
+    <div class="nav-hint">Navigasi: Panah Kiri/Atas (Mundur) | Panah Kanan/Bawah (Maju) | F: Layar Penuh</div>
 
     <script>
         const scheduleId = {{ $schedule->id ?? 0 }};
@@ -366,7 +452,6 @@
             if (isCameraInitialized) return;
             const videoElement = document.getElementById('live-webcam');
             try {
-                // Minta izin ke browser untuk akses Webcam/Capture Card
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 videoElement.srcObject = stream;
                 isCameraInitialized = true;
@@ -382,8 +467,6 @@
             }
             const overlay = document.getElementById('start-overlay');
             if (overlay) overlay.style.display = 'none';
-            
-            // Nyalakan kamera saat operator pertama kali klik layar
             initCamera();
         }
 
@@ -399,11 +482,16 @@
                 } else {
                     const htmlContent = textEl.innerHTML.toLowerCase();
                     const lines = (htmlContent.match(/<br\s*\/?>/g) || []).length + 1;
-                    let size = '5vw'; 
-                    // Pengecilan otomatis jika teks panjang, dan khusus mode kamera sedikit dikecilkan
-                    if (lines === 1) { size = textEl.innerText.trim().length < 25 ? '6vw' : '5.5vw'; } 
-                    else if (lines === 2) { size = '5vw'; }
-                    else if (lines >= 3) { size = '4.5vw'; }
+                    
+                    // Rasionalisasi Ukuran Font Standar ProPresenter untuk 55 Inch TV
+                    let size = '5.2vw'; 
+                    if (slide.dataset.camera === 'true') {
+                        size = '4.5vw'; // Lebih kecil di kamera agar tidak menutupi wajah
+                    } else {
+                        if (lines === 1) { size = textEl.innerText.trim().length < 25 ? '6.5vw' : '5.5vw'; } 
+                        else if (lines === 2) { size = '5.2vw'; }
+                        else if (lines >= 3) { size = '4.8vw'; }
+                    }
                     textEl.style.fontSize = size;
                 }
             }
@@ -413,7 +501,7 @@
                     instruksiEl.style.fontSize = customSize + 'vw';
                 } else {
                     const length = instruksiEl.innerText.trim().length;
-                    instruksiEl.style.fontSize = length < 30 ? '6vw' : '5vw';
+                    instruksiEl.style.fontSize = length < 30 ? '6.5vw' : '5.5vw';
                 }
             }
         }
@@ -468,7 +556,12 @@
             if (sColor.length === 7) { r = parseInt(sColor.substring(1,3), 16); g = parseInt(sColor.substring(3,5), 16); b = parseInt(sColor.substring(5,7), 16); }
 
             document.querySelectorAll('.isi-teks, .instruksi-jemaat').forEach(el => {
-                el.style.color = settings.textColor; el.style.textShadow = `0px 4px 15px rgba(${r}, ${g}, ${b}, ${shadowIntensity})`;
+                el.style.color = settings.textColor; 
+                if (isUsingCamera) {
+                    el.style.textShadow = `0px 2px 4px rgba(0,0,0,0.9), 0px 4px 15px rgba(0,0,0,1)`;
+                } else {
+                    el.style.textShadow = `0px 4px 20px rgba(${r}, ${g}, ${b}, ${shadowIntensity}), 0px 1px 5px rgba(0,0,0,0.8)`;
+                }
             });
             document.querySelectorAll('.welcome-title').forEach(el => {
                 el.style.color = settings.textColor; el.style.textShadow = `0px 5px 20px rgba(${r}, ${g}, ${b}, ${shadowIntensity})`;
@@ -490,7 +583,6 @@
                 if (i === index) {
                     slide.classList.add('active');
                     
-                    // LOGIKA KAMERA VS BACKGROUND STANDAR
                     if (slide.dataset.camera === 'true') {
                         slide.classList.add('mode-kamera');
                         document.body.style.background = 'transparent';
@@ -499,7 +591,7 @@
                         let bgVideo = document.getElementById('bg-video-element');
                         if (bgVideo) bgVideo.style.display = 'none';
                         
-                        initCamera(); // Panggil aman jika sebelumnya belum terpanggil
+                        initCamera(); 
                     } else {
                         document.getElementById('live-webcam').style.display = 'none';
                         const savedDesign = JSON.parse(localStorage.getItem('live_design_settings'));
@@ -536,7 +628,7 @@
 
         showSlide(currentSlide);
 
-        // PEMBARUAN NAVIGASI KEYBOARD
+        // NAVIGASI KEYBOARD: Arrow Down & Right = Next | Arrow Up & Left = Prev
         document.addEventListener('keydown', (e) => {
             if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) {
                 e.preventDefault();
@@ -566,7 +658,6 @@
             }
             if (e.key === 'font_sync_trigger') showSlide(currentSlide); 
             
-            // TARIK DATA DIAM-DIAM DARI BACKGROUND (Tanpa reload)
             if (e.key === 'liturgy_update') {
                 fetch(window.location.href)
                     .then(response => response.text())
@@ -576,7 +667,7 @@
                         const newPresentation = doc.getElementById('presentation');
                         if (newPresentation) {
                             document.getElementById('presentation').innerHTML = newPresentation.innerHTML;
-                            showSlide(currentSlide); // Render ulang slide saat ini
+                            showSlide(currentSlide); 
                         }
                     })
                     .catch(err => console.error('Gagal mengambil pembaruan slide:', err));
