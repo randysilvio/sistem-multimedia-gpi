@@ -48,6 +48,10 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        if (\App\Models\User::count() <= 1) {
+            return Redirect::route('profile.edit')->with('error', 'Akun terakhir tidak bisa dihapus. Buat akun lain dulu di menu Pengguna.');
+        }
+
         Auth::logout();
 
         $user->delete();

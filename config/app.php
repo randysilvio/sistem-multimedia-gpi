@@ -82,7 +82,10 @@ return [
     |
     */
 
-    'locale' => 'en',
+    'locale' => 'id',
+
+    // Proxy tepercaya (lihat App\Http\Middleware\TrustProxies)
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
 
     /*
     |--------------------------------------------------------------------------

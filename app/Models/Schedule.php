@@ -14,11 +14,13 @@ class Schedule extends Model
         'worship_date',
         'theme',
         'preacher_name',
-        'theme_color'
+        'theme_color',
+        'display_settings',
     ];
 
     protected $casts = [
         'worship_date' => 'date',
+        'display_settings' => 'array',
     ];
 
     public function liturgy()

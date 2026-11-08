@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="{{ \App\Services\Branding::logoUrl() }}">
     <title>Cetak Lirik: {{ $song->title }}</title>
     <style>
         /* Menggunakan font Serif agar terlihat klasik seperti buku nyanyian gereja */
-        @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
         
         body { 
             font-family: 'Merriweather', Georgia, serif; 
@@ -140,10 +141,10 @@
         </div>
 
         <div class="lyrics-section">
-            @foreach($song->verses as $index => $verse)
+            @foreach($song->numberedVerses() as $num => $verse)
                 
                 <div class="verse-block">
-                    <div class="verse-num">{{ $index + 1 }}.</div>
+                    <div class="verse-num">{{ $num }}.</div>
                     <div class="verse-text">{{ $verse }}</div>
                 </div>
                 

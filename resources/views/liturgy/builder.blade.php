@@ -1,57 +1,16 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Builder Presentasi Kustom - GPI Papua</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 100px; color:#1e293b; }
-        .navbar { background-color: #0f172a !important; }
-        .navbar-brand { font-weight: 700; letter-spacing: 1px; font-size: 1.1rem; }
-        
-        .builder-container { max-width: 800px; margin: auto; margin-top: 30px; }
-        
-        .block-wrapper { position: relative; }
-        .block-card { background: white; border-radius: 8px; padding: 25px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
-        .block-card:focus-within { box-shadow: 0 4px 15px rgba(43, 108, 176, 0.15); border-color: #90cdf4; }
-        
-        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; }
-        .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
-        
-        .insert-divider { position: relative; height: 36px; display: flex; align-items: center; justify-content: center; margin-top: -12px; margin-bottom: -12px; z-index: 10; opacity: 0; transition: opacity 0.3s; }
-        .block-wrapper:hover .insert-divider, .insert-divider:hover, .insert-divider.show { opacity: 1; z-index: 950; }
-        .top-divider { opacity: 1; margin-bottom: 15px; margin-top: 0; height: 40px; }
-        .insert-divider::before { content: ""; position: absolute; width: 100%; height: 2px; background: #cbd5e1; z-index: 1; border-radius: 2px; transition: 0.2s; }
-        .block-wrapper:hover .insert-divider::before { background: #94a3b8; }
-        
-        .btn-insert { position: relative; z-index: 2; background: #ffffff; color: #475569; border: 1px solid #cbd5e1; border-radius: 50%; width: 34px; height: 34px; font-weight: 400; font-size: 22px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; line-height: 1; }
-        .btn-insert:hover, .btn-insert[aria-expanded="true"] { border-color: #2b6cb0; color: #2b6cb0; background: #ebf8ff; transform: scale(1.1); box-shadow: 0 4px 10px rgba(43, 108, 176, 0.15); }
-        
-        .dropdown-menu { border-radius: 8px; padding: 8px 0; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1050 !important; min-width: 220px; }
-        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; }
-        .dropdown-item:hover { background-color: #f8fafc; color: #0f172a; }
-        .dropdown-divider { border-top: 1px solid #e2e8f0; margin: 5px 0; }
+@extends('layouts.admin')
 
-        .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
-        .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; }
-        .btn-primary-custom:hover { background-color: #1e293b; color: white; }
+@section('eyebrow', 'Jadwal & Presentasi')
+@section('title')
+Presentasi Kustom
+@endsection
 
-        .bait-label-input { width: 100%; border: none; font-size: 0.8rem; font-weight: 700; text-align: center; background: transparent; color: inherit; }
-        .bait-label-input:focus { outline: none; background: rgba(0,0,0,0.05); }
-    </style>
-</head>
-<body>
+@section('actions')
+<a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-secondary">Batal</a>
+@endsection
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3 mb-4">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI" height="32" class="me-3">
-                <span>Builder Presentasi Kustom</span>
-            </a>
-            <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Batal & Kembali</a>
-        </div>
-    </nav>
+@section('content')
+
 
     <div class="container builder-container">
         <form action="{{ route('liturgy.store_custom') }}" method="POST" id="mainForm">
@@ -100,15 +59,15 @@
 
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary-custom">SIMPAN & RAKIT PRESENTASI</button>
+                    <button type="submit" class="btn btn-primary btn-primary-custom">Simpan & rakit presentasi</button>
                 </div>
             </div>
         </form>
     </div>
+@endsection
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
+@push('scripts')
+<script>
         let blockCount = 0;
 
         function insertBlock(type, referenceId) {
@@ -123,7 +82,7 @@
                 <div class="form-check form-switch mt-3 pt-2 border-top">
                     <input class="form-check-input" type="checkbox" name="blocks[${newId}][use_camera]" value="1" id="cam-${newId}">
                     <label class="form-check-label small fw-bold text-muted" for="cam-${newId}">
-                        📽️ Sorot Pengisi Acara (Kamera Latar & Teks Lower Third)
+                        Sorot pengisi acara (latar kamera, teks di bawah)
                     </label>
                 </div>
             `;
@@ -137,12 +96,13 @@
                     </div>
                     <div class="col-md-7">
                         <label class="form-label small fw-bold text-muted">Tarik Data Lagu</label>
-                        <div class="input-group mb-2">
+                        <div class="input-group mb-2 song-ref">
                             <select id="buku-${newId}" class="form-select bg-light" style="max-width: 90px;">
-                                <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="BEBAS">Lainnya</option>
+                                <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="DSL">DSL</option><option value="GPM">GPM</option><option value="BEBAS">Lainnya</option>
                             </select>
                             <input type="text" id="nomor-${newId}" class="form-control" placeholder="No. Lagu">
-                            <button type="button" class="btn btn-secondary px-3" onclick="tarikLaguBuilder(${newId}, event)">Tarik</button>
+                            <button type="button" class="btn btn-outline-primary" data-song-picker title="Pilih dari lagu yang sudah ada di database">Pilih</button>
+                            <button type="button" class="btn btn-secondary px-3" data-song-pull onclick="tarikLaguBuilder(${newId}, event)">Tarik</button>
                         </div>
                         <input type="text" id="judul-${newId}" name="blocks[${newId}][judul]" class="form-control mb-2 text-primary fw-medium" placeholder="Judul otomatis terdeteksi..." style="font-size: 0.85rem;">
                         
@@ -170,7 +130,7 @@
                     <div class="col-md-7">
                         <label class="form-label small fw-bold text-muted">Cari Kitab & Pasal</label>
                         <div class="input-group mb-2">
-                            <input type="text" id="cari-kitab-${newId}" class="form-control" placeholder="Cth: Yohanes 3:16">
+                            <input type="text" id="cari-kitab-${newId}" name="blocks[${newId}][ref]" class="form-control" placeholder="Cth: Yoh 3:16-18 · Mzm 23" onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
                             <button type="button" class="btn btn-secondary px-3" onclick="tarikAyatBuilder(${newId}, event)">Tarik</button>
                         </div>
                         <textarea name="blocks[${newId}][content][]" id="text-kitab-${newId}" class="form-control bg-light" rows="4" placeholder="Teks ayat..."></textarea>
@@ -304,17 +264,17 @@
                                 let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                                 let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                                 
-                                let labelText = isReff ? 'Reff' : verseCounter;
+                                let labelText = isReff ? 'Reff' : ((data.labels && data.labels[idx] && data.labels[idx] !== 'Reff') ? data.labels[idx] : verseCounter);
                                 let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
-                                let formKey = isReff ? 'ref_' + idx : verseCounter;
+                                let formKey = isReff ? 'ref_' + idx : labelText;
 
                                 const html = `
                                     <div class="input-group mb-2 position-relative bait-item shadow-sm">
                                         <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
                                             <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${blockId}')" value="${labelText}">
                                         </div>
-                                        <input type="hidden" class="bait-hidden-key" name="blocks[${blockId}][bait][${formKey}]" value="${isReff ? '[REFF]\\n' + cleanBait : cleanBait}">
-                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\\n' + cleanBait : cleanBait}</textarea>
+                                        <input type="hidden" class="bait-hidden-key" name="blocks[${blockId}][bait][${formKey}]" value="${escHtml(isReff ? '[REFF]\n' + cleanBait : cleanBait)}">
+                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${escHtml(isReff ? '[REFF]\n' + cleanBait : cleanBait)}</textarea>
                                         <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>
                                 `;
@@ -328,6 +288,9 @@
                 .catch(() => alert('Gagal menarik data lagu.'))
                 .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
         }
+
+        // Lirik dimasukkan ke HTML: tanda kutip/< > harus di-escape agar lirik tidak terpotong
+        function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
         function tarikAyatBuilder(blockId, event) {
             const input = document.getElementById(`cari-kitab-${blockId}`);
@@ -345,7 +308,8 @@
                 .then(res => res.json())
                 .then(data => {
                     if(data.success) {
-                        textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text;
+                        input.value = data.reference;
+                        textarea.value = data.text;
                     } else { textarea.value = "Gagal: " + data.message; }
                 })
                 .catch(() => textarea.value = "Gagal koneksi internet.")
@@ -356,5 +320,4 @@
             insertBlock('nyanyian', 'top');
         };
     </script>
-</body>
-</html>
+@endpush

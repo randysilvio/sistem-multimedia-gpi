@@ -1,0 +1,7 @@
+/* Titik masuk CSS halaman admin, login & galat. Dimuat sebagai <link> di <head>
+   (bukan lewat JS) agar halaman tidak sempat tampil tanpa gaya saat berpindah halaman. */
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource/playfair-display/600.css';
+@import '@fontsource/playfair-display/400-italic.css';
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import './admin.css';

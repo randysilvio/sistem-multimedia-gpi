@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ActivityLog;
 use Illuminate\Http\Request;
 use App\Models\Liturgy;
 use App\Models\Schedule;
@@ -9,24 +10,27 @@ use App\Models\ScheduleDetail;
 use App\Models\ScheduleCustomSlide;
 use App\Models\Announcement; 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
+use App\Services\Bible;
+use App\Services\DisplaySettings;
+use App\Services\PresenterState;
+use App\Services\SlideBuilder;
 
 class LiturgyController extends Controller
 {
     public function gallery()
     {
         Carbon::setLocale('id');
-        $liturgies = Liturgy::orderBy('id')->get(); 
-        $schedules = Schedule::with('liturgy')->orderBy('worship_date', 'desc')->get();
+        $liturgies = Liturgy::templates()->orderBy('id')->get();
+        $schedules = Schedule::with('liturgy')->orderBy('worship_date', 'desc')->orderByDesc('id')->paginate(15);
         
         return view('liturgy.gallery', compact('schedules', 'liturgies'));
     }
 
     public function create(Request $request)
     {
-        $liturgies = Liturgy::orderBy('id')->get();
+        $liturgies = Liturgy::templates()->orderBy('id')->get();
         if ($liturgies->isEmpty()) {
-            abort(404, 'Data Liturgi belum ada. Silakan jalankan seeder.');
+            return redirect()->route('liturgy.template.create')->with('error', 'Belum ada template tata ibadah. Buat template dulu.');
         }
 
         $selectedLiturgyId = $request->input('liturgy_id', $liturgies->first()->id);
@@ -54,11 +58,13 @@ class LiturgyController extends Controller
             'worship_date' => $request->worship_date,
             'theme' => $request->theme,
             'preacher_name' => $request->preacher_name,
-            'theme_color' => $request->theme_color ?? '#1b2735'
+            'theme_color' => $request->theme_color ?? '#1b2735',
+            'display_settings' => DisplaySettings::inheritedForNewSchedule(),
         ]);
 
         $this->saveDetails($schedule, $request);
 
+        ActivityLog::record('jadwal.tambah', $schedule, 'Membuat jadwal ' . ($schedule->liturgy->name ?? '') . ' ' . $schedule->worship_date->translatedFormat('d F Y'));
         return redirect()->route('liturgy.edit', $schedule->id)
                          ->with('success', 'Jadwal berhasil dibuat. Selamat melayani!');
     }
@@ -80,7 +86,8 @@ class LiturgyController extends Controller
             'worship_date' => $request->worship_date,
             'theme' => $request->schedule_name,
             'preacher_name' => $request->preacher_name,
-            'theme_color' => $request->theme_color ?? '#1b2735'
+            'theme_color' => $request->theme_color ?? '#1b2735',
+            'display_settings' => DisplaySettings::inheritedForNewSchedule(),
         ]);
 
         $this->processBlocks($request->blocks, $liturgy, $schedule);
@@ -95,12 +102,17 @@ class LiturgyController extends Controller
         return view('liturgy.edit', compact('schedule'));
     }
 
-    public function controlPanel(Schedule $schedule)
+    public function controlPanel(Schedule $schedule, SlideBuilder $builder)
     {
         $schedule->load(['details', 'customSlides', 'liturgy.items']);
-        $announcements = Announcement::where('is_active', true)->orderBy('order_num')->get();
-        
-        return view('liturgy.control_panel', compact('schedule', 'announcements'));
+        $payload = PresenterController::payload($schedule, $builder);
+
+        return view('liturgy.control_panel', [
+            'schedule' => $schedule,
+            'payload' => $payload,
+            'backgrounds' => config('presentation.backgrounds'),
+            'fonts' => config('presentation.fonts'),
+        ]);
     }
 
     public function update(Request $request, Schedule $schedule)
@@ -136,8 +148,13 @@ class LiturgyController extends Controller
             $this->saveDetails($schedule, $request);
         }
 
+        ActivityLog::record('jadwal.ubah', $schedule, 'Mengubah isi jadwal ' . $schedule->worship_date->translatedFormat('d F Y'));
+        PresenterState::bumpContent($schedule->id);
+
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true]);
+            $fresh = $schedule->fresh();
+
+            return response()->json(['success' => true] + PresenterController::payload($fresh, app(SlideBuilder::class)));
         }
 
         if (str_contains(url()->previous(), 'kontrol')) {
@@ -175,6 +192,7 @@ class LiturgyController extends Controller
             } elseif ($type === 'alkitab') {
                 $itemTitle = 'Bacaan Alkitab: ' . ($title ?: 'Pelayanan Firman');
                 $dynContent = [
+                    'ref' => trim((string) ($block['ref'] ?? '')),
                     'content' => is_array($content) ? ($content[0] ?? '') : $content,
                     'use_camera' => $useCamera
                 ];
@@ -201,15 +219,13 @@ class LiturgyController extends Controller
         }
     }
 
-    public function presentation(Schedule $schedule)
+    public function presentation(Request $request, Schedule $schedule, SlideBuilder $builder)
     {
-        Carbon::setLocale('id');
-        $scheduleDetails = $schedule->details()->get()->keyBy('liturgy_item_id');
-        $liturgyItems = $schedule->liturgy->items;
-        $customSlides = $schedule->customSlides()->get()->groupBy('liturgy_item_id');
-        $announcements = Announcement::where('is_active', true)->orderBy('order_num')->get();
-        
-        return view('liturgy.presentation', compact('schedule', 'liturgyItems', 'scheduleDetails', 'customSlides', 'announcements'));
+        return view('liturgy.presentation', [
+            'schedule' => $schedule,
+            'payload' => PresenterController::payload($schedule, $builder),
+            'remote' => $request->boolean('remote'),
+        ]);
     }
 
     private function saveDetails($schedule, $request)
@@ -252,7 +268,20 @@ class LiturgyController extends Controller
             foreach ($request->custom_slides as $itemId => $slides) {
                 foreach ($slides as $slide) {
                     if (!empty($slide['title']) && !empty($slide['content'])) {
-                        
+                        // Lagu sisipan: isi JSON {judul, bait} disimpan apa adanya
+                        if (($slide['kind'] ?? null) === ScheduleCustomSlide::KIND_SONG) {
+                            if (is_array(json_decode((string) $slide['content'], true))) {
+                                ScheduleCustomSlide::create([
+                                    'schedule_id' => $schedule->id,
+                                    'liturgy_item_id' => $itemId,
+                                    'kind' => ScheduleCustomSlide::KIND_SONG,
+                                    'title' => mb_substr((string) $slide['title'], 0, 250),
+                                    'content' => (string) $slide['content'],
+                                ]);
+                            }
+                            continue;
+                        }
+
                         $contentStr = $slide['content'];
                         
                         // PERBAIKAN: Menggunakan penanda aman [KAMERA_AKTIF]
@@ -279,110 +308,25 @@ class LiturgyController extends Controller
     public function destroy(Schedule $schedule)
     {
         $schedule->delete();
+        ActivityLog::record('jadwal.hapus', null, 'Menghapus jadwal ' . $schedule->worship_date->translatedFormat('d F Y'));
         return back()->with('success', 'Jadwal ibadah berhasil dihapus.');
     }
 
-    public function fetchAlkitab(Request $request)
+    public function fetchAlkitab(Request $request, Bible $bible)
     {
-        $query = strtolower(trim($request->query('q')));
-        if (!$query) return response()->json(['success' => false, 'message' => 'Silakan masukkan ayat.']);
-
-        $splitColon = explode(':', $query);
-        if (count($splitColon) !== 2) {
-            return response()->json(['success' => false, 'message' => 'Format salah! Gunakan titik dua (:). Contoh: Yohanes 3:16']);
-        }
-
-        $leftSide = trim($splitColon[0]);
-        $rightSide = trim($splitColon[1]);
-
-        $lastSpacePos = strrpos($leftSide, ' ');
-        if ($lastSpacePos === false) {
-            return response()->json(['success' => false, 'message' => 'Format salah! Beri spasi antara kitab dan pasal. Contoh: Yohanes 3:16']);
-        }
-
-        $bookName = trim(substr($leftSide, 0, $lastSpacePos));
-        $chapter = trim(substr($leftSide, $lastSpacePos + 1));
-        
-        $verseParts = explode('-', $rightSide);
-        $startVerse = (int)trim($verseParts[0]);
-        $endVerse = isset($verseParts[1]) ? (int)trim($verseParts[1]) : $startVerse;
-
-        $books = [
-            'kejadian' => 1, 'kej' => 1, 'keluaran' => 2, 'kel' => 2, 'imamat' => 3, 'ima' => 3,
-            'bilangan' => 4, 'bil' => 4, 'ulangan' => 5, 'ula' => 5, 'yosua' => 6, 'yos' => 6,
-            'hakim-hakim' => 7, 'hakim' => 7, 'hak' => 7, 'rut' => 8, '1 samuel' => 9, '1samuel' => 9, '1 sam' => 9,
-            '2 samuel' => 10, '2samuel' => 10, '2 sam' => 10, '1 raja-raja' => 11, '1 raja' => 11, '1raj' => 11, '1 raj' => 11,
-            '2 raja-raja' => 12, '2 raja' => 12, '2raj' => 12, '2 raj' => 12, '1 tawarikh' => 13, '1tawarikh' => 13, '1 taw' => 13,
-            '2 tawarikh' => 14, '2tawarikh' => 14, '2 taw' => 14, 'ezra' => 15, 'ezr' => 15, 'nehemia' => 16, 'neh' => 16,
-            'ester' => 17, 'est' => 17, 'ayub' => 18, 'ayu' => 18, 'mazmur' => 19, 'maz' => 19, 'amsal' => 20, 'ams' => 20,
-            'pengkhotbah' => 21, 'peng' => 21, 'kidung agung' => 22, 'kidung' => 22, 'kid' => 22, 'yesaya' => 23, 'yes' => 23,
-            'yeremia' => 24, 'yer' => 24, 'ratapan' => 25, 'rat' => 25, 'yehezkiel' => 26, 'yeh' => 26, 'daniel' => 27, 'dan' => 27,
-            'hosea' => 28, 'hos' => 28, 'yoel' => 29, 'yoe' => 29, 'amos' => 30, 'amo' => 30, 'obaja' => 31, 'oba' => 31,
-            'yunus' => 32, 'yun' => 32, 'mikha' => 33, 'mik' => 33, 'nahum' => 34, 'nah' => 34, 'habakuk' => 35, 'hab' => 35,
-            'zefanya' => 36, 'zef' => 36, 'hagai' => 37, 'hag' => 37, 'zakharia' => 38, 'zak' => 38, 'maleakhi' => 39, 'mal' => 39,
-            'matius' => 40, 'mat' => 40, 'markus' => 41, 'mar' => 41, 'mrk' => 41, 'lukas' => 42, 'luk' => 42,
-            'yohanes' => 43, 'yoh' => 43, 'kisah para rasul' => 44, 'kisah' => 44, 'kis' => 44, 'roma' => 45, 'rom' => 45,
-            '1 korintus' => 46, '1 kor' => 46, '1kor' => 46, '2 korintus' => 47, '2 kor' => 47, '2kor' => 47,
-            'galatia' => 48, 'gal' => 48, 'efesus' => 49, 'efe' => 49, 'filipi' => 50, 'fil' => 50, 'kolose' => 51, 'kol' => 51,
-            '1 tesalonika' => 52, '1 tes' => 52, '1tes' => 52, '2 tesalonika' => 53, '2 tes' => 53, '2tes' => 53,
-            '1 timotius' => 54, '1 tim' => 54, '1tim' => 54, '2 timotius' => 55, '2 tim' => 55, '2tim' => 55,
-            'titus' => 56, 'tit' => 56, 'filemon' => 57, 'flm' => 57, 'ibrani' => 58, 'ibr' => 58, 'yakobus' => 59, 'yak' => 59,
-            '1 petrus' => 60, '1 pet' => 60, '1pet' => 60, '2 petrus' => 61, '2 pet' => 61, '2pet' => 61,
-            '1 yohanes' => 62, '1 yoh' => 62, '1yoh' => 62, '2 yohanes' => 63, '2 yoh' => 63, '2yoh' => 63,
-            '3 yohanes' => 64, '3 yoh' => 64, '3yoh' => 64, 'yudas' => 65, 'yud' => 65, 'wahyu' => 66, 'wah' => 66
-        ];
-
-        if (!isset($books[$bookName])) {
-            return response()->json(['success' => false, 'message' => "Kitab '{$bookName}' tidak ditemukan dalam sistem. Cek ejaan Anda."]);
-        }
-
-        $bookId = $books[$bookName];
-
-        $url = "https://www.wordproject.org/bibles/id/{$bookId}/{$chapter}.htm";
-        
         try {
-            $response = Http::withoutVerifying()->timeout(15)->get($url);
-            
-            if ($response->successful()) {
-                $html = $response->body();
-                
-                $parts = explode('<span class="verse" id="', $html);
-                $chapterVerses = [];
-                
-                foreach($parts as $idx => $part) {
-                    if ($idx == 0) continue;
-                    
-                    $explodeBracket = explode('>', $part, 2);
-                    if (count($explodeBracket) < 2) continue;
-                    
-                    $idPart = $explodeBracket[0];
-                    $textPart = $explodeBracket[1];
-                    
-                    $verseNum = (int) str_replace('"', '', $idPart);
-                    
-                    $textPart = preg_replace('/^\d+\s*<\/span>/', '', $textPart); 
-                    $cleanText = trim(strip_tags($textPart));
-                    $chapterVerses[$verseNum] = preg_replace('/\s+/', ' ', $cleanText);
-                }
-
-                $text = "";
-                for ($v = $startVerse; $v <= $endVerse; $v++) {
-                    if (isset($chapterVerses[$v])) {
-                        $text .= $v . ". " . $chapterVerses[$v] . "\n";
-                    }
-                }
-                
-                if (!empty(trim($text))) {
-                    return response()->json(['success' => true, 'text' => trim($text)]);
-                } else {
-                    return response()->json(['success' => false, 'message' => "Ayat {$startVerse}-{$endVerse} tidak ditemukan di pasal {$chapter}."]);
-                }
-            } else {
-                 return response()->json(['success' => false, 'message' => "Server pangkalan data Alkitab sedang sibuk (Status: " . $response->status() . "). Coba beberapa saat lagi."]);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => "Koneksi ke pangkalan data terputus. Pastikan internet Anda aktif."]);
+            $passage = $bible->passage((string) $request->query('q', ''));
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
+
+        return response()->json([
+            'success' => true,
+            'reference' => $passage['reference'],
+            'version' => $passage['version'],
+            'count' => count($passage['verses']),
+            'text' => $passage['text'],
+        ]);
     }
 
     public function exportPdf(Schedule $schedule)

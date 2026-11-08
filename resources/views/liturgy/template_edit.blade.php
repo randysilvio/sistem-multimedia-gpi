@@ -1,69 +1,25 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Template Master - GPI Papua</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 100px; color:#1e293b; }
-        .navbar { background-color: #0f172a !important; }
-        .navbar-brand { font-weight: 700; letter-spacing: 1px; font-size: 1.1rem; }
-        
-        .builder-container { max-width: 800px; margin: auto; margin-top: 30px; }
-        
-        .block-wrapper { position: relative; }
-        .block-card { background: white; border-radius: 8px; padding: 25px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
-        .block-card:focus-within { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); border-color: #6ee7b7; }
-        
-        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; }
-        .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
-        
-        /* DESAIN GARIS SISIPKAN */
-        .insert-divider { position: relative; height: 36px; display: flex; align-items: center; justify-content: center; margin-top: -12px; margin-bottom: -12px; z-index: 10; opacity: 0; transition: opacity 0.3s; }
-        .block-wrapper:hover .insert-divider, .insert-divider:hover, .insert-divider.show { opacity: 1; z-index: 950; }
-        .top-divider { opacity: 1; margin-bottom: 15px; margin-top: 0; height: 40px; }
-        .insert-divider::before { content: ""; position: absolute; width: 100%; height: 2px; background: #cbd5e1; z-index: 1; border-radius: 2px; transition: 0.2s; }
-        .block-wrapper:hover .insert-divider::before { background: #94a3b8; }
-        
-        .btn-insert { position: relative; z-index: 2; background: #ffffff; color: #475569; border: 1px solid #cbd5e1; border-radius: 50%; width: 34px; height: 34px; font-weight: 400; font-size: 22px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; line-height: 1; }
-        .btn-insert:hover, .btn-insert[aria-expanded="true"] { border-color: #10b981; color: #10b981; background: #ecfdf5; transform: scale(1.1); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15); }
-        
-        /* DROPDOWN KUSTOM */
-        .dropdown-menu { border-radius: 8px; padding: 8px 0; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1050 !important; min-width: 220px; }
-        .dropdown-item { padding: 10px 20px; font-size: 0.85rem; font-weight: 500; color: #334155; cursor: pointer; }
-        .dropdown-item:hover { background-color: #f8fafc; color: #0f172a; }
+@extends('layouts.admin')
 
-        .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
-        .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; }
-        .btn-primary-custom:hover { background-color: #1e293b; color: white; }
-    </style>
-</head>
-<body>
+@section('eyebrow', 'Template Liturgi')
+@section('title')
+Edit Template: {{ $liturgy->name }}
+@endsection
 
-    @php
-    // Logika Pintar untuk mengkategorikan data lama ke dalam 3 warna visual baru
-    function getCategoryColorAndLabel($title) {
-        $lower = strtolower($title);
-        if (str_contains($lower, 'nyanyian') || str_contains($lower, 'pujian')) {
-            return ['color' => '#2b6cb0', 'label' => 'KERANGKA NYANYIAN'];
-        } elseif (str_contains($lower, 'alkitab') || str_contains($lower, 'bacaan')) {
-            return ['color' => '#2c5282', 'label' => 'KERANGKA BACAAN ALKITAB'];
-        } else {
-            return ['color' => '#718096', 'label' => 'KERANGKA TEKS BEBAS / INSTRUKSI'];
-        }
-    }
+@section('actions')
+<a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-secondary">Batal</a>
+@endsection
+
+@section('content')
+@php
+    // Kategori warna per bagian: aturannya sama dengan pembuat slide ("Doa Pembacaan Alkitab" = teks).
+    // Closure (bukan fungsi global) agar aman bila halaman dirender lebih dari sekali dalam satu proses.
+    $categoryStyle = fn ($title) => match (\App\Services\SlideBuilder::itemType($title)) {
+        'nyanyian' => ['color' => '#2b6cb0', 'label' => 'KERANGKA NYANYIAN'],
+        'alkitab' => ['color' => '#2c5282', 'label' => 'KERANGKA BACAAN ALKITAB'],
+        default => ['color' => '#718096', 'label' => 'KERANGKA TEKS BEBAS / INSTRUKSI'],
+    };
     @endphp
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3 mb-4">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI" height="32" class="me-3">
-                <span>Edit Template Master</span>
-            </a>
-            <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Batal & Kembali</a>
-        </div>
-    </nav>
 
     <div class="container builder-container">
         <form action="{{ route('liturgy.template.update', $liturgy->id) }}" method="POST">
@@ -98,7 +54,7 @@
 
                 @foreach($liturgy->items as $index => $item)
                     @php
-                        $style = getCategoryColorAndLabel($item->title);
+                        $style = $categoryStyle($item->title);
                         $blockId = 'old_' . $item->id;
                     @endphp
                     
@@ -136,15 +92,15 @@
 
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary-custom">SIMPAN PERUBAHAN TEMPLATE</button>
+                    <button type="submit" class="btn btn-primary btn-primary-custom">Simpan perubahan template</button>
                 </div>
             </div>
         </form>
     </div>
+@endsection
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
+@push('scripts')
+<script>
         let blockCount = {{ count($liturgy->items) * 10 }}; 
 
         function insertBlock(type, referenceId) {
@@ -207,5 +163,4 @@
             document.getElementById('wrapper-' + newId).scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     </script>
-</body>
-</html>
+@endpush

@@ -1,0 +1,8 @@
+# Folder unggahan (logo, warta): JANGAN pernah menjalankan skrip dari sini.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>
+Options -ExecCGI -Indexes

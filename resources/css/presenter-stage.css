@@ -1,0 +1,464 @@
+/* =============================================================================
+   KANVAS SLIDE (dipakai layar live + semua pratinjau control panel)
+   Slide selalu digambar di kanvas logis 1920x1080 lalu di-scale, sehingga
+   pratinjau operator identik dengan layar live.
+   Semua animasi HANYA memakai transform/opacity -> dikerjakan GPU (compositor),
+   tanpa repaint per frame dan tanpa loop JavaScript.
+   ============================================================================= */
+
+/* Font layar live disimpan LOKAL (bukan Google Fonts): huruf tetap sama walau internet gereja putus */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+@import '@fontsource/inter/900.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/700.css';
+@import '@fontsource/montserrat/800.css';
+@import '@fontsource/playfair-display/600.css';
+@import '@fontsource/playfair-display/800.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+@import '@fontsource/oswald/500.css';
+@import '@fontsource/oswald/700.css';
+@import '@fontsource/lato/700.css';
+@import '@fontsource/lato/900.css';
+
+.pv-viewport {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    contain: strict;
+}
+
+.pv-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    color: var(--pv-text, #fff);
+    font-family: var(--pv-font, 'Inter'), 'Inter', Tahoma, sans-serif;
+    --pv-shadow: rgba(0, 0, 0, .85);
+    --c1: #1b2735;
+    --c2: #2b6cb0;
+    --c3: #05070d;
+    --speed: 1;
+    --intensity: .7;
+}
+
+/* ---------- Lapisan kamera ---------- */
+.pv-cam {
+    position: absolute;
+    inset: 0;
+    display: none;
+    background: #000;
+}
+.pv-cam video { width: 100%; height: 100%; object-fit: cover; }
+.pv-cam-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        repeating-linear-gradient(135deg, #1a202c 0 40px, #232b3a 40px 80px);
+    color: rgba(255, 255, 255, .35);
+    font: 800 90px/1 Inter, sans-serif;
+    letter-spacing: 12px;
+}
+.pv-stage.is-camera .pv-cam { display: block; }
+.pv-stage.is-camera .pv-bg { opacity: 0; }
+
+/* ---------- Konten slide ---------- */
+.pv-content {
+    position: absolute;
+    inset: 0;
+    opacity: 1;
+    transition: opacity .32s ease;
+}
+.pv-content.is-entering { opacity: 0; }
+.pv-content.is-leaving { opacity: 0; }
+.pv-stage.is-text-hidden .pv-content { opacity: 0 !important; }
+
+.pv-header {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+}
+.pv-header-text { min-width: 0; text-align: left; }
+.pv-header-title {
+    font-size: 58px;
+    font-weight: 800;
+    line-height: 1.12;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--pv-text);
+    opacity: .92;
+    text-shadow: 0 3px 14px var(--pv-shadow);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.pv-header-chip {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 6px 22px;
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, .45);
+    background: rgba(0, 0, 0, .25);
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+.pv-header-chip.is-reff { border-color: #f6c453; color: #f6c453; }
+.pv-header-chip.is-speaker { border-color: #8fd0ff; color: #d6efff; background: rgba(30, 90, 160, .35); }
+.pv-header-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0));
+}
+.pv-logo {
+    height: 150px;
+    max-height: 70%;
+    width: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, .6));
+}
+.pv-header.is-centered { justify-content: center; }
+.pv-header.is-centered .pv-logo { height: 200px; max-height: 80%; }
+
+/* Kotak tulisan: posisi diisi JS dari batas cm */
+.pv-box {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+}
+.pv-fit {
+    max-width: 100%;
+    line-height: 1.3;
+    font-weight: 700;
+    text-wrap: balance;
+    /* Kata tidak dipotong di tengah: bila kata terlalu panjang, huruf yang dikecilkan */
+    overflow-wrap: normal;
+    text-shadow: 0 4px 18px var(--pv-shadow), 0 2px 4px var(--pv-shadow);
+}
+.pv-fit.is-instruksi { text-transform: uppercase; letter-spacing: .04em; font-weight: 800; }
+.pv-fit .pv-sub { font-size: .42em; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .78; margin-bottom: .45em; }
+.pv-fit .pv-big { font-weight: 900; line-height: 1.12; text-transform: uppercase; }
+.pv-fit .pv-meta { font-size: .4em; font-weight: 600; letter-spacing: .06em; opacity: .85; margin-top: .55em; }
+.pv-fit .pv-accent { color: #f6c453; }
+
+/* ---------- Pembeda slide NYANYIAN (lirik, sampul lagu, respons yang dinyanyikan) ----------
+   Kalimat liturgi tetap warna teks biasa; nyanyian memakai warna lagu (--pv-song, bawaan emas)
+   sehingga jemaat langsung tahu bagian ini dinyanyikan. */
+.pv-content.is-song .pv-fit { color: var(--pv-song, #ffe08a); }
+.pv-content.is-song .pv-header-title { color: var(--pv-song, #ffe08a); opacity: 1; }
+.pv-content.is-song .pv-header-line { background: linear-gradient(90deg, var(--pv-song, #ffe08a), rgba(255, 224, 138, 0)); }
+.pv-header-chip.is-song {
+    border-color: var(--pv-song, #ffe08a);
+    color: var(--pv-song, #ffe08a);
+    background: rgba(120, 85, 10, .35);
+}
+.pv-header-chip.is-song.is-reff { background: rgba(150, 100, 0, .5); }
+.pv-content.is-song .pv-fit .pv-sub { opacity: .9; }
+
+/* ---------- Sampul pembukaan: logo besar di tengah ---------- */
+.pv-fit.is-cover { display: flex; flex-direction: column; align-items: center; }
+.pv-cover-logo {
+    display: block;
+    height: 3em;
+    width: auto;
+    max-width: 100%;
+    margin: 0 auto .3em;
+    filter: drop-shadow(0 .08em .25em rgba(0, 0, 0, .55));
+}
+
+/* ---------- Gaya slide lirik (design.songStyle) ----------
+   nomor  : nomor bait / REFF besar berbayang di pojok kiri, lirik di depannya
+   terang : seperti nomor, di atas kartu putih dengan lirik hitam tebal
+   klasik : label "Bait 1" / "Reff" di area atas
+   kiri   : rata kiri dengan garis aksen dan label kecil */
+.pv-mark {
+    position: absolute;
+    font-family: 'Oswald', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+    line-height: .8;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+    pointer-events: none;
+    color: transparent;
+    background: linear-gradient(172deg, rgba(255, 255, 255, .5) 6%, rgba(255, 255, 255, .06) 92%);
+    background: linear-gradient(172deg, color-mix(in srgb, var(--pv-text) 52%, transparent) 6%, color-mix(in srgb, var(--pv-text) 6%, transparent) 92%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter: drop-shadow(0 .025em .05em rgba(0, 0, 0, .28));
+}
+.pv-mark.is-word { letter-spacing: .03em; }
+.pv-content.ss-nomor .pv-fit,
+.pv-content.ss-terang .pv-fit { font-weight: 800; line-height: 1.24; }
+
+.pv-content.ss-terang::before { content: ''; position: absolute; inset: 0; background: #fff; }
+.pv-content.ss-terang .pv-fit,
+.pv-content.ss-terang .pv-header-title { color: #141414; text-shadow: none; }
+.pv-content.ss-terang .pv-header-title { opacity: .7; }
+.pv-content.ss-terang .pv-header-line { background: linear-gradient(90deg, rgba(0, 0, 0, .25), rgba(0, 0, 0, 0)); }
+.pv-content.ss-terang .pv-logo { filter: none; }
+.pv-content.ss-terang .pv-mark {
+    background: linear-gradient(172deg, #9c9c9c 6%, rgba(205, 205, 205, .12) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter: drop-shadow(0 .02em .04em rgba(0, 0, 0, .16));
+}
+
+.pv-content.ss-kiri .pv-box { justify-content: flex-start; text-align: left; }
+.pv-fit.is-ss-kiri {
+    padding-left: .6em;
+    border-left: .1em solid color-mix(in srgb, currentColor 65%, transparent);
+    text-wrap: pretty;
+}
+.pv-ss-label {
+    font-family: 'Oswald', 'Arial Narrow', sans-serif;
+    font-weight: 500;
+    font-size: .42em;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    opacity: .75;
+    margin-bottom: .35em;
+}
+/* Bacaan Alkitab */
+.pv-header-chip.is-ref { letter-spacing: 1px; text-transform: none; border-color: #9be7c4; color: #e3fff2; background: rgba(20, 110, 80, .35); }
+.pv-fit.is-bible { text-align: left; text-wrap: pretty; line-height: 1.34; font-weight: 600; width: 100%; }
+.pv-fit.is-bible .pv-sub { text-align: center; }
+.pv-verse { margin: 0 0 .32em; }
+.pv-verse:last-child { margin-bottom: 0; }
+.pv-vn {
+    font-size: .52em;
+    font-weight: 800;
+    color: #f6c453;
+    vertical-align: .62em;
+    line-height: 0;
+    margin-right: .28em;
+    letter-spacing: 0;
+}
+.pv-fit.is-bible-ref .pv-big { text-transform: none; letter-spacing: .01em; }
+.pv-fit.is-bible-ref .pv-meta { opacity: .65; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+
+/* Mode kamera: tulisan di bawah dengan pita gelap agar tetap terbaca */
+.pv-band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, .92) 0%, rgba(0, 0, 0, .7) 45%, rgba(0, 0, 0, 0) 100%);
+}
+.pv-stage.is-camera .pv-box { align-items: flex-end; }
+
+/* Warta sinode: gambar layar penuh */
+.pv-warta { position: absolute; inset: 0; background: #000; }
+.pv-warta-item {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+.pv-warta-item.is-on { opacity: 1; }
+.pv-warta-item img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.pv-warta-caption {
+    position: relative;
+    margin-bottom: 60px;
+    padding: 14px 48px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .8);
+    font-size: 40px;
+    font-weight: 700;
+}
+
+/* Garis bantu kalibrasi (ukur dengan meteran di layar sebenarnya) */
+.pv-guides { position: absolute; inset: 0; pointer-events: none; display: none; }
+.pv-stage.show-guides .pv-guides { display: block; }
+.pv-guide-box {
+    position: absolute;
+    border: 4px dashed #f6c453;
+    background: rgba(246, 196, 83, .06);
+}
+.pv-guide-label {
+    position: absolute;
+    padding: 4px 14px;
+    background: #f6c453;
+    color: #111;
+    font: 700 26px/1.2 Inter, sans-serif;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+/* Layar hitam / putih (B / W) */
+.pv-blank {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease;
+    background: #000;
+}
+.pv-stage.is-black .pv-blank { opacity: 1; background: #000; }
+.pv-stage.is-white .pv-blank { opacity: 1; background: #fff; }
+
+/* =============================================================================
+   LATAR ANIMASI
+   ============================================================================= */
+.pv-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: var(--c3);
+    transition: opacity .4s ease;
+}
+.pv-bg > * { position: absolute; will-change: transform; pointer-events: none; }
+.pv-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 55%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, .55) 100%);
+    pointer-events: none;
+}
+.pv-bg.is-paused *,
+.pv-bg.is-paused *::before { animation-play-state: paused !important; }
+
+/* 1. Gradien statis */
+.pv-bg--static { background: radial-gradient(circle at 50% 38%, var(--c1) 0%, var(--c3) 78%); }
+
+/* 2. Aurora: 3 gumpalan warna lembut yang melayang */
+.pv-bg--aurora { background: radial-gradient(circle at 50% 50%, var(--c3) 0%, #000 100%); }
+.pv-bg--aurora .pv-blob {
+    width: 1500px;
+    height: 1500px;
+    border-radius: 50%;
+    opacity: var(--intensity);
+}
+.pv-blob.b1 { left: -420px; top: -620px; background: radial-gradient(circle, var(--c1) 0%, rgba(0, 0, 0, 0) 66%); animation: pv-drift-a calc(26s / var(--speed)) ease-in-out infinite alternate; }
+.pv-blob.b2 { right: -520px; top: -320px; background: radial-gradient(circle, var(--c2) 0%, rgba(0, 0, 0, 0) 66%); animation: pv-drift-b calc(34s / var(--speed)) ease-in-out infinite alternate; }
+.pv-blob.b3 { left: 280px; bottom: -900px; background: radial-gradient(circle, var(--c1) 0%, rgba(0, 0, 0, 0) 62%); animation: pv-drift-c calc(30s / var(--speed)) ease-in-out infinite alternate; }
+@keyframes pv-drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(560px, 300px, 0) scale(1.25); } }
+@keyframes pv-drift-b { from { transform: translate3d(0, 0, 0) scale(1.15); } to { transform: translate3d(-620px, 260px, 0) scale(.9); } }
+@keyframes pv-drift-c { from { transform: translate3d(0, 0, 0) scale(.95); } to { transform: translate3d(380px, -320px, 0) scale(1.2); } }
+
+/* 3. Gradien mengalir: pita warna panjang yang bergeser (pola berulang mulus) */
+.pv-bg--flow .pv-flow {
+    left: 0;
+    top: 0;
+    width: 3840px;
+    height: 1080px;
+    opacity: calc(.35 + var(--intensity) * .65);
+    background: linear-gradient(90deg, var(--c1) 0%, var(--c2) 16.666%, var(--c3) 33.333%, var(--c1) 50%, var(--c2) 66.666%, var(--c3) 83.333%, var(--c1) 100%);
+    animation: pv-slide-half calc(40s / var(--speed)) linear infinite;
+}
+@keyframes pv-slide-half { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-1920px, 0, 0); } }
+
+/* 4. Cahaya bokeh: bulatan cahaya naik perlahan */
+.pv-bg--bokeh { background: radial-gradient(circle at 50% 30%, var(--c1) 0%, var(--c3) 80%); }
+.pv-bg--bokeh .pv-dots { inset: 0; opacity: var(--intensity); will-change: auto; }
+.pv-dot {
+    position: absolute;
+    bottom: -320px;
+    width: var(--s);
+    height: var(--s);
+    left: var(--x);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--dc) 0%, rgba(0, 0, 0, 0) 68%);
+    will-change: transform;
+    animation: pv-rise calc(var(--d) / var(--speed)) linear infinite;
+    animation-delay: calc(var(--o) * -1s / var(--speed));
+}
+@keyframes pv-rise { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(var(--dx), -1500px, 0); } }
+
+/* 5. Gelombang di bagian bawah */
+.pv-bg--waves { background: linear-gradient(180deg, var(--c3) 0%, var(--c1) 100%); }
+.pv-bg--waves .pv-wave {
+    left: 0;
+    bottom: 0;
+    width: 3840px;
+    height: 420px;
+    color: var(--c2);
+    animation: pv-slide-half calc(var(--d) / var(--speed)) linear infinite;
+}
+.pv-bg--waves .pv-wave svg { width: 100%; height: 100%; display: block; }
+.pv-wave.w1 { --d: 46s; opacity: calc(var(--intensity) * .35); bottom: 120px; }
+.pv-wave.w2 { --d: 32s; opacity: calc(var(--intensity) * .5); bottom: 50px; animation-direction: reverse; }
+.pv-wave.w3 { --d: 22s; opacity: calc(var(--intensity) * .75); }
+
+/* 6. Sinar berputar */
+.pv-bg--rays { background: radial-gradient(circle at 50% 50%, var(--c1) 0%, var(--c3) 75%); }
+.pv-bg--rays .pv-rays {
+    left: -540px;
+    top: -1020px;
+    width: 3000px;
+    height: 3000px;
+    border-radius: 50%;
+    opacity: calc(var(--intensity) * .45);
+    background: repeating-conic-gradient(from 0deg, var(--c2) 0deg 5deg, rgba(0, 0, 0, 0) 5deg 15deg);
+    animation: pv-spin calc(120s / var(--speed)) linear infinite;
+}
+@keyframes pv-spin { to { transform: rotate(360deg); } }
+
+/* 7. Grid bergerak */
+.pv-bg--grid { background: radial-gradient(circle at 50% 45%, var(--c1) 0%, var(--c3) 80%); }
+.pv-bg--grid .pv-grid {
+    left: -96px;
+    top: -96px;
+    width: 2112px;
+    height: 1272px;
+    opacity: var(--intensity);
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .09) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 255, 255, .09) 2px, transparent 2px);
+    background-size: 96px 96px;
+    animation: pv-grid-move calc(10s / var(--speed)) linear infinite;
+}
+@keyframes pv-grid-move { to { transform: translate3d(96px, 96px, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .pv-bg * { animation-play-state: paused !important; }
+}
+
+/* ---------- Teks cepat (pengumuman singkat di bawah layar) ---------- */
+.pv-ticker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    padding: 26px 90px 30px;
+    background: linear-gradient(180deg, rgba(8, 12, 24, .9), rgba(8, 12, 24, .97));
+    border-top: 6px solid #f6c453;
+    color: #fff;
+    font-family: 'Inter', Tahoma, sans-serif;
+    font-size: 50px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    transform: translateY(110%);
+    transition: transform .35s ease;
+}
+.pv-stage.has-ticker .pv-ticker { transform: none; }
+
+/* ---------- Latar video ---------- */
+.pv-bg--video { background: var(--c3, #05070d); }
+.pv-bg--video .pv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Penggelap supaya tulisan tetap terbaca di atas video (mengikuti Intensitas) */
+.pv-bg--video .pv-video-shade { position: absolute; inset: 0; background: rgba(0, 0, 0, calc(.75 - var(--intensity, .7) * .45)); }

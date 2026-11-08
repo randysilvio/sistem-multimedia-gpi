@@ -15,6 +15,20 @@ class TrustProxies extends Middleware
     protected $proxies;
 
     /**
+     * Proxy tepercaya dari .env (TRUSTED_PROXIES): "*" untuk Cloudflare / load balancer /
+     * panel hosting yang meneruskan HTTPS, atau daftar IP dipisah koma. Kosong = tidak ada.
+     */
+    protected function proxies()
+    {
+        $value = config('app.trusted_proxies');
+        if ($value === null || $value === '') {
+            return $this->proxies;
+        }
+
+        return $value === '*' ? '*' : array_map('trim', explode(',', $value));
+    }
+
+    /**
      * The headers that should be used to detect proxies.
      *
      * @var int

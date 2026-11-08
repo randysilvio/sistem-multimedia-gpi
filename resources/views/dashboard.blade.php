@@ -1,59 +1,126 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+@extends('layouts.admin')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow duration-300 flex flex-col h-full border border-gray-100">
-                    <div class="p-6 border-b border-gray-100 flex-grow">
-                        <div class="flex items-center mb-4">
-                            <div class="p-3 rounded-xl bg-blue-50 text-blue-600 mr-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />
-                                </svg>
-                            </div>
-                            <h4 class="text-xl font-bold text-gray-800">Sistem Layar Proyektor</h4>
-                        </div>
-                        <p class="text-gray-600 text-sm mb-4 leading-relaxed">
-                            Pusat kendali utama untuk merakit tata ibadah, menyusun slide presentasi, dan mengendalikan tampilan layar proyektor secara langsung (Live Control Panel).
-                        </p>
-                    </div>
-                    <div class="bg-gray-50 px-6 py-4">
-                        <a href="{{ route('liturgy.gallery') }}" class="inline-flex justify-center w-full items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">
-                            Buka Sistem Multimedia
-                        </a>
-                    </div>
+@section('eyebrow', 'Shalom, ' . (Auth::user()->name ?? 'Admin'))
+@section('title', 'Dashboard')
+
+@section('actions')
+    <a href="{{ route('liturgy.gallery') }}" class="btn btn-primary">Jadwal Baru</a>
+@endsection
+
+@section('content')
+<div class="row g-4">
+    {{-- Ibadah berikutnya --}}
+    <div class="col-12">
+        <div class="adm-hero">
+            <img src="{{ $logoUrl }}" alt="" class="adm-hero-logo" width="150" height="150" onerror="this.style.display='none'">
+            @if($nextSchedule)
+                <span class="adm-pill">Ibadah berikutnya &middot; {{ $nextSchedule->worship_date->isToday() ? 'Hari ini' : ($nextSchedule->worship_date->isTomorrow() ? 'Besok' : now()->startOfDay()->diffInDays($nextSchedule->worship_date->copy()->startOfDay()) . ' hari lagi') }}</span>
+                <h2>{{ $nextSchedule->theme ?: str_replace(' (Custom)', '', $nextSchedule->liturgy->name ?? 'Ibadah') }}</h2>
+                <div class="adm-hero-meta mb-3">
+                    {{ $nextSchedule->worship_date->locale('id')->translatedFormat('l, d F Y') }}
+                    &middot; {{ str_replace(' (Custom)', '', $nextSchedule->liturgy->name ?? 'Ibadah') }}
+                    @if($nextSchedule->preacher_name) &middot; Pelayan firman: {{ $nextSchedule->preacher_name }} @endif
                 </div>
-
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow duration-300 flex flex-col h-full border border-gray-100">
-                    <div class="p-6 border-b border-gray-100 flex-grow">
-                        <div class="flex items-center mb-4">
-                            <div class="p-3 rounded-xl bg-emerald-50 text-emerald-600 mr-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19.5V15m6 4.5v-4.5M9 15V9m6 6V9m-6 0V6m6 0v3m-3-9v18.75m-4.5 0h9" />
-                                </svg>
-                            </div>
-                            <h4 class="text-xl font-bold text-gray-800">Database Nyanyian</h4>
-                        </div>
-                        <p class="text-gray-600 text-sm mb-4 leading-relaxed">
-                            Kelola koleksi lirik lagu (Kidung Jemaat, NKB, PKJ, Rohani) yang tersimpan secara lokal. Tambahkan lagu baru agar siap ditarik secara otomatis ke dalam slide presentasi.
-                        </p>
-                    </div>
-                    <div class="bg-gray-50 px-6 py-4">
-                        <a href="{{ route('songs.index') }}" class="inline-flex justify-center w-full items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:bg-emerald-700 active:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">
-                            Kelola Database Lagu
-                        </a>
-                    </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('liturgy.control', $nextSchedule) }}" class="btn btn-light">Buka Control Panel</a>
+                    <a href="{{ route('liturgy.edit', $nextSchedule) }}" class="btn btn-outline-light">Edit Isi</a>
+                    <a href="{{ route('liturgy.control', [$nextSchedule, 'uji' => 1]) }}" class="btn btn-outline-light" title="Periksa semua slide: huruf terlalu kecil, slide kosong">Uji Tayang</a>
                 </div>
-
-            </div>
-
+            @else
+                <span class="adm-pill">Ibadah berikutnya</span>
+                <h2>Belum ada jadwal mendatang</h2>
+                <div class="adm-hero-meta mb-3">Buat jadwal dari template liturgi atau rakit presentasi kustom.</div>
+                <a href="{{ route('liturgy.gallery') }}" class="btn btn-light">Buat Jadwal</a>
+            @endif
         </div>
     </div>
-</x-app-layout>
+
+    @if($nextSchedule && $readiness)
+    {{-- Cek kesiapan ibadah berikutnya --}}
+    <div class="col-12">
+        <div class="adm-card">
+            <div class="adm-card-head">
+                <h2>Cek kesiapan ibadah</h2>
+                <span class="adm-muted small">{{ $nextSchedule->worship_date->locale('id')->translatedFormat('l, d F Y') }}</span>
+            </div>
+            <ul class="adm-checklist">
+                @foreach($readiness as $row)
+                    <li class="is-{{ $row['level'] }}">
+                        <span>{{ $row['text'] }}</span>
+                        @if($row['url'])<a href="{{ $row['url'] }}" class="adm-link-btn">Perbaiki</a>@endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    @endif
+
+    {{-- Statistik --}}
+    @php
+        $statCards = [
+            ['Jadwal ibadah', $stats['schedules'], route('liturgy.gallery')],
+            ['Template liturgi', $stats['templates'], route('liturgy.gallery')],
+            ['Lagu tersimpan', $stats['songs'], route('songs.index')],
+            ['Warta aktif', $stats['announcements'], route('announcement.index')],
+        ];
+    @endphp
+    @foreach($statCards as [$label, $value, $url])
+        <div class="col-6 col-xl-3">
+            <a href="{{ $url }}" class="adm-card adm-stat text-decoration-none text-reset h-100">
+                <span>
+                    <span class="adm-stat-value d-block">{{ number_format($value, 0, ',', '.') }}</span>
+                    <span class="adm-stat-label">{{ $label }}</span>
+                </span>
+            </a>
+        </div>
+    @endforeach
+
+    {{-- Jadwal terbaru --}}
+    <div class="col-lg-7">
+        <div class="adm-card h-100">
+            <div class="adm-card-head">
+                <h2>Jadwal terbaru</h2>
+                <a href="{{ route('liturgy.gallery') }}" class="small fw-semibold text-decoration-none">Lihat semua</a>
+            </div>
+            @if($recentSchedules->isEmpty())
+                <div class="adm-card-body adm-muted">Belum ada jadwal ibadah.</div>
+            @else
+                <ul class="adm-list">
+                    @foreach($recentSchedules as $s)
+                        <li>
+                            <span class="adm-date"><b>{{ $s->worship_date->format('d') }}</b><span>{{ $s->worship_date->locale('id')->translatedFormat('M') }}</span></span>
+                            <span class="flex-grow-1 min-w-0">
+                                <strong class="d-block text-truncate">{{ $s->theme ?: str_replace(' (Custom)', '', $s->liturgy->name ?? 'Ibadah') }}</strong>
+                                <span class="small adm-muted text-truncate d-block">{{ str_replace(' (Custom)', '', $s->liturgy->name ?? 'Ibadah') }}@if($s->preacher_name) &middot; {{ $s->preacher_name }}@endif</span>
+                            </span>
+                            <a href="{{ route('liturgy.edit', $s) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a href="{{ route('liturgy.control', $s) }}" class="btn btn-sm btn-primary">Live</a>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+    </div>
+
+    {{-- Akses cepat + logo --}}
+    <div class="col-lg-5">
+        <div class="d-grid gap-3">
+            <a href="{{ route('liturgy.builder') }}" class="adm-quick">
+                <span><strong>Presentasi kustom</strong><span>Rakit slide sekali pakai tanpa template</span></span>
+            </a>
+            <a href="{{ route('songs.create') }}" class="adm-quick">
+                <span><strong>Tambah lagu</strong><span>Simpan lirik agar bisa ditarik ke slide</span></span>
+            </a>
+            <a href="{{ route('announcement.index') }}" class="adm-quick">
+                <span><strong>Unggah warta sinode</strong><span>Gambar 1920×1080 tampil sebelum ibadah</span></span>
+            </a>
+            <a href="{{ route('settings.edit') }}" class="adm-quick">
+                <span>
+                    <strong>{{ $hasUploadedLogo ? 'Ganti logo gereja' : 'Unggah logo gereja' }}</strong>
+                    <span>{{ $hasUploadedLogo ? 'Logo unggahan sedang dipakai di semua layar' : 'Belum ada logo unggahan, memakai logo bawaan' }}</span>
+                </span>
+            </a>
+        </div>
+    </div>
+</div>
+@endsection

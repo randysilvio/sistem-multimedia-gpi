@@ -11,7 +11,7 @@ if (!function_exists('cleanSlideTitle')) {
     }
 }
 
-// FUNGSI PEMOTONG TEKS PINTAR (Smart Splitter)
+// Pemotong teks panjang menjadi beberapa slide
 if (!function_exists('smartSplitText')) {
     function smartSplitText($text) {
         if (is_array($text)) { $text = $text['content'] ?? ''; }
@@ -66,7 +66,7 @@ if (!function_exists('smartSplitText')) {
                 $lastWordPushed = $currentSlideLines[count($currentSlideLines)-1];
                 $endsInPunctuation = preg_match('/[.?!,;:]$/', $lastWordPushed);
 
-                // LOGIKA POTONG SLIDE: Potong jika sudah 3 baris, ATAU 2 baris tapi berakhiran tanda baca
+                // Potong slide setelah 3 baris, atau 2 baris yang berakhir dengan tanda baca
                 if (count($currentSlideLines) >= 3 || (count($currentSlideLines) >= 2 && $endsInPunctuation)) {
                     $slides[] = implode("\n", $currentSlideLines);
                     $currentSlideLines = [];

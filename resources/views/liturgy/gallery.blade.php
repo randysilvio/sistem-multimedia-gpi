@@ -1,185 +1,118 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galeri Presentasi - GPI Papua</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style> 
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; } 
-        
-        .navbar { background-color: #0f172a !important; }
-        .navbar-brand { font-weight: 700; letter-spacing: 1px; font-size: 1.1rem; }
-        
-        /* Tombol Navbar Profesional */
-        .nav-actions .btn { font-size: 0.85rem; letter-spacing: 0.3px; font-weight: 600; }
-        .btn-warta { background-color: #0ea5e9; color: white; border: none; }
-        .btn-warta:hover { background-color: #0284c7; color: white; }
+@extends('layouts.admin')
 
-        .section-label { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .section-label::after { content: ""; flex: 1; height: 1px; background-color: #e2e8f0; }
-        
-        /* SCROLL CONTAINER */
-        .template-scroll-container { display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 20px; padding-top: 5px; scrollbar-width: thin; }
-        .template-scroll-container::-webkit-scrollbar { height: 8px; }
-        .template-scroll-container::-webkit-scrollbar-track { background: transparent; }
-        .template-scroll-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+@section('eyebrow', 'Ibadah')
+@section('title')
+Jadwal &amp; Presentasi
+@endsection
 
-        /* KARTU TEMPLATE ELEGAN */
-        .template-card { flex: 0 0 220px; height: 160px; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; display: flex; flex-direction: column; text-decoration: none !important; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); padding: 20px; }
-        .template-card:hover { border-color: #3b82f6; box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.15); transform: translateY(-4px); }
+@section('actions')
+<a href="{{ route('liturgy.template.create') }}" class="btn btn-outline-secondary">Template Baru</a>
+<a href="{{ route('liturgy.builder') }}" class="btn btn-outline-secondary">Presentasi Kustom</a>
+<a href="{{ route('liturgy.import') }}" class="btn btn-primary">Buat dari Buletin</a>
+@endsection
 
-        .watermark-logo { position: absolute; right: -25px; bottom: -25px; height: 120px; opacity: 0.04; z-index: 0; pointer-events: none; filter: grayscale(100%); transition: transform 0.4s ease; }
-        .template-card:hover .watermark-logo { transform: scale(1.1) rotate(-5deg); }
+@section('content')
+    @php $logo = \App\Services\Branding::logoUrl(); @endphp
 
-        .t-card-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-        .t-card-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
-        .t-card-title { font-size: 1.05rem; font-weight: 800; color: #1e293b; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-
-        .card-action { font-size: 0.75rem; font-weight: 600; color: #3b82f6; display: flex; align-items: center; justify-content: space-between; }
-        .action-link { text-decoration: none; color: #3b82f6; font-size: 0.75rem; }
-        .action-link:hover { text-decoration: underline; }
-        .delete-btn { color: #ef4444; border: none; background: transparent; padding: 0; font-size: 0.75rem; font-weight: 600; cursor: pointer; z-index: 10; position: relative; }
-        .delete-btn:hover { text-decoration: underline; }
-
-        .template-card.create-new { background: #f8fafc; border: 2px dashed #cbd5e1; }
-        .template-card.create-new:hover { background: #eff6ff; border-color: #3b82f6; }
-        .template-card.create-new .t-card-title { color: #3b82f6; }
-        
-        .template-card.create-template { background: #f0fdf4; border: 2px dashed #a7f3d0; }
-        .template-card.create-template:hover { background: #ecfdf5; border-color: #10b981; }
-        .template-card.create-template .t-card-title { color: #10b981; }
-
-        .table { font-size: 0.9rem; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .table thead th { background-color: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; padding-top: 15px; padding-bottom: 15px;}
-        .table tbody td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f8fafc; }
-        
-        .btn-control { background-color: #2b6cb0; color: white; border: none; font-weight: 600; }
-        .btn-control:hover { background-color: #1e40af; color: white; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('dashboard') }}">
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI" height="32" class="me-3">
-                <span>Sistem Multimedia</span>
-            </a>
-            <div class="d-flex gap-2 nav-actions">
-                <a href="{{ route('dashboard') }}" class="btn btn-outline-light px-3">Ke Dashboard</a>
-                <a href="{{ route('songs.index') }}" class="btn btn-light px-4 text-primary">Database Lagu</a>
-                <a href="{{ route('announcement.index') }}" class="btn btn-warta px-4">Kelola Warta Sinode</a>
+    <div class="adm-section-label">Mulai dari template</div>
+    <div class="adm-template-grid mb-4">
+        @foreach($liturgies as $liturgy)
+            <div class="adm-template">
+                <a class="stretched" href="{{ route('liturgy.create', ['liturgy_id' => $liturgy->id]) }}" aria-label="Gunakan template {{ $liturgy->name }}"></a>
+                <img src="{{ $logo }}" class="adm-template-watermark" alt="">
+                <div class="adm-template-kicker">Template tata ibadah</div>
+                <div class="adm-template-title">{{ $liturgy->name }}</div>
+                @if($liturgy->description)<div class="adm-template-desc">{{ $liturgy->description }}</div>@endif
+                <div class="adm-template-foot">
+                    <span class="use">Gunakan</span>
+                    <span class="d-flex gap-3">
+                        <a href="{{ route('liturgy.template.edit', $liturgy->id) }}" class="adm-link-btn">Edit</a>
+                        <form action="{{ route('liturgy.template.destroy', $liturgy->id) }}" method="POST" class="m-0" data-confirm="Hapus template {{ $liturgy->name }} secara permanen?">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="adm-link-btn is-danger">Hapus</button>
+                        </form>
+                    </span>
+                </div>
             </div>
+        @endforeach
+
+        <a href="{{ route('liturgy.builder') }}" class="adm-template is-new">
+            <div class="adm-template-kicker text-primary">Sekali pakai</div>
+            <div class="adm-template-title text-primary">Presentasi kustom</div>
+            <div class="adm-template-desc">Susun slide bebas tanpa template, mis. ibadah khusus atau acara gereja.</div>
+            <div class="adm-template-foot"><span class="use">Buat baru</span></div>
+        </a>
+        <a href="{{ route('liturgy.template.create') }}" class="adm-template is-new is-green">
+            <div class="adm-template-kicker text-success">Database master</div>
+            <div class="adm-template-title text-success">Template baru</div>
+            <div class="adm-template-desc">Rancang kerangka tata ibadah yang bisa dipakai berulang setiap minggu.</div>
+            <div class="adm-template-foot"><span class="use text-success">Rancang kerangka</span></div>
+        </a>
+    </div>
+
+    <div class="adm-card">
+        <div class="adm-card-head">
+            <h2>Jadwal tersimpan</h2>
+            <span class="adm-muted small">{{ $schedules->total() }} jadwal</span>
         </div>
-    </nav>
-
-    <div class="bg-white py-5 border-bottom shadow-sm mb-5">
-        <div class="container">
-            <h6 class="section-label">Manajemen Tata Ibadah</h6>
-            <div class="template-scroll-container">
-                <a href="{{ route('liturgy.builder') }}" class="template-card create-new">
-                    <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
-                    <div class="t-card-content">
-                        <div class="t-card-type text-primary">Kustomisasi Langsung</div>
-                        <div class="t-card-title">Presentasi Sekali Pakai</div>
-                        <div class="card-action text-primary">Buat Baru &rarr;</div>
-                    </div>
-                </a>
-
-                <a href="{{ route('liturgy.template.create') }}" class="template-card create-template">
-                    <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
-                    <div class="t-card-content">
-                        <div class="t-card-type text-success">Database Master</div>
-                        <div class="t-card-title">Buat Template Baru</div>
-                        <div class="card-action text-success">Rancang Kerangka &rarr;</div>
-                    </div>
-                </a>
-
-                @if(isset($liturgies))
-                    @foreach($liturgies as $liturgy)
-                        <div class="template-card" onclick="window.location='{{ route('liturgy.create', ['liturgy_id' => $liturgy->id]) }}'">
-                            <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="watermark-logo">
-                            <div class="t-card-content">
-                                <div class="t-card-type">Template Tersimpan</div>
-                                <div class="t-card-title">{{ $liturgy->name }}</div>
-                                <div class="card-action">
-                                    <span>Gunakan &rarr;</span>
-                                    <div class="d-flex gap-3">
-                                        <a href="{{ route('liturgy.template.edit', $liturgy->id) }}" class="action-link text-secondary" onclick="event.stopPropagation();">Edit</a>
-                                        <form action="{{ route('liturgy.template.destroy', $liturgy->id) }}" method="POST" onclick="event.stopPropagation();" onsubmit="return confirm('Hapus template ini secara permanen?')">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="delete-btn">Hapus</button>
-                                        </form>
+        @if($schedules->isEmpty())
+            <div class="adm-empty">
+                <strong>Belum ada jadwal</strong>
+                Pilih salah satu template di atas untuk menyusun jadwal ibadah pertama.
+            </div>
+        @else
+            <div class="table-responsive">
+                <table class="adm-table adm-table-stack">
+                    <thead>
+                        <tr><th>Tanggal ibadah</th><th>Tata ibadah</th><th>Pelayan firman</th><th class="text-end">Aksi</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach($schedules as $schedule)
+                        @php $date = \Carbon\Carbon::parse($schedule->worship_date); @endphp
+                        <tr>
+                            <td data-label="Tanggal">
+                                <div class="fw-bold">{{ $date->translatedFormat('l') }}</div>
+                                <div class="small adm-muted">{{ $date->translatedFormat('d F Y') }}</div>
+                            </td>
+                            <td data-label="Tata ibadah">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="adm-dot" style="background: {{ $schedule->theme_color ?? '#cbd5e0' }}"></span>
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold">{{ $schedule->liturgy->name ?? 'Presentasi Kustom' }}</div>
+                                        @if($schedule->theme)<div class="small adm-muted">{{ $schedule->theme }}</div>@endif
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    @endforeach
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <div class="container pb-5">
-        @if(session('success')) 
-            <div class="alert alert-success shadow-sm border-0 border-start border-4 border-success mb-4 fw-medium">{{ session('success') }}</div> 
-        @endif
-
-        <h6 class="section-label">Riwayat Presentasi Tersimpan</h6>
-
-        <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-body p-0">
-                @if(isset($schedules) && $schedules->isEmpty())
-                    <div class="text-center p-5 text-muted">
-                        <i>Belum ada jadwal presentasi yang tersimpan. Silakan pilih template di atas untuk memulai.</i>
-                    </div>
-                @elseif(isset($schedules))
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th class="ps-4">Hari / Tanggal Ibadah</th>
-                                <th>Jenis Tata Ibadah</th>
-                                <th>Pelayan Firman</th>
-                                <th class="text-end pe-4">Aksi Presentasi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($schedules as $schedule)
-                                <tr>
-                                    <td class="ps-4 align-middle">
-                                        <div class="fw-bold text-dark">{{ \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l') }}</div>
-                                        <div class="small text-muted">{{ \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('d F Y') }}</div>
-                                    </td>
-                                    <td class="align-middle">
-                                        <div class="d-flex align-items-center">
-                                            <div style="width: 12px; height: 12px; background-color: {{ $schedule->theme_color ?? '#cbd5e0' }}; border-radius: 50%; margin-right: 12px;"></div>
-                                            <div>
-                                                <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ $schedule->liturgy->name ?? 'Presentasi Kustom' }}</div>
-                                                @if($schedule->theme)
-                                                    <div class="small text-muted" style="font-size: 0.75rem;">{{ $schedule->theme }}</div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="align-middle text-secondary fw-medium">{{ $schedule->preacher_name ?? '-' }}</td>
-                                    <td class="text-end pe-4 align-middle">
-                                        <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-outline-primary btn-sm fw-bold px-3 me-1">Edit Data</a>
-                                        <a href="{{ route('liturgy.control', $schedule->id) }}" class="btn btn-control btn-sm fw-bold px-3 me-1">Live Control</a>
-                                        
-                                        <form action="{{ route('liturgy.destroy', $schedule->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data presentasi ini secara permanen?')">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-light border btn-sm text-danger">&times;</button>
+                            </td>
+                            <td data-label="Pelayan firman">{{ $schedule->preacher_name ?: '-' }}</td>
+                            <td class="adm-td-actions">
+                                <div class="adm-row-actions">
+                                    <a href="{{ route('liturgy.edit', $schedule->id) }}" class="btn btn-sm btn-soft">Edit</a>
+                                    <a href="{{ route('liturgy.bulletin', $schedule->id) }}" class="btn btn-sm btn-soft" target="_blank" rel="noopener" title="Cetak buletin tata ibadah (booklet)">Buletin</a>
+                                    <div class="dropdown">
+                                        <button type="button" class="btn btn-sm btn-soft" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Salin jadwal ini ke tanggal lain">Duplikat</button>
+                                        <form method="POST" action="{{ route('liturgy.duplicate', $schedule) }}" class="dropdown-menu dropdown-menu-end p-3 adm-dup-form">
+                                            @csrf
+                                            <label class="form-label small fw-semibold">Salin ke tanggal</label>
+                                            <input type="date" name="worship_date" class="form-control form-control-sm mb-2" required value="{{ $date->copy()->addWeek()->toDateString() }}">
+                                            <p class="small adm-muted mb-2">Isi, slide sisipan & tampilan ikut disalin. Ganti lagu & ayat sesudahnya.</p>
+                                            <button type="submit" class="btn btn-sm btn-primary w-100">Duplikat</button>
                                         </form>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
+                                    </div>
+                                    <a href="{{ route('liturgy.control', $schedule->id) }}" class="btn btn-sm btn-primary">Kontrol Live</a>
+                                    <form action="{{ route('liturgy.destroy', $schedule->id) }}" method="POST" data-confirm="Hapus jadwal {{ $date->translatedFormat('d F Y') }} secara permanen?">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-soft is-danger" aria-label="Hapus jadwal">Hapus</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
             </div>
-        </div>
+            @if($schedules->hasPages())
+                <div class="p-3 border-top">{{ $schedules->links() }}</div>
+            @endif
+        @endif
     </div>
-</body>
-</html>
+@endsection

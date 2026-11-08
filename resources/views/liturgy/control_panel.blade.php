@@ -1,1135 +1,538 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel Kontrol Ibadah - GPI Papua</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@600;800&family=Playfair+Display:wght@600;800&family=Roboto:wght@500;700&family=Oswald:wght@500;700&family=Lato:wght@700;900&display=swap');
-        
-        body { background: #121212; color: #e0e0e0; height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; margin: 0; padding: 0;}
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-        
-        /* TRANSISI LAYOUT */
-        .layout-wrapper { display: flex; width: 100vw; height: 100vh; overflow: hidden; transition: 0.3s ease; }
-        
-        /* SIDEBAR EDITOR (KIRI) */
-        .sidebar { width: 28%; height: 100vh; overflow-y: auto; background: #1a1a1a; border-right: 1px solid #2d2d2d; padding: 15px; position: relative; transition: 0.3s ease; flex-shrink: 0; display: flex; flex-direction: column;}
-        .sidebar.collapsed { width: 0; padding: 0; border: none; overflow: hidden; opacity: 0; }
-        .sidebar-content { flex-grow: 1; overflow-y: auto; padding-bottom: 20px; }
-        
-        .card-edit { background: #242424; border: 1px solid #333; border-radius: 6px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
-        .form-label-header { font-weight: 600; color: #a0aec0; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 8px; display: block; border-bottom: 1px solid #333; padding-bottom: 4px; }
-        textarea.form-control, input.form-control, select.form-control { background: #181818 !important; color: #cbd5e0 !important; border: 1px solid #333 !important; font-size: 0.8rem; border-radius: 4px; padding: 6px 10px;}
-        textarea.form-control:focus, input.form-control:focus, select.form-control:focus { border-color: #3182ce !important; box-shadow: none; color: #fff !important; }
-        .input-group-text { background: #2d2d2d !important; color: #a0aec0 !important; border-color: #333 !important; font-size: 0.75rem; border-radius: 4px 0 0 4px; padding: 4px 8px; min-width: 65px; justify-content: center; font-weight: bold;}
-        .custom-slide-box { background: #1e1e1e; border: 1px solid #4a5568; border-radius: 4px; padding: 8px; margin-top: 8px; border-left: 3px solid #4299e1; }
-        .btn-add-slide { font-size: 0.7rem; font-weight: 500; border: 1px dashed #4a5568; color: #a0aec0; background: transparent; padding: 5px; width: 100%; border-radius: 4px; transition: 0.2s;}
-        .btn-add-slide:hover { border-color: #cbd5e0; color: #fff; background: #2d2d2d; }
-        .btn-primary-custom { background-color: #2b6cb0; color: white; border: none; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.5px; transition: 0.2s;}
-        .btn-primary-custom:hover { background-color: #2c5282; color: white; }
-        .floating-save { position: sticky; bottom: -15px; margin-left: -15px; margin-right: -15px; padding: 15px; background: rgba(26,26,26,0.95); border-top: 1px solid #333; z-index: 100; backdrop-filter: blur(5px); }
-
-        /* AREA PRESENTER */
-        .presenter-view { flex-grow: 1; height: 100vh; background: #0f0f0f; display: flex; flex-direction: column; transition: 0.3s ease; min-width: 0; position: relative;}
-        
-        .ppt-topbar { padding: 10px 24px; background: #1a1a1a; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; z-index: 1050; position: relative;}
-        .btn-ui-toggle { background: transparent; border: 1px solid #4a5568; color: #a0aec0; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
-        .btn-ui-toggle:hover, .btn-ui-toggle.active { background: #4a5568; color: #fff; }
-        .timer-display { font-family: 'Inter', monospace; font-size: 0.9rem; color: #a0aec0; font-weight: 600; display: flex; gap: 15px; align-items: center;}
-
-        /* GRID GAYA POWERPOINT */
-        .ppt-layout {
-            display: flex;
-            gap: 30px;
-            padding: 30px;
-            flex-grow: 1;
-            min-height: 0;
-            position: relative;
-        }
-        .ppt-main-col { flex: 2.5; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .ppt-side-col { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-
-        .monitor-box { background: #000; position: relative; border-radius: 6px; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; container-type: size; }
-        .current-slide-box { width: 100%; aspect-ratio: 16/9; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.8);}
-        .next-slide-box { width: 100%; aspect-ratio: 16/9; border: 1px solid #333; opacity: 0.85; }
-        
-        /* PRATINJAU KAMERA LOKAL */
-        .preview-cam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; }
-
-        /* KONTROL NAVIGASI BAWAH LAYAR UTAMA */
-        .ppt-controls { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 25px; width: 100%; }
-        .ppt-btn-nav { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #a0aec0; background: transparent; color: #a0aec0; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold;}
-        .ppt-btn-nav:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); transform: scale(1.05);}
-        .ppt-slide-counter { color: #e2e8f0; font-size: 1rem; font-weight: 600; min-width: 120px; text-align: center; }
-
-        /* OVERLAY GALERI LAYAR PENUH */
-        .fullscreen-gallery-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 15, 15, 0.98); z-index: 1000;
-            display: none; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px; padding: 40px; align-content: flex-start; overflow-y: auto;
-            backdrop-filter: blur(10px);
-        }
-        .fullscreen-gallery-overlay.expanded { display: grid; }
-
-        /* THUMBNAIL GALERI VISUAL ASLI */
-        .mini-slide-thumb {
-            width: 100%; aspect-ratio: 16/9; background: #000; display: flex; flex-direction: column;
-            position: relative; border-radius: 6px; overflow: hidden; box-sizing: border-box;
-            container-type: size; cursor: pointer; border: 2px solid #333; transition: 0.2s;
-        }
-        .mini-slide-thumb:hover { border-color: #63b3ed; transform: scale(1.03); z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
-        .mini-slide-thumb.active { border-color: #4299e1; border-width: 3px; box-shadow: 0 0 20px rgba(66,153,225,0.6); }
-        .mini-thumb-badge {
-            position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.85); color: #fff;
-            font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; z-index: 50; border: 1px solid #444; font-weight: bold;
-        }
-
-        /* ================= VIRTUAL RENDERER CSS (DISINKRONKAN DENGAN PROYEKTOR TV 55 INCH) ================= */
-        :root { --bg-center: #1b2735; --bg-edge: #050505; --text-color: #ffffff; --shadow-color: rgba(0,0,0,0.9); --font-family: 'Inter', sans-serif; }
-        
-        .sp-container { 
-            width: 100%; height: 100%; 
-            background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%); 
-            color: var(--text-color); font-family: var(--font-family); 
-            display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
-            text-align: center; padding: 8cqh 8cqw; box-sizing: border-box; 
-            position: absolute; top:0; left:0; border-radius: inherit; z-index: 5; overflow: hidden;
-        }
-        .sp-container.mode-kamera { background: transparent; justify-content: flex-end; padding: 0; }
-        
-        .sp-container.mode-kamera .vp-inner-wrapper { 
-            width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.0) 100%); 
-            padding: 10cqh 8cqw 6cqh 8cqw; border-top: none; box-sizing: border-box; 
-            display: flex; flex-direction: column; align-items: center;
-        }
-        
-        .vp-watermark { position: absolute; top: -2cqh; left: 4cqw; font-size: 50cqh; font-weight: 900; line-height: 1; z-index: 1; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .vp-title-header { position: relative; z-index: 2; font-size: 2.2cqw; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.4cqw; font-weight: 600; margin-top: 1cqh; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 1.5cqh; width: 80%; flex-shrink:0;}
-        .vp-title-header.text-info { color: #63b3ed !important; border-bottom-color: rgba(99, 179, 237, 0.3) !important; }
-        
-        .vp-content { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; font-size: 5.2cqw; font-weight: 700; line-height: 1.4; text-shadow: 0px 4cqh 20cqw rgba(0,0,0,0.9), 0px 1cqh 5cqw rgba(0,0,0,0.8); max-width: 95%; word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance; }
-        .sp-container.mode-kamera .vp-content { margin: 0; font-size: 4.5cqw; text-shadow: 0px 2cqh 4cqw rgba(0,0,0,0.9), 0px 4cqh 15cqw rgba(0,0,0,1); }
-        
-        .vp-instruksi { position: relative; z-index: 2; margin: auto; font-size: 5.5cqw; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4cqw; text-shadow: 0px 4cqh 20cqw var(--shadow-color); word-wrap: break-word; overflow-wrap: break-word; text-wrap: balance;}
-        .sp-container.mode-kamera .vp-instruksi { font-size: 5cqw; text-shadow: 0px 2cqh 4cqw rgba(0,0,0,0.9), 0px 4cqh 15cqw rgba(0,0,0,1); }
-        
-        .kamera-logo-preview { position: absolute; top: 6cqh; right: 5cqw; height: 9cqh; z-index: 10; opacity: 0.85; filter: drop-shadow(0px 2cqh 6cqw rgba(0,0,0,0.8)); }
-        .kamera-watermark-title-preview { position: absolute; top: 6cqh; left: 5cqw; font-size: 2.2cqw; font-weight: 700; color: rgba(255, 255, 255, 0.65); text-transform: uppercase; letter-spacing: 0.3cqw; z-index: 10; text-shadow: 2px 2px 8px rgba(0,0,0,0.9); border-left: 4px solid rgba(99, 179, 237, 0.6); padding-left: 1.5cqw; text-align: left; line-height: 1.2; max-width: 40cqw;}
-
-        .per-slide-font-control { position: absolute; bottom: 10px; right: 10px; background: rgba(20,20,20,0.85); border: 1px solid #4299e1; border-radius: 6px; padding: 4px 10px; display: flex; gap: 8px; align-items: center; z-index: 50; backdrop-filter: blur(5px); }
-        .per-slide-font-control button { background: #2d2d2d; color: white; border: 1px solid #444; padding: 2px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        .per-slide-font-control button:hover { background: #4299e1; border-color: #4299e1; }
-        #slide-font-indicator { color: #fcd34d; font-size: 0.75rem; font-weight: bold; min-width: 45px; text-align: center; }
-
-        #toastAjax { position: fixed; bottom: 20px; left: 20px; background: #2b6cb0; color: white; padding: 10px 20px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); opacity: 0; transition: 0.3s; z-index: 9999; pointer-events: none;}
-    </style>
-</head>
-<body onkeydown="handleKeyboard(event)">
-
 @php
-    $liturgyItems = $schedule->liturgy ? $schedule->liturgy->items : collect();
-    $scheduleDetails = $schedule->details ? $schedule->details->keyBy('liturgy_item_id') : collect();
-    $customSlides = $schedule->customSlides ? $schedule->customSlides->groupBy('liturgy_item_id') : collect();
-
-    if (!function_exists('cleanSlideTitle')) {
-        function cleanSlideTitle($title) {
-            if (!is_string($title)) return '';
-            $title = str_ireplace('(opsional)', '', $title);
-            $title = preg_replace('/slide bebas\s*[:\-]?\s*/i', '', $title);
-            $title = preg_replace('/^nyanyian\s*[:\-]\s*/i', '', $title);
-            $title = preg_replace('/^nyanyian\s*$/i', '', trim($title));
-            return trim($title, " -:");
-        }
-    }
-
-    // =========================================================================================
-    // FUNGSI SMART SPLITTER (Disamakan 100% dengan Layar TV 55 Inch: 45 Char, 4 Baris)
-    // =========================================================================================
-    if (!function_exists('smartSplitText')) {
-        function smartSplitText($text) {
-            if (is_array($text)) { $text = $text['content'] ?? ''; }
-            if (!is_string($text)) $text = '';
-            
-            if (str_contains($text, '===SLIDE_BREAK===')) {
-                return array_filter(array_map('trim', explode('===SLIDE_BREAK===', $text)));
-            }
-            
-            $text = preg_replace("/[\r\n]+/", "\n", trim($text));
-            $maxCharsPerLine = 45; 
-            $maxLinesPerSlide = 4; 
-            
-            $rawLines = explode("\n", $text);
-            $processedLines = [];
-            
-            foreach ($rawLines as $line) {
-                $line = trim($line);
-                if (empty($line)) continue;
-                
-                $wrapped = wordwrap($line, $maxCharsPerLine, "\n", false);
-                $splitWrapped = explode("\n", $wrapped);
-                foreach ($splitWrapped as $wl) {
-                    $processedLines[] = trim($wl);
-                }
-            }
-            
-            $slides = [];
-            $currentSlideLines = [];
-            
-            foreach ($processedLines as $line) {
-                $currentSlideLines[] = $line;
-                
-                $endsInPunctuation = preg_match('/[.?!,;:]$/', $line);
-                $isLongEnough = count($currentSlideLines) >= 2;
-                
-                if (count($currentSlideLines) >= $maxLinesPerSlide || ($isLongEnough && $endsInPunctuation)) {
-                    $slides[] = implode("\n", $currentSlideLines);
-                    $currentSlideLines = [];
-                }
-            }
-
-            if (!empty($currentSlideLines)) { $slides[] = implode("\n", $currentSlideLines); }
-            
-            return empty($slides) ? [$text] : $slides;
-        }
-    }
-
-    $allSlides = [];
-    
-    if(isset($announcements) && $announcements->count() > 0) {
-        $slideImages = [];
-        foreach($announcements as $ann) {
-            $slideImages[] = [
-                'image_url' => asset('storage/' . $ann->image_path),
-                'caption' => strtoupper($ann->title ?? ''),
-                'duration' => $ann->duration ?? 5 
-            ];
-        }
-        $allSlides[] = [
-            'type' => 'announcements_slideshow',
-            'title' => 'WARTA SINODE',
-            'images' => $slideImages,
-            'use_camera' => false
+    // Ikon Bootstrap Icons (resources/icons.php), gaya ribbon PowerPoint
+    $ico = require resource_path('icons.php');
+        $svg = fn ($name) => '<svg class="cp-ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' . ($ico[$name] ?? '') . '</svg>';
+        $bgNames = ['static' => 'Statis', 'aurora' => 'Aurora', 'flow' => 'Mengalir', 'bokeh' => 'Bokeh', 'waves' => 'Gelombang', 'rays' => 'Sinar', 'grid' => 'Grid', 'video' => 'Video'];
+    @endphp
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="robots" content="noindex, nofollow">
+        <link rel="icon" href="{{ \App\Services\Branding::logoUrl() }}">
+        <title>Control Panel - {{ $schedule->theme ?: ($schedule->liturgy->name ?? 'Ibadah') }}</title>
+        @php
+            $presenterConfig = [
+            'scheduleId' => $schedule->id,
+            'slides' => $payload['slides'],
+            'settings' => $payload['settings'],
+            'version' => $payload['version'],
+            'logoUrl' => \App\Services\DisplaySettings::logoUrl(),
+            'videoUrl' => \App\Services\Branding::videoUrl(),
+            'sw' => asset('sw.js'),
+            'swScope' => rtrim(url('/'), '/') . '/',
+            'routes' => [
+                'projector' => route('liturgy.presentation', $schedule),
+                'slides' => route('presenter.slides', $schedule),
+                'settings' => route('presenter.settings', $schedule),
+                'state' => route('presenter.state.push', $schedule),
+                'insertSong' => route('presenter.insert_song', $schedule),
+                'stateGet' => route('presenter.state', $schedule),
+                'remote' => route('presenter.remote', $schedule),
+                'lagu' => route('api.lagu'),
+                'alkitab' => route('api.alkitab'),
+            ],
         ];
-    }
-    
-    $allSlides[] = [
-        'type' => 'cover',
-        'title' => str_replace(' (CUSTOM)', '', strtoupper($schedule->liturgy->name ?? 'IBADAH')),
-        'date' => \Carbon\Carbon::parse($schedule->worship_date)->translatedFormat('l, d F Y'),
-        'theme' => strtoupper($schedule->theme ?? ''),
-        'preacher' => strtoupper($schedule->preacher_name ?? ''),
-        'use_camera' => false
-    ];
+    @endphp
+    <script>
+        window.PRESENTER = @json($presenterConfig);
+    </script>
+    @vite(['resources/css/presenter-stage.css', 'resources/css/control-panel.css', 'resources/js/presenter/control.js'])
+</head>
+<body class="cp">
+<div class="cp-app">
 
-    foreach($liturgyItems as $item) {
-        $detail = $scheduleDetails->get($item->id);
-        $content = $detail ? $detail->dynamic_content : $item->static_content;
-        $isEmptyArray = is_array($content) && empty($content['judul']) && empty($content['bait']) && empty($content['content']);
-        $isEmptyString = !is_array($content) && trim($content) === '';
-        
-        $cleanBaseTitle = cleanSlideTitle($item->title);
-        $useCamera = is_array($content) && isset($content['use_camera']) && filter_var($content['use_camera'], FILTER_VALIDATE_BOOLEAN) == true;
-
-        if($content && !$isEmptyArray && !$isEmptyString) {
-            
-            if(is_array($content) && array_key_exists('custom_title', $content) && empty(trim($content['custom_title']))) {
-                $textInstruksi = $content['content'] ?? '';
-                $allSlides[] = ['type' => 'instruksi', 'title' => '', 'content' => $textInstruksi, 'use_camera' => $useCamera];
-            } 
-            elseif(is_array($content)) {
-                if(isset($content['custom_title']) && !empty(trim($content['custom_title']))) {
-                    $cTitle = cleanSlideTitle($content['custom_title']);
-                    $slidesText = smartSplitText($content['content'] ?? '');
-                    foreach($slidesText as $st) {
-                        $allSlides[] = ['type' => 'text', 'title' => $cTitle, 'content' => $st, 'use_camera' => $useCamera];
-                    }
-                } 
-                elseif(!empty($content['bait'])) {
-                    $songCoverTitle = $cleanBaseTitle;
-                    $songCoverContent = $content['judul'] ?? '';
-                    if (!empty($songCoverContent) && stripos($songCoverContent, $songCoverTitle) !== false) {
-                        $songCoverTitle = ''; 
-                    }
-
-                    $allSlides[] = [
-                        'type' => 'song_cover', 
-                        'title' => $songCoverTitle,
-                        'content' => $songCoverContent,
-                        'use_camera' => $useCamera
-                    ];
-                    
-                    foreach($content['bait'] as $key => $baitText) {
-                        $baitTextRaw = trim($baitText);
-                        if(empty($baitTextRaw)) continue;
-
-                        $isReff = false;
-                        if ((is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitTextRaw)) {
-                            $isReff = true;
-                        }
-
-                        $cleanBaitText = preg_replace('/^\[?REFF\]?\s*/i', '', $baitTextRaw);
-                        
-                        $displayIndex = '';
-                        if (!$isReff) {
-                            if (preg_match('/\d+/', $key, $matches)) { $displayIndex = $matches[0]; } 
-                            else { $displayIndex = $key; }
-                        }
-                        
-                        $laguTitle = $content['judul'] ?? '';
-                        if (!empty($laguTitle)) {
-                            if ($cleanBaseTitle !== '' && stripos($laguTitle, $cleanBaseTitle) !== false) { $slideTitle = $laguTitle; } 
-                            else { $slideTitle = ($cleanBaseTitle !== '' ? $cleanBaseTitle . ' - ' : '') . $laguTitle; }
-                        } else { $slideTitle = $cleanBaseTitle; }
-                        
-                        if($isReff) $slideTitle .= ' (Reff)';
-
-                        $baitSlides = smartSplitText($cleanBaitText);
-                        foreach($baitSlides as $bSlide) {
-                            $allSlides[] = [
-                                'type' => 'song_lyric',
-                                'watermark' => $displayIndex,
-                                'title' => $slideTitle,
-                                'content' => $bSlide,
-                                'use_camera' => $useCamera
-                            ];
-                        }
-                    }
-                } 
-                elseif(isset($content['content'])) {
-                     $slidesText = smartSplitText($content['content']);
-                     foreach($slidesText as $st) {
-                         $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st, 'use_camera' => $useCamera];
-                     }
-                }
-            } else {
-                $slidesText = smartSplitText($content);
-                foreach($slidesText as $st) {
-                    $allSlides[] = ['type' => 'text', 'title' => $cleanBaseTitle, 'content' => $st, 'use_camera' => $useCamera];
-                }
-            }
-        }
-        
-        if(isset($customSlides[$item->id])) {
-            foreach($customSlides[$item->id] as $cSlide) {
-                $cTitle = cleanSlideTitle($cSlide->title);
-                $cUseCamera = false;
-                $cleanContent = $cSlide->content;
-
-                if (str_contains($cleanContent, '[KAMERA_AKTIF]')) {
-                    $cUseCamera = true;
-                    $cleanContent = str_replace('[KAMERA_AKTIF]', '', $cleanContent);
-                }
-
-                if (empty($cTitle)) {
-                    $allSlides[] = ['type' => 'instruksi', 'title' => '', 'content' => $cleanContent, 'use_camera' => $cUseCamera];
-                } else {
-                    $cSlidesText = smartSplitText($cleanContent);
-                    foreach($cSlidesText as $ct) {
-                        $allSlides[] = ['type' => 'custom', 'title' => $cTitle, 'content' => $ct, 'use_camera' => $cUseCamera];
-                    }
-                }
-            }
-        }
-    }
-    $allSlides[] = ['type' => 'closing', 'title' => 'PENUTUP', 'content' => "TUHAN YESUS\nMEMBERKATI", 'use_camera' => false];
-@endphp
-
-<div id="toastAjax">Tersimpan Sinkron ⚡</div>
-
-<div class="layout-wrapper">
-    <div class="sidebar collapsed" id="sidebarPanel">
-        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
-            <h6 class="fw-bold m-0 text-white text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;">Kontrol Data</h6>
+    {{-- ================= BILAH JUDUL ================= --}}
+    <header class="cp-titlebar">
+        <div class="cp-brand">
+            <img src="{{ \App\Services\DisplaySettings::logoUrl() }}" alt="" class="cp-brand-logo" width="30" height="30" onerror="this.style.display='none'">
+            <div class="cp-brand-text">
+                <strong>{{ str_replace(' (Custom)', '', $schedule->liturgy->name ?? 'Ibadah') }}</strong>
+                <span>{{ \Carbon\Carbon::parse($schedule->worship_date)->locale('id')->translatedFormat('l, d F Y') }}@if($schedule->theme) &middot; {{ $schedule->theme }}@endif</span>
+            </div>
         </div>
-        
-        <div class="sidebar-content">
-            <form id="liveForm" action="{{ route('liturgy.update', $schedule->id) }}" method="POST">
-                @csrf
+        <div class="cp-titlebar-mid">
+            <span class="cp-pill" id="projector-status" title="Status layar live">Layar live: belum dibuka</span>
+        </div>
+        <div class="cp-titlebar-actions">
+            {{-- Mode persiapan (Normal view) --}}
+            <button type="button" class="cp-btn cp-btn-primary cp-only-normal" data-cmd="start-begin" title="Mulai tayangan dari slide pertama (F5)">{!! $svg('play') !!} Dari Awal</button>
+            <button type="button" class="cp-btn cp-only-normal" data-cmd="start-here" title="Mulai tayangan dari slide yang dipilih (Shift+F5)">{!! $svg('play') !!} Dari Slide Ini</button>
+            {{-- Mode tayang (Presenter view) --}}
+            <span class="cp-live-dot cp-only-present">● SEDANG TAYANG</span>
+            <button type="button" class="cp-btn cp-btn-danger cp-only-present" data-cmd="end-show" title="Akhiri tayangan, layar live kembali ke sampul (Esc 2×)">{!! $svg('stop') !!} Akhiri Tayangan</button>
+            <a href="{{ route('liturgy.gallery') }}" class="cp-btn cp-btn-ghost" title="Tutup & kembali ke daftar jadwal">Tutup</a>
+        </div>
+    </header>
 
-                <div class="card-edit" style="border-left: 3px solid #3182ce;">
-                    <label class="form-label-header text-info">Desain Latar & Huruf</label>
-                    <div class="mb-2">
-                        <select id="bg_type" name="bg_type" onchange="toggleBgSettings(); updateDesignLive()" class="form-select form-select-sm bg-dark text-white border-secondary fw-medium">
-                            <option value="gradient">Gradien Statis (Standar)</option>
-                            <option value="anim-linear">Animasi Gradien Garis</option>
-                            <option value="anim-radial">Animasi Gradien Bulat</option>
-                            <option value="anim-sweep">Animasi Gradien Sapuan</option>
-                            <option value="pattern-grid">Pola Grid Statis</option>
-                            <option value="pattern-grid-anim">Animasi Pola Grid</option>
-                            <option value="pattern-dots">Pola Titik</option>
-                            <option value="pattern-stripes">Pola Garis Miring</option>
-                            <option value="pattern-stripes-anim">Animasi Garis Miring</option>
+    {{-- ================= RIBBON (mode persiapan) ================= --}}
+    <nav class="cp-tabs" role="tablist" aria-label="Menu ribbon">
+        <button type="button" role="tab" class="cp-tab is-active" data-tab="home" aria-selected="true">Beranda</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="insert" aria-selected="false">Sisipkan</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="show" aria-selected="false">Tayangan Slide</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="background" aria-selected="false">Latar</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="text" aria-selected="false">Teks</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="song" aria-selected="false">Lagu</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="view" aria-selected="false">Layar</button>
+        <button type="button" role="tab" class="cp-tab" data-tab="edit" aria-selected="false">Isi &amp; Cetak</button>
+        <button type="button" class="cp-tab cp-tab-help" data-cmd="help" title="Daftar tombol pintas (?)">{!! $svg('help') !!}</button>
+    </nav>
+
+    <section class="cp-ribbon">
+        {{-- BERANDA: memilih slide dan layar live --}}
+        <div class="cp-panel is-active" data-panel="home" role="tabpanel">
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="search" title="Cari slide: lagu, bagian, atau kata (Ctrl+F)">{!! $svg('search') !!}<span>Cari Slide</span></button>
+                    <button type="button" class="cp-rb" data-cmd="grid" title="Lihat semua slide (G)">{!! $svg('grid') !!}<span>Semua Slide</span></button>
+                </div>
+                <div class="cp-group-label">Temukan</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="first" title="Pilih slide pertama (Home)">{!! $svg('first') !!}<span>Awal</span></button>
+                    <button type="button" class="cp-rb" data-cmd="prev" title="Pilih slide sebelumnya (↑ ←)">{!! $svg('prev') !!}<span>Sebelumnya</span></button>
+                    <button type="button" class="cp-rb" data-cmd="next" title="Pilih slide berikutnya (↓ →)">{!! $svg('next') !!}<span>Berikutnya</span></button>
+                    <button type="button" class="cp-rb" data-cmd="last" title="Pilih slide terakhir (End)">{!! $svg('last') !!}<span>Akhir</span></button>
+                </div>
+                <div class="cp-group-label">Pilih Slide (belum tayang)</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="edit-current" title="Edit isi slide ini (E)">{!! $svg('edit') !!}<span>Edit Slide</span></button>
+                    <button type="button" class="cp-rb" data-cmd="toggle-hidden" aria-pressed="false" title="Sembunyikan slide ini: dilewati saat tayang (H)">{!! $svg('hide-slide') !!}<span>Sembunyikan</span></button>
+                </div>
+                <div class="cp-group-label">Slide Ini</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body cp-font-ctl">
+                    <button type="button" class="cp-rb cp-rb-sm" data-cmd="font-down" title="Perkecil huruf slide ini (Ctrl -)"><b class="cp-glyph">A−</b><span>Kecil</span></button>
+                    <div class="cp-font-value"><strong id="font-value" data-font-value>Otomatis</strong><button type="button" class="cp-link" data-cmd="font-reset" title="Kembali ke ukuran otomatis (Ctrl 0)">Reset</button></div>
+                    <button type="button" class="cp-rb cp-rb-sm" data-cmd="font-up" title="Perbesar huruf slide ini (Ctrl +)"><b class="cp-glyph">A+</b><span>Besar</span></button>
+                </div>
+                <div class="cp-group-label">Ukuran Huruf Slide Ini</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="black" aria-pressed="false" title="Layar live hitam (B)">{!! $svg('black') !!}<span>Hitam</span></button>
+                    <button type="button" class="cp-rb" data-cmd="white" aria-pressed="false" title="Layar live putih (W)">{!! $svg('white') !!}<span>Putih</span></button>
+                </div>
+                <div class="cp-group-label">Layar Live</div>
+            </div>
+        </div>
+
+        {{-- SISIPKAN: tambahan mendadak saat ibadah --}}
+        <div class="cp-panel" data-panel="insert" role="tabpanel">
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="song-insert" title="Sisipkan lagu dari database setelah bagian ini (L)">{!! $svg('insert-song') !!}<span>Lagu Dadakan</span></button>
+                </div>
+                <div class="cp-group-label">Lagu</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="ticker" aria-pressed="false" title="Teks pengumuman singkat di bawah layar (K)">{!! $svg('ticker') !!}<span>Teks Cepat</span></button>
+                </div>
+                <div class="cp-group-label">Pengumuman</div>
+            </div>
+            <div class="cp-group cp-group-info">
+                <div class="cp-group-body">
+                    <p class="cp-info">Lagu dadakan masuk setelah bagian yang sedang dipilih.<br>Teks cepat tampil di bawah layar tanpa mengganti slide.</p>
+                </div>
+                <div class="cp-group-label">Keterangan</div>
+            </div>
+        </div>
+
+        {{-- TAYANGAN SLIDE (seperti tab "Slide Show" PowerPoint) --}}
+        <div class="cp-panel" data-panel="show" role="tabpanel">
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb cp-rb-lg cp-rb-start" data-cmd="start-begin" title="Mulai tayangan dari awal (F5)">{!! $svg('play') !!}<span>Dari Awal</span></button>
+                    <button type="button" class="cp-rb" data-cmd="start-here" title="Mulai dari slide yang dipilih (Shift+F5)">{!! $svg('play') !!}<span>Dari Slide Ini</span></button>
+                </div>
+                <div class="cp-group-label">Mulai Tayangan</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="check" title="Periksa semua slide: huruf terlalu kecil, slide kosong">{!! $svg('check') !!}<span>Uji Tayang</span></button>
+                    <button type="button" class="cp-rb" data-cmd="toggle-hidden" aria-pressed="false" title="Sembunyikan slide ini: dilewati saat tayang (H)">{!! $svg('hide-slide') !!}<span>Sembunyikan Slide</span></button>
+                </div>
+                <div class="cp-group-label">Siapkan</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="open-projector" title="Buka jendela layar live di monitor kedua">{!! $svg('display') !!}<span>Buka Layar Live</span></button>
+                    <button type="button" class="cp-rb" data-cmd="copy-remote" title="Salin link layar live untuk komputer lain">{!! $svg('link') !!}<span>Link 2 Komputer</span></button>
+                    <button type="button" class="cp-rb" data-cmd="phone-remote" title="Kendalikan slide dari HP (pindai QR)">{!! $svg('phone') !!}<span>Remote HP</span></button>
+                </div>
+                <div class="cp-group-label">Monitor</div>
+            </div>
+        </div>
+
+        {{-- LATAR --}}
+        <div class="cp-panel" data-panel="background" role="tabpanel">
+            <div class="cp-group cp-group-grow">
+                <div class="cp-group-body cp-bg-gallery" id="bg-gallery">
+                    @foreach($backgrounds as $bg)
+                        @continue($bg === 'video' && !\App\Services\Branding::videoUrl())
+                        <button type="button" class="cp-bg-tile" data-bg="{{ $bg }}" title="{{ $bgNames[$bg] ?? $bg }}">
+                            <span class="cp-bg-preview"></span>
+                            <span class="cp-bg-name">{{ $bgNames[$bg] ?? $bg }}</span>
+                        </button>
+                    @endforeach
+                </div>
+                <div class="cp-group-label">Latar Belakang</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <div class="cp-fields">
+                        <label class="cp-color"><input type="color" data-setting="design.color1"><span>Utama</span></label>
+                        <label class="cp-color"><input type="color" data-setting="design.color2"><span>Aksen</span></label>
+                        <label class="cp-color"><input type="color" data-setting="design.color3"><span>Gelap</span></label>
+                    </div>
+                    <select id="season-preset" class="cp-season" title="Pakai warna masa raya gerejawi">
+                        <option value="">Warna masa raya…</option>
+                        <option value="standar">Standar (biru)</option>
+                        <option value="biasa">Minggu Biasa (hijau)</option>
+                        <option value="adven">Adven (ungu)</option>
+                        <option value="natal">Natal (putih-emas)</option>
+                        <option value="sengsara">Pra-Paskah (ungu tua)</option>
+                        <option value="paskah">Paskah (putih-emas)</option>
+                        <option value="pentakosta">Pentakosta (merah)</option>
+                    </select>
+                </div>
+                <div class="cp-group-label">Warna</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <label class="cp-range"><span>Kecepatan</span><input type="range" min="0.25" max="3" step="0.25" data-setting="design.speed"><output data-out="design.speed"></output></label>
+                    <label class="cp-range"><span>Intensitas</span><input type="range" min="0" max="1" step="0.05" data-setting="design.intensity"><output data-out="design.intensity"></output></label>
+                    <label class="cp-check"><input type="checkbox" data-setting="design.powerSave"><span>Hemat daya (latar diam)</span></label>
+                </div>
+                <div class="cp-group-label">Gerak</div>
+            </div>
+        </div>
+
+        {{-- TEKS --}}
+        <div class="cp-panel" data-panel="text" role="tabpanel">
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <label class="cp-select"><span>Huruf</span>
+                        <select data-setting="design.font">
+                            @foreach($fonts as $font)<option value="{{ $font }}" style="font-family: '{{ $font }}'">{{ $font }}</option>@endforeach
                         </select>
-                    </div>
-
-                    <div id="anim_speed_wrapper" class="mb-2 px-1" style="display: none;">
-                        <div class="d-flex justify-content-between text-secondary" style="font-size:0.65rem;">
-                            <span>Laju Animasi:</span>
-                            <span class="text-info fw-bold" id="speed_indicator">15s</span>
-                        </div>
-                        <input type="range" id="anim_speed" oninput="updateSpeedIndicator(); updateDesignLive()" class="form-range mt-1" min="3" max="40" step="1" value="15" dir="rtl" style="height: 0.5rem;"> 
-                    </div>
-
-                    <div class="row g-1 mb-2">
-                        <div class="col-6">
-                            <small class="text-secondary d-block" style="font-size:0.65rem;">Warna Tepi</small>
-                            <input type="color" id="bg_edge_color" onchange="updateDesignLive()" class="form-control form-control-color w-100 p-0" value="#050505" style="height: 24px; border:none;">
-                        </div>
-                        <div class="col-6">
-                            <small class="text-secondary d-block" style="font-size:0.65rem;">Warna Utama</small>
-                            <input type="color" name="theme_color" id="bg_center_color" onchange="updateDesignLive()" class="form-control form-control-color w-100 p-0" value="{{ $schedule->theme_color ?? '#1b2735' }}" style="height: 24px; border:none;">
-                        </div>
-                    </div>
-
-                    <div id="anim_colors_wrapper" class="row g-1 mb-2" style="display: none;">
-                        <div class="col-6">
-                            <small class="text-secondary d-block" style="font-size:0.65rem;">Transisi 1</small>
-                            <input type="color" id="anim_color_1" onchange="updateDesignLive()" class="form-control form-control-color w-100 p-0" value="#2b6cb0" style="height: 24px; border:none;">
-                        </div>
-                        <div class="col-6">
-                            <small class="text-secondary d-block" style="font-size:0.65rem;">Transisi 2</small>
-                            <input type="color" id="anim_color_2" onchange="updateDesignLive()" class="form-control form-control-color w-100 p-0" value="#2c5282" style="height: 24px; border:none;">
-                        </div>
-                    </div>
-
-                    <div class="row g-1 mb-1">
-                        <div class="col-12 mb-1">
-                            <select id="font_family" onchange="updateDesignLive()" class="form-select form-select-sm bg-dark text-white border-secondary" style="font-size:0.75rem;">
-                                <option value="'Inter', Tahoma, sans-serif">Inter</option>
-                                <option value="'Montserrat', sans-serif">Montserrat</option>
-                                <option value="'Roboto', sans-serif">Roboto</option>
-                                <option value="'Lato', sans-serif">Lato</option>
-                                <option value="'Oswald', sans-serif">Oswald</option>
-                                <option value="'Playfair Display', serif">Playfair Display</option>
-                                <option value="Arial, sans-serif">Arial</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-secondary d-block" style="font-size:0.65rem;">Warna Teks</small>
-                            <input type="color" id="text_color" onchange="updateDesignLive()" class="form-control form-control-color w-100 p-0" value="#ffffff" style="height: 24px; border:none;">
-                        </div>
-                        <div class="col-6">
-                            <small class="text-secondary d-block" style="font-size:0.65rem;">Bayangan</small>
-                            <input type="color" id="shadow_color" onchange="updateDesignLive()" class="form-control form-control-color w-100 p-0" value="#000000" style="height: 24px; border:none;">
-                        </div>
-                    </div>
+                    </label>
                 </div>
-
-                <div class="card-edit">
-                    <label class="form-label-header">Keterangan Ibadah</label>
-                    <div class="mb-1"><input type="text" name="theme" class="form-control" value="{{ $schedule->theme }}" placeholder="Tema Ibadah"></div>
-                    <div><input type="text" name="preacher_name" class="form-control" value="{{ $schedule->preacher_name }}" placeholder="Nama Pelayan Firman"></div>
-                </div>
-                
-                @foreach($schedule->liturgy->items as $item)
-                    @php 
-                        $detail = $schedule->details->where('liturgy_item_id', $item->id)->first();
-                        $val = $detail ? $detail->dynamic_content : ($item->static_content ?? '');
-                        
-                        $cleanTitle = cleanSlideTitle($item->title);
-                        $editTitleLabel = $cleanTitle ?: 'SLIDE INSTRUKSI';
-                        
-                        $titleLower = strtolower($item->title);
-                        $type = 'teks_bebas';
-                        if (str_contains($titleLower, 'nyanyian') || str_contains($titleLower, 'pujian')) $type = 'nyanyian'; 
-                        elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) $type = 'alkitab'; 
-                        
-                        $useCamera = is_array($val) && isset($val['use_camera']) && filter_var($val['use_camera'], FILTER_VALIDATE_BOOLEAN) == true;
-                    @endphp
-                    
-                    <div class="card-edit">
-                        <label class="form-label-header" style="color:#e2e8f0;">{{ $editTitleLabel }}</label>
-                        
-                        @if($item->is_dynamic)
-                            @if($type === 'nyanyian')
-                                <div class="input-group mb-1">
-                                    <select id="buku-lagu-{{ $item->id }}" class="form-select bg-dark text-white" style="max-width: 80px; padding:2px;">
-                                        <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="BEBAS">Lain</option>
-                                    </select>
-                                    <input type="text" id="nomor-lagu-{{ $item->id }}" class="form-control" placeholder="Nomor">
-                                    <button type="button" class="btn btn-secondary btn-sm px-2" onclick="tarikLagu({{ $item->id }}, event)">Tarik</button>
-                                </div>
-                                <input type="text" name="dynamic_content[{{ $item->id }}][judul]" class="form-control mb-1 fw-medium" placeholder="Judul Nyanyian" value="{{ is_array($val) ? ($val['judul'] ?? '') : '' }}">
-                                
-                                <div id="bait-container-{{ $item->id }}">
-                                    @if(is_array($val) && isset($val['bait']) && is_array($val['bait']))
-                                        @foreach($val['bait'] as $key => $baitText)
-                                            @php 
-                                                $isReffKey = (is_string($key) && stripos($key, 'ref') !== false) || preg_match('/^\[?reff?\]?[\s\:\.\-]?/i', $baitText);
-                                                $displayKey = $isReffKey ? 'Reff' : preg_replace('/[^0-9]/', '', $key);
-                                                if(empty($displayKey) && !$isReffKey) $displayKey = $key;
-                                                $cleanTextForEdit = preg_replace('/^\[?REFF\]?\s*/i', '', $baitText);
-                                            @endphp
-                                            <div class="input-group mb-1 position-relative bait-item">
-                                                <div class="input-group-text {{ $isReffKey ? 'bg-warning text-dark' : 'bg-dark text-secondary' }} p-0 overflow-hidden">
-                                                    <input type="text" class="bait-label-input {{ $isReffKey ? 'bg-warning text-dark' : 'bg-dark text-secondary' }}" 
-                                                        onchange="updateBaitName(this, '{{ $item->id }}')" value="{{ $displayKey }}">
-                                                </div>
-                                                <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][{{ $key }}]" value="{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}">
-                                                <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value">{{ $isReffKey ? '[REFF] ' . trim($cleanTextForEdit) : trim($cleanTextForEdit) }}</textarea>
-                                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
-                                            </div>
-                                        @endforeach
-                                    @else
-                                        <div class="input-group mb-1 position-relative bait-item">
-                                            <div class="input-group-text bg-dark text-secondary p-0 overflow-hidden">
-                                                <input type="text" class="bait-label-input bg-dark text-secondary" onchange="updateBaitName(this, '{{ $item->id }}')" value="1">
-                                            </div>
-                                            <input type="hidden" class="bait-hidden-key" name="dynamic_content[{{ $item->id }}][bait][1]" value="">
-                                            <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value"></textarea>
-                                            <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
-                                        </div>
-                                    @endif
-                                </div>
-                                <button type="button" class="btn-add-slide mt-1" onclick="tambahBaitLagu('{{ $item->id }}')">Tambah Lirik Baris Baru</button>
-
-                            @elseif($type === 'alkitab')
-                                <div class="input-group mb-1">
-                                    <input type="text" id="input-alkitab-{{ $item->id }}" class="form-control" placeholder="Cari Kitab/Ayat">
-                                    <button type="button" class="btn btn-secondary btn-sm px-2" onclick="tarikAlkitab({{ $item->id }}, event)">Tarik</button>
-                                </div>
-                                <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="2">{{ is_array($val) ? ($val['content'] ?? '') : $val }}</textarea>
-                            
-                            @else
-                                @php
-                                    $customTitle = is_array($val) ? ($val['custom_title'] ?? '') : $cleanTitle;
-                                    $textContent = is_array($val) ? ($val['content'] ?? '') : $val;
-                                @endphp
-                                <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-1 fw-medium text-info" value="{{ $customTitle }}" placeholder="Judul (Kosongkan utk Teks Tengah)">
-                                <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="2">{{ $textContent }}</textarea>
-                            @endif
-
-                            <div class="form-check form-switch mt-2">
-                                <input type="hidden" name="dynamic_content[{{ $item->id }}][use_camera]" value="0">
-                                <input class="form-check-input" type="checkbox" name="dynamic_content[{{ $item->id }}][use_camera]" value="1" id="cam-cp-{{ $item->id }}" {{ $useCamera ? 'checked' : '' }}>
-                                <label class="form-check-label text-secondary" style="font-size: 0.7rem;" for="cam-cp-{{ $item->id }}">Aktifkan Latar Kamera</label>
-                            </div>
-
-                            <div class="mt-2 pt-2 border-top" style="border-color: #333 !important;">
-                                <div id="custom-slide-container-{{ $item->id }}">
-                                    @if(isset($schedule->customSlides) && $schedule->customSlides->where('liturgy_item_id', $item->id)->count() > 0)
-                                        @foreach($schedule->customSlides->where('liturgy_item_id', $item->id) as $index => $cSlide)
-                                            @php 
-                                                $isCameraCustom = is_string($cSlide->content) && str_contains($cSlide->content, '[KAMERA_AKTIF]'); 
-                                                $cleanCustomContent = str_replace('[KAMERA_AKTIF]', '', $cSlide->content);
-                                            @endphp
-                                            <div class="custom-slide-box">
-                                                <input type="text" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][title]" class="form-control form-control-sm mb-1 fw-medium text-info" value="{{ cleanSlideTitle($cSlide->title) }}" placeholder="Judul">
-                                                <textarea name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][content]" class="form-control form-control-sm" rows="1">{{ $cleanCustomContent }}</textarea>
-                                                
-                                                <div class="d-flex justify-content-between align-items-center mt-1">
-                                                    <div class="form-check form-switch m-0">
-                                                        <input type="hidden" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][use_camera]" value="0">
-                                                        <input class="form-check-input" type="checkbox" name="custom_slides[{{ $item->id }}][{{ $cSlide->id }}][use_camera]" value="1" id="cam-cus-{{ $cSlide->id }}" {{ $isCameraCustom ? 'checked' : '' }}>
-                                                        <label class="form-check-label text-secondary" style="font-size: 0.65rem;" for="cam-cus-{{ $cSlide->id }}">Kamera</label>
-                                                    </div>
-                                                    <button type="button" class="btn btn-sm text-danger p-0" style="font-size:0.7rem;" onclick="this.parentElement.parentElement.remove(); silentSyncLive(false);">Hapus</button>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    @endif
-                                </div>
-                                <button type="button" class="btn-add-slide mt-1" onclick="tambahSlideKhusus({{ $item->id }})">Sisipkan Slide Ekstra</button>
-                            </div>
-
-                        @else
-                            <textarea name="dynamic_content[{{ $item->id }}]" class="form-control text-secondary" style="background:#1a1a1a!important;" rows="2" readonly>{{ $item->static_content }}</textarea>
-                        @endif
-                    </div>
-                @endforeach
-            </form>
-            
-            <div class="floating-save">
-                <button type="button" onclick="silentSyncLive(true)" id="btnSaveLive" class="btn btn-primary-custom w-100 py-2">Terapkan Perubahan</button>
+                <div class="cp-group-label">Jenis Huruf</div>
             </div>
-        </div>
-    </div>
-
-    <div class="presenter-view" id="mainPanel">
-        <div class="ppt-topbar">
-            <div class="d-flex align-items-center gap-3">
-                <button type="button" id="btnToggleSidebar" class="btn-ui-toggle active" onclick="toggleSidebar()">Tampilkan Editor</button>
-                <button type="button" id="btnToggleGallery" class="btn-ui-toggle" onclick="toggleGallery()">Buka Galeri</button>
-                <div class="timer-display" style="margin-left: 10px;">
-                    <span id="liveTimer">00:00:00</span>
-                    <span class="text-info" style="font-size:0.7rem;">| {{ strtoupper($schedule->liturgy->name ?? 'IBADAH') }}</span>
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <div class="cp-fields">
+                        <label class="cp-color"><input type="color" data-setting="design.textColor"><span>Teks</span></label>
+                        <label class="cp-color"><input type="color" data-setting="design.shadowColor"><span>Bayangan</span></label>
+                    </div>
+                    <label class="cp-range"><span>Tebal bayangan</span><input type="range" min="0" max="1" step="0.05" data-setting="design.shadowStrength"><output data-out="design.shadowStrength"></output></label>
                 </div>
+                <div class="cp-group-label">Warna Teks</div>
             </div>
-            <div class="d-flex align-items-center">
-                <button onclick="openProjectorMultiMonitor()" class="btn btn-primary-custom btn-sm px-4">Tampilkan Proyektor</button>
-                <a href="{{ route('liturgy.gallery') }}" class="btn btn-danger ms-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; border-radius: 50%; text-decoration: none; font-size: 1.2rem; font-weight: bold; padding:0; line-height: 1;" title="Tutup & Kembali ke Daftar">&times;</a>
+            <div class="cp-group cp-group-info">
+                <div class="cp-group-body">
+                    <p class="cp-contrast" id="contrast-info" hidden></p>
+                </div>
+                <div class="cp-group-label">Keterbacaan</div>
             </div>
         </div>
 
-        <div class="ppt-layout">
-            
-            <div class="ppt-main-col">
-                <div class="current-slide-box monitor-box" id="monitor-current">
-                    <video id="preview-cam-current" class="preview-cam" autoplay playsinline muted></video>
-                    <span class="label-badge">TAYANGAN SAAT INI</span>
-                    <div id="virtual-render-current" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
-                    
-                    <div class="per-slide-font-control">
-                        <button type="button" onclick="changeSlideFont(-0.5)">-</button>
-                        <span id="slide-font-indicator">Otomatis</span>
-                        <button type="button" onclick="changeSlideFont(0.5)">+</button>
-                        <button type="button" onclick="resetSlideFont()" style="background:transparent; border-color:#666; font-size:0.65rem; font-weight:normal;">Reset</button>
-                    </div>
+        {{-- LAGU: gaya slide lirik --}}
+        <div class="cp-panel" data-panel="song" role="tabpanel">
+            <div class="cp-group cp-group-grow">
+                <div class="cp-group-body cp-ss-gallery" id="song-style-gallery">
+                    @foreach(['nomor' => 'Nomor Besar', 'terang' => 'Terang', 'klasik' => 'Klasik', 'kiri' => 'Rata Kiri'] as $ss => $ssName)
+                        <button type="button" class="cp-ss-tile" data-song-style="{{ $ss }}" title="Gaya slide lirik: {{ $ssName }}">
+                            <span class="cp-ss-preview"></span>
+                            <span class="cp-bg-name">{{ $ssName }}</span>
+                        </button>
+                    @endforeach
                 </div>
-                
-                <div class="ppt-controls">
-                    <button class="ppt-btn-nav" onclick="controlProjector('prev')" title="Slide Sebelumnya">&#8593;</button>
-                    <div class="ppt-slide-counter" id="slide-num">Slide 0 dari 0</div>
-                    <button class="ppt-btn-nav" onclick="controlProjector('next')" title="Slide Selanjutnya">&#8595;</button>
-                </div>
+                <div class="cp-group-label">Gaya Slide Lirik</div>
             </div>
-
-            <div class="ppt-side-col">
-                <div>
-                    <div class="text-secondary mb-2" style="font-size: 0.85rem; font-weight: 600;">Tayangan Berikutnya</div>
-                    <div class="next-slide-box monitor-box" id="monitor-next">
-                        <video id="preview-cam-next" class="preview-cam" autoplay playsinline muted></video>
-                        <div id="virtual-render-next" style="width: 100%; height: 100%; position:relative; z-index:5;"></div>
-                    </div>
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <label class="cp-check"><input type="checkbox" data-setting="design.songMark"><span>Warna lirik berbeda</span></label>
+                    <label class="cp-color"><input type="color" data-setting="design.songColor"><span>Warna lirik</span></label>
                 </div>
+                <div class="cp-group-label">Pembeda Nyanyian</div>
             </div>
-
-            <div class="fullscreen-gallery-overlay" id="slideGallery">
-                </div>
-
         </div>
-    </div>
+
+        {{-- LAYAR: ukuran layar fisik & batas tulisan --}}
+        <div class="cp-panel" data-panel="view" role="tabpanel">
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <label class="cp-select"><span>Layar</span>
+                        <select id="screen-preset">
+                            <option value="43">TV 43 inci</option><option value="50">TV 50 inci</option><option value="55">TV 55 inci</option>
+                            <option value="65">TV 65 inci</option><option value="75">TV 75 inci</option><option value="85">TV 85 inci</option>
+                            <option value="100">Layar 100 inci</option><option value="custom">Proyektor / ukuran sendiri</option>
+                        </select>
+                    </label>
+                    <div class="cp-fields">
+                        <label class="cp-num"><span>Lebar</span><input type="number" min="20" max="2000" step="0.1" data-setting="screen.widthCm"><em>cm</em></label>
+                        <label class="cp-num"><span>Tinggi</span><input type="number" min="10" max="1200" step="0.1" data-setting="screen.heightCm"><em>cm</em></label>
+                    </div>
+                </div>
+                <div class="cp-group-label">Ukuran Layar Fisik</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields">
+                    <label class="cp-num cp-num-v"><span>Atas</span><input type="number" min="0" step="0.5" data-setting="screen.marginTopCm"><em>cm</em></label>
+                    <label class="cp-num cp-num-v"><span>Kiri &amp; kanan</span><input type="number" min="0" step="0.5" data-setting="screen.marginSideCm"><em>cm</em></label>
+                    <label class="cp-num cp-num-v"><span>Bawah</span><input type="number" min="0" step="0.5" data-setting="screen.marginBottomCm"><em>cm</em></label>
+                </div>
+                <div class="cp-group-label">Batas Kotak Tulisan</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body cp-fields cp-fields-col">
+                    <label class="cp-check"><input type="checkbox" data-setting="header.show"><span>Tampilkan judul slide</span></label>
+                    <label class="cp-check"><input type="checkbox" data-setting="header.logo"><span>Tampilkan logo</span></label>
+                </div>
+                <div class="cp-group-label">Area Atas (per jadwal)</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="guides" aria-pressed="false" title="Tampilkan garis batas di layar live untuk diukur dengan meteran">{!! $svg('guides') !!}<span>Garis Batas</span></button>
+                </div>
+                <div class="cp-group-label">Kalibrasi</div>
+            </div>
+            <div class="cp-group cp-group-info">
+                <div class="cp-group-body">
+                    <p class="cp-info" id="layout-info"></p>
+                </div>
+                <div class="cp-group-label">Hasil di Kanvas 1920×1080</div>
+            </div>
+        </div>
+
+        {{-- ISI & CETAK --}}
+        <div class="cp-panel" data-panel="edit" role="tabpanel">
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <button type="button" class="cp-rb" data-cmd="toggle-editor" aria-pressed="false" title="Buka/tutup panel edit (E)">{!! $svg('edit') !!}<span>Panel Edit</span></button>
+                    <button type="button" class="cp-rb" data-cmd="save-now" title="Simpan sekarang (Ctrl S)">{!! $svg('save') !!}<span>Simpan</span></button>
+                    <a class="cp-rb" href="{{ route('liturgy.edit', $schedule) }}" title="Halaman edit lengkap">{!! $svg('document') !!}<span>Edit Lengkap</span></a>
+                </div>
+                <div class="cp-group-label">Isi Slide</div>
+            </div>
+            <div class="cp-group">
+                <div class="cp-group-body">
+                    <a class="cp-rb" href="{{ route('liturgy.export_pdf', $schedule) }}" target="_blank" rel="noopener" title="Cetak / PDF slide">{!! $svg('pdf') !!}<span>Slide PDF</span></a>
+                    <a class="cp-rb" href="{{ route('liturgy.bulletin', $schedule) }}" target="_blank" rel="noopener" title="Cetak buletin tata ibadah (booklet A4 dilipat)">{!! $svg('printer') !!}<span>Buletin</span></a>
+                </div>
+                <div class="cp-group-label">Cetak</div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ================= AREA KERJA ================= --}}
+    <main class="cp-main">
+        <aside class="cp-thumbs" id="thumbs" aria-label="Daftar slide"></aside>
+
+        <section class="cp-center">
+            <div class="cp-caption">
+                <span id="main-caption">Pratinjau</span>
+                <span class="cp-state-badges cp-only-present">
+                    <span class="cp-badge cp-badge-black" data-badge="black" hidden>LAYAR HITAM</span>
+                    <span class="cp-badge cp-badge-white" data-badge="white" hidden>LAYAR PUTIH</span>
+                    <span class="cp-badge" data-badge="hide" hidden>TEKS DISEMBUNYIKAN</span>
+                    <span class="cp-badge cp-badge-cam" id="badge-cam" hidden>KAMERA</span>
+                    <span class="cp-badge cp-badge-ticker" data-badge="ticker" hidden>TEKS CEPAT TAMPIL</span>
+                </span>
+                <span class="cp-badge cp-badge-hidden" id="badge-hidden-slide" hidden>SLIDE DISEMBUNYIKAN</span>
+            </div>
+            <div class="cp-stage-current" id="stage-current"></div>
+
+            {{-- Catatan operator (seperti "Klik untuk menambahkan catatan" di PowerPoint) --}}
+            <textarea class="cp-notes-input cp-only-normal" id="notes-input" rows="2" maxlength="1000"
+                placeholder="Klik untuk menambahkan catatan operator slide ini (tidak tampil di layar live)…"></textarea>
+
+            {{-- Alat Presenter View --}}
+            <div class="cp-ptools cp-only-present">
+                <button type="button" class="cp-pt" data-cmd="grid" title="Lihat semua slide (G)">{!! $svg('grid') !!}<span>Semua Slide</span></button>
+                <button type="button" class="cp-pt" data-cmd="search" title="Cari slide (Ctrl+F)">{!! $svg('search') !!}<span>Cari</span></button>
+                <button type="button" class="cp-pt" data-cmd="song-insert" title="Lagu dadakan (L)">{!! $svg('insert-song') !!}<span>Lagu Dadakan</span></button>
+                <button type="button" class="cp-pt" data-cmd="ticker" aria-pressed="false" title="Teks cepat di bawah layar (K)">{!! $svg('ticker') !!}<span>Teks Cepat</span></button>
+                <span class="cp-pt-sep"></span>
+                <button type="button" class="cp-pt" data-cmd="black" aria-pressed="false" title="Layar hitam (B)">{!! $svg('black') !!}<span>Hitam</span></button>
+                <button type="button" class="cp-pt" data-cmd="white" aria-pressed="false" title="Layar putih (W)">{!! $svg('white') !!}<span>Putih</span></button>
+                <button type="button" class="cp-pt" data-cmd="hide-text" aria-pressed="false" title="Sembunyikan teks, latar tetap tampil (T)">{!! $svg('hide-text') !!}<span>Tanpa Teks</span></button>
+                <span class="cp-pt-sep"></span>
+                <button type="button" class="cp-pt" data-cmd="font-down" title="Perkecil huruf slide ini (Ctrl -)"><b class="cp-glyph">A−</b></button>
+                <button type="button" class="cp-pt cp-pt-value" data-cmd="font-reset" title="Ukuran huruf. Klik untuk kembali otomatis"><span data-font-value>-</span></button>
+                <button type="button" class="cp-pt" data-cmd="font-up" title="Perbesar huruf slide ini (Ctrl +)"><b class="cp-glyph">A+</b></button>
+                <span class="cp-pt-sep"></span>
+                <button type="button" class="cp-pt" data-cmd="edit-current" title="Perbaiki isi slide ini (E)">{!! $svg('edit') !!}<span>Edit</span></button>
+            </div>
+
+            <div class="cp-navbar">
+                <div class="cp-nav-group">
+                    <button type="button" class="cp-navbtn" data-cmd="prev" title="Sebelumnya (←)">{!! $svg('prev') !!}</button>
+                    <label class="cp-counter" title="Ketik nomor slide lalu Enter">
+                        <span>Slide</span>
+                        <input type="number" id="slide-input" min="1" value="1">
+                        <span>dari <b id="slide-total">0</b></span>
+                    </label>
+                    <button type="button" class="cp-navbtn" data-cmd="next" title="Berikutnya (→)">{!! $svg('next') !!}</button>
+                </div>
+                <div class="cp-nav-group cp-timer">
+                    <span class="cp-timer-value" id="timer">00:00:00</span>
+                    <button type="button" class="cp-link" data-cmd="timer-toggle" id="timer-toggle">Jeda</button>
+                    <button type="button" class="cp-link" data-cmd="timer-reset" title="Ulang timer">{!! $svg('reset') !!}</button>
+                </div>
+                <div class="cp-nav-group cp-clock" id="clock">--:--</div>
+            </div>
+        </section>
+
+        <aside class="cp-side">
+            <div class="cp-caption">
+                <span id="side-caption">Layar live sekarang</span>
+                <span class="cp-state-badges cp-only-normal">
+                    <span class="cp-badge cp-badge-black" data-badge="black" hidden>HITAM</span>
+                    <span class="cp-badge cp-badge-white" data-badge="white" hidden>PUTIH</span>
+                    <span class="cp-badge" data-badge="hide" hidden>TANPA TEKS</span>
+                    <span class="cp-badge cp-badge-ticker" data-badge="ticker" hidden>TEKS CEPAT</span>
+                </span>
+                <span class="cp-muted" id="next-label"></span>
+            </div>
+            <div class="cp-stage-next" id="stage-next"></div>
+            <div class="cp-cue" id="cue-bar" hidden>
+                <span id="cue-text"></span>
+                <button type="button" class="cp-link" data-cmd="cue-clear">Batal</button>
+            </div>
+            <div class="cp-caption cp-only-present"><span>Catatan</span></div>
+            <div class="cp-notes cp-only-present" id="notes-view" aria-label="Catatan operator slide yang sedang tayang"></div>
+            <div class="cp-caption"><span>Urutan Ibadah</span><span class="cp-muted" id="outline-hint"></span></div>
+            <ol class="cp-outline" id="outline"></ol>
+        </aside>
+
+        <aside class="cp-editor" id="editor" aria-label="Panel edit isi" aria-hidden="true">
+            <div class="cp-editor-head">
+                <strong>Edit Isi Slide</strong>
+                <span class="cp-muted">Tersimpan otomatis</span>
+                <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-cmd="undo" title="Urungkan perubahan terakhir (Ctrl+Z)">↶ Urungkan</button>
+                <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-cmd="toggle-editor">Tutup</button>
+            </div>
+            <div class="cp-editor-body">
+                @include('liturgy.partials.control_editor', ['schedule' => $schedule])
+            </div>
+        </aside>
+    </main>
+
+    <footer class="cp-statusbar">
+        <span class="cp-mode" id="status-mode">Mode persiapan</span>
+        <span id="status-slide">Slide 1 dari 1</span>
+        <span id="status-section"></span>
+        <span class="cp-status-spacer"></span>
+        <span id="status-save">Semua perubahan tersimpan</span>
+        <span id="status-net" class="is-offline" hidden>● Offline. Tayangan tetap jalan, perubahan isi belum tersimpan</span>
+        <span id="status-sync">Sinkron: 1 PC</span>
+        <button type="button" class="cp-link" data-cmd="help">Tombol pintas (?)</button>
+    </footer>
 </div>
 
-<script>
-    window.cpWartaInterval = null;
-    window.cpWartaNextInterval = null;
-    let isCameraInitialized = false;
+{{-- Semua slide (G) --}}
+<div class="cp-overlay" id="grid-overlay" hidden>
+    <div class="cp-overlay-head">
+        <strong>Semua Slide</strong>
+        <span class="cp-muted" id="grid-hint">Klik = pilih &middot; Esc untuk menutup</span>
+        <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-cmd="grid">Tutup</button>
+    </div>
+    <div class="cp-grid" id="grid"></div>
+</div>
 
-    // Timer Logika
-    let startTime = Date.now();
-    setInterval(() => {
-        let diff = Math.floor((Date.now() - startTime) / 1000);
-        let h = Math.floor(diff / 3600).toString().padStart(2, '0');
-        let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-        let s = (diff % 60).toString().padStart(2, '0');
-        document.getElementById('liveTimer').innerText = `${h}:${m}:${s}`;
-    }, 1000);
+{{-- Cari slide (Ctrl+F) --}}
+<dialog class="cp-dialog cp-search" id="search-dlg" aria-label="Cari slide">
+    <input type="search" id="search-input" class="cp-input" placeholder="Ketik KJ 85, nama bagian (mis. Pengakuan), atau sepenggal kata…" autocomplete="off">
+    <ol class="cp-search-results" id="search-results"></ol>
+    <p class="cp-dialog-foot" id="search-hint"></p>
+</dialog>
 
-    const scheduleId = {{ $schedule->id ?? 0 }};
-    let allSlidesData = @json($allSlides); 
-    let currentSlide = parseInt(localStorage.getItem('last_slide_index')) || 0;
-    let customFonts = JSON.parse(localStorage.getItem('custom_fonts_' + scheduleId)) || {};
+{{-- Lagu dadakan --}}
+<dialog class="cp-dialog cp-songdlg" id="song-dlg" aria-label="Lagu dadakan">
+    <h2>Lagu Dadakan</h2>
+    <form id="song-form" class="cp-songdlg-row" autocomplete="off">
+        <select id="sd-book" class="cp-input">
+            <option>KJ</option><option>NKB</option><option>PKJ</option><option>NR</option><option>DSL</option><option>GPM</option><option value="BEBAS">Lainnya</option>
+        </select>
+        <input id="sd-num" class="cp-input" placeholder="Nomor (atau judul untuk Lainnya)">
+        <button type="submit" class="cp-btn">Cari</button>
+    </form>
+    <div id="sd-preview" class="cp-songdlg-preview"></div>
+    <p class="cp-dialog-foot" id="sd-where"></p>
+    <div class="cp-dialog-actions">
+        <button type="button" class="cp-btn cp-btn-ghost" data-sd="close">Batal</button>
+        <button type="button" class="cp-btn cp-btn-primary" data-sd="insert" disabled>Sisipkan</button>
+    </div>
+</dialog>
 
-    // =========================================================================
-    // FITUR: AUTO-SAVE & REALTIME SYNC (TANPA RELOAD)
-    // =========================================================================
-    let liveTypingTimer;
-    
-    document.getElementById('liveForm').addEventListener('input', function() {
-        clearTimeout(liveTypingTimer);
-        liveTypingTimer = setTimeout(() => { silentSyncLive(false); }, 800); 
-    });
-    
-    document.getElementById('liveForm').addEventListener('change', function() {
-        silentSyncLive(false);
-    });
+{{-- Teks cepat --}}
+<dialog class="cp-dialog cp-tickerdlg" id="ticker-dlg" aria-label="Teks cepat">
+    <h2>Teks Cepat di Bawah Layar</h2>
+    <p class="cp-dialog-foot">Muncul di bagian bawah layar live tanpa mengganti slide. Contoh: <i>Kendaraan DS 1234 mohon dipindahkan.</i></p>
+    <textarea id="ticker-input" class="cp-input" rows="2" maxlength="200" placeholder="Ketik pengumuman singkat…"></textarea>
+    <div class="cp-ticker-recent" id="ticker-recent"></div>
+    <div class="cp-dialog-actions">
+        <button type="button" class="cp-btn cp-btn-ghost" data-tk="close">Tutup</button>
+        <button type="button" class="cp-btn" data-tk="hide">Sembunyikan</button>
+        <button type="button" class="cp-btn cp-btn-primary" data-tk="show">Tampilkan</button>
+    </div>
+</dialog>
 
-    function silentSyncLive(showButtonEffect = false) {
-        const form = document.getElementById('liveForm');
-        const btn = document.getElementById('btnSaveLive');
-        const formData = new FormData(form);
+{{-- Remote HP --}}
+<dialog class="cp-dialog cp-remotedlg" id="remote-dlg" aria-label="Remote HP">
+    <h2>Remote dari HP</h2>
+    <p class="cp-dialog-foot">Pindai QR dengan kamera HP (HP harus bisa membuka alamat web ini dan login). Tombol <b>Berikutnya</b> di HP langsung menggerakkan layar live.</p>
+    <div class="cp-qr" id="remote-qr"></div>
+    <input class="cp-input" id="remote-url" readonly>
+    <div class="cp-dialog-actions"><button type="button" class="cp-btn" data-rq="copy">Salin link</button><button type="button" class="cp-btn cp-btn-primary" data-rq="close">Tutup</button></div>
+</dialog>
 
-        if(showButtonEffect) {
-            btn.innerText = 'Menyimpan & Sync...';
-            btn.disabled = true;
-        }
+{{-- Uji tayang --}}
+<dialog class="cp-dialog cp-checkdlg" id="check-dlg" aria-label="Hasil uji tayang">
+    <h2>Uji Tayang</h2>
+    <p class="cp-dialog-foot" id="check-summary"></p>
+    <ol class="cp-search-results" id="check-results"></ol>
+    <div class="cp-dialog-actions"><button type="button" class="cp-btn cp-btn-primary" data-ck="close">Tutup</button></div>
+</dialog>
 
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(() => {
-            localStorage.setItem('liturgy_update', Date.now()); 
-            
-            fetch(window.location.href)
-                .then(res => res.text())
-                .then(html => {
-                    const match = html.match(/let allSlidesData = (\[.*?\]);/s);
-                    if(match && match[1]) {
-                        allSlidesData = JSON.parse(match[1]);
-                        buildGallery();
-                        updateConsoleView();
-                    }
-                });
-        })
-        .catch(err => {
-            console.warn("Internet terputus! Data tidak tersimpan di Cloud.");
-        })
-        .finally(() => {
-            if(showButtonEffect) {
-                btn.innerText = 'Terapkan Perubahan';
-                btn.disabled = false;
-            }
-            const toast = document.getElementById('toastAjax');
-            toast.style.opacity = 1;
-            setTimeout(() => { toast.style.opacity = 0; }, 3000);
-        });
-    }
+{{-- Menu klik kanan --}}
+<div class="cp-menu" id="ctx-menu" role="menu" hidden></div>
 
-    // =========================================================================
-    // FITUR: LAYAR 2 OTOMATIS
-    // =========================================================================
-    async function openProjectorMultiMonitor() {
-        const url = "{{ route('liturgy.presentation', $schedule->id) }}";
-        let features = `width=${window.screen.availWidth},height=${window.screen.availHeight},left=0,top=0,menubar=no,toolbar=no,location=no,status=no`;
-        
-        try {
-            if ('getScreenDetails' in window) {
-                const screenDetails = await window.getScreenDetails();
-                const secondaryScreen = screenDetails.screens.find(s => s !== screenDetails.currentScreen);
-                
-                if (secondaryScreen) {
-                    features = `left=${secondaryScreen.availLeft},top=${secondaryScreen.availTop},width=${secondaryScreen.availWidth},height=${secondaryScreen.availHeight},menubar=no,toolbar=no,location=no,status=no`;
-                } else {
-                    const primary = screenDetails.screens[0];
-                    features = `left=${primary.availLeft},top=${primary.availTop},width=${primary.availWidth},height=${primary.availHeight},menubar=no,toolbar=no,location=no,status=no`;
-                }
-            }
-        } catch (err) {}
-        window.open(url, "ProjectorWindow", features);
-    }
+<div class="cp-jump" id="jump" hidden></div>
+<div class="cp-toast" id="toast" role="status" aria-live="polite"></div>
 
-    // =========================================================================
-    // FITUR: PRATINJAU KAMERA LIVE
-    // =========================================================================
-    async function initPreviewCamera() {
-        if (isCameraInitialized) return;
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            document.getElementById('preview-cam-current').srcObject = stream;
-            document.getElementById('preview-cam-next').srcObject = stream;
-            isCameraInitialized = true;
-        } catch(e) { console.log("Gagal akses kamera untuk preview", e); }
-    }
-
-
-    // =========================================================================
-    // FUNGSI UI & RENDER VIRTUAL (SINKRON DENGAN 55 INCH)
-    // =========================================================================
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebarPanel');
-        const btn = document.getElementById('btnToggleSidebar');
-        sidebar.classList.toggle('collapsed');
-        if (sidebar.classList.contains('collapsed')) {
-            btn.innerText = "Tampilkan Editor"; btn.classList.add('active');
-        } else {
-            btn.innerText = "Sembunyikan Editor"; btn.classList.remove('active');
-        }
-    }
-
-    function toggleGallery() {
-        const gallery = document.getElementById('slideGallery');
-        const btn = document.getElementById('btnToggleGallery');
-        
-        gallery.classList.toggle('expanded');
-        
-        if (gallery.classList.contains('expanded')) {
-            btn.innerText = "Tutup Galeri";
-            btn.classList.add('active');
-            const activeThumb = gallery.querySelector('.mini-slide-thumb.active');
-            if(activeThumb) {
-                activeThumb.scrollIntoView({ behavior: 'auto', block: 'center' }); 
-            }
-        } else {
-            btn.innerText = "Buka Galeri";
-            btn.classList.remove('active');
-        }
-    }
-
-    // ====================================================================================
-    // FUNGSI RENDER VIRTUAL (Telah di-update menggunakan CQW/CQH yang sinkron penuh)
-    // ====================================================================================
-    function renderVirtualSlide(slide, index) {
-        if(!slide) return '<div class="sp-container"><div class="vp-content" style="color:#666;">SELESAI</div></div>';
-
-        let customSize = customFonts[index];
-        let fontSizeStyle = customSize ? `font-size: ${customSize}cqw !important;` : '';
-        let innerHTML = '';
-        
-        let isCamActive = (slide.use_camera === true || slide.use_camera === 'true' || slide.use_camera == 1);
-        let containerClass = isCamActive ? 'sp-container mode-kamera' : 'sp-container';
-
-        if(slide.type === 'cover') {
-            innerHTML = `
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" style="height: 18cqh; margin-bottom: 3cqh; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.5));">
-                <div class="vp-title-header" style="font-size: 6.5cqw; font-weight: 900; margin-bottom: 1.5cqh; border:none;">${slide.title}</div>
-                <div style="font-size: 2.5cqw; color: #cbd5e0;">${slide.date}</div>
-                ${slide.theme ? `<div style="font-size: 2.5cqw; color: #cbd5e0; margin-top: 2cqh;">TEMA: ${slide.theme}</div>` : ''}
-            `;
-        }
-        else if (slide.type === 'announcements_slideshow') {
-            let imagesHtml = slide.images.map((img, idx) => `
-                <div class="warta-item-cp warta-item-cp-${index}" data-duration="${img.duration || 5}" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity: ${idx===0 ? 1 : 0}; transition: opacity 1.5s ease; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
-                    <img src="${img.image_url}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:1;">
-                    ${img.caption ? `<div style="position:relative; z-index:2; margin-bottom: 5cqh; background:rgba(0,0,0,0.8); color:#fff; padding:1.5cqh 3cqw; border-radius:50px; font-size:2.5cqw; font-weight:bold;">${img.caption}</div>` : ''}
-                </div>
-            `).join('');
-            return `<div style="position: absolute; top:0; left:0; width:100%; height:100%; background:#000; overflow:hidden;">${imagesHtml}</div>`;
-        }
-        else if (slide.type === 'instruksi') {
-            if(!fontSizeStyle) {
-                const length = slide.content ? slide.content.length : 0;
-                fontSizeStyle = length < 30 ? 'font-size: 6.5cqw;' : 'font-size: 5.5cqw;';
-            }
-            if (isCamActive) fontSizeStyle += ' font-size: 5cqw !important;'; 
-            innerHTML = `<div class="vp-instruksi" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>`;
-        }
-        else if (slide.type === 'song_cover') {
-            innerHTML = `
-                <div style="margin: auto; text-align: center;">
-                    ${slide.title ? `<div style="font-size: 2.5cqw; margin-bottom: 1.5cqh; text-transform: uppercase; color: #cbd5e0; letter-spacing: 0.2cqw;">${slide.title}</div>` : ''}
-                    <div style="font-size: 5.5cqw; font-weight: 900; text-shadow: 0px 4cqh 15cqw var(--shadow-color);">${slide.content}</div>
-                </div>
-            `;
-        }
-        else if (slide.type === 'song_lyric') {
-            if(!customSize && slide.type !== 'instruksi') {
-                const htmlContent = slide.content ? slide.content.toLowerCase() : '';
-                const lines = (htmlContent.match(/<br\s*\/?>/g) || []).length + 1;
-                let size = '5.2cqw'; 
-                if (isCamActive) {
-                    size = '4.5cqw';
-                } else {
-                    if (lines === 1) { size = (slide.content && slide.content.length < 25) ? '6.5cqw' : '5.5cqw'; } 
-                    else if (lines === 2) { size = '5.2cqw'; }
-                    else if (lines >= 3) { size = '4.8cqw'; }
-                }
-                fontSizeStyle = `font-size: ${size} !important;`;
-            }
-            innerHTML = `
-                ${slide.watermark !== '' && !isCamActive ? `<div class="vp-watermark">${slide.watermark}</div>` : ''}
-                ${slide.title && !isCamActive ? `<div class="vp-title-header">${slide.title}</div>` : ''}
-                <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
-            `;
-        }
-        else if (slide.type === 'closing') {
-            innerHTML = `<div style="font-size: 6.5cqw; font-weight: 900; text-transform: uppercase; margin: auto; text-wrap: balance;">TUHAN YESUS<br><span style="color:#fcd34d;">MEMBERKATI</span></div>`;
-        }
-        else { 
-            if(!customSize && slide.type !== 'instruksi') {
-                const htmlContent = slide.content ? slide.content.toLowerCase() : '';
-                const lines = (htmlContent.match(/<br\s*\/?>/g) || []).length + 1;
-                let size = '5.2cqw'; 
-                if (isCamActive) {
-                    size = '4.5cqw';
-                } else {
-                    if (lines === 1) { size = (slide.content && slide.content.length < 25) ? '6.5cqw' : '5.5cqw'; } 
-                    else if (lines === 2) { size = '5.2cqw'; }
-                    else if (lines >= 3) { size = '4.8cqw'; }
-                }
-                fontSizeStyle = `font-size: ${size} !important;`;
-            }
-            innerHTML = `
-                ${slide.title && !isCamActive ? `<div class="vp-title-header ${slide.type === 'custom' ? 'text-info' : ''}">${slide.title}</div>` : ''}
-                <div class="vp-content" style="${fontSizeStyle}">${slide.content.replace(/\n/g, '<br>')}</div>
-            `;
-        }
-
-        if (isCamActive && slide.type !== 'cover' && slide.type !== 'closing' && slide.type !== 'announcements_slideshow') {
-            innerHTML = `
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" class="kamera-logo-preview" alt="Logo">
-                ${slide.title ? `<div class="kamera-watermark-title-preview">${slide.title}</div>` : ''}
-                <div class="vp-inner-wrapper">${innerHTML}</div>
-            `;
-        }
-
-        return `<div class="${containerClass}">${innerHTML}</div>`;
-    }
-
-    function toggleBgSettings() {
-        const type = document.getElementById('bg_type').value;
-        const isAnim = type.includes('anim-');
-        document.getElementById('anim_colors_wrapper').style.display = isAnim ? 'flex' : 'none';
-        if(type.includes('anim') || type.includes('pattern')) { document.getElementById('anim_speed_wrapper').style.display = 'block'; } 
-        else { document.getElementById('anim_speed_wrapper').style.display = 'none'; }
-    }
-    
-    function updateSpeedIndicator() { document.getElementById('speed_indicator').innerText = document.getElementById('anim_speed').value + 's'; }
-
-    function applyVirtualDesign(settings) {
-        if(!settings) return;
-        document.documentElement.style.setProperty('--bg-center', settings.bgCenterColor || '#1b2735');
-        document.documentElement.style.setProperty('--bg-edge', settings.bgEdgeColor || '#050505');
-        document.documentElement.style.setProperty('--text-color', settings.textColor || '#ffffff');
-        document.documentElement.style.setProperty('--font-family', settings.fontFamily || "'Inter', Tahoma, sans-serif");
-        
-        let shadowHex = settings.shadowColor || '#000000';
-        let r = parseInt(shadowHex.slice(1, 3), 16), g = parseInt(shadowHex.slice(3, 5), 16), b = parseInt(shadowHex.slice(5, 7), 16);
-        document.documentElement.style.setProperty('--shadow-color', `rgba(${r}, ${g}, ${b}, 0.9)`);
-
-        document.querySelectorAll('.sp-container:not(.mode-kamera)').forEach(el => {
-            el.style.background = ''; el.style.backgroundColor = ''; el.style.backgroundImage = ''; el.style.backgroundSize = ''; el.style.animation = '';
-            
-            const spd = settings.animSpeed || 15;
-            const ac1 = settings.animColor1 || '#2b6cb0'; const ac2 = settings.animColor2 || '#2c5282';
-
-            if (settings.bgType === 'gradient' || !settings.bgType) { el.style.background = `radial-gradient(circle at center, ${settings.bgCenterColor} 0%, ${settings.bgEdgeColor} 100%)`; } 
-            else if (settings.bgType === 'anim-linear') { el.style.background = `linear-gradient(-45deg, ${settings.bgCenterColor}, ${settings.bgEdgeColor}, ${ac1}, ${ac2})`; el.style.backgroundSize = '400% 400%'; el.style.animation = `gradientBG ${spd}s ease infinite`; } 
-            else if (settings.bgType === 'anim-radial') { el.style.background = `radial-gradient(circle, ${settings.bgCenterColor}, ${ac1}, ${settings.bgEdgeColor}, ${ac2})`; el.style.backgroundSize = '400% 400%'; el.style.animation = `gradientBG ${spd}s ease infinite`; } 
-            else if (settings.bgType === 'anim-sweep') { el.style.background = `linear-gradient(90deg, ${settings.bgCenterColor}, ${ac1}, ${settings.bgEdgeColor}, ${ac2}, ${settings.bgCenterColor})`; el.style.backgroundSize = '400% 100%'; el.style.animation = `gradientBG ${spd}s linear infinite`; }
-            else if (settings.bgType === 'pattern-grid') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; el.style.backgroundSize = '4cqw 4cqw'; }
-            else if (settings.bgType === 'pattern-grid-anim') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`; el.style.backgroundSize = '4cqw 4cqw'; el.style.animation = `moveGridCP ${spd}s linear infinite`; } 
-            else if (settings.bgType === 'pattern-dots') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `radial-gradient(${settings.bgCenterColor} 3px, transparent 3px)`; el.style.backgroundSize = '4cqw 4cqw'; } 
-            else if (settings.bgType === 'pattern-stripes') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `repeating-linear-gradient(45deg, ${settings.bgCenterColor} 0, ${settings.bgCenterColor} 2px, transparent 2px, transparent 50%)`; el.style.backgroundSize = '4cqw 4cqw'; }
-            else if (settings.bgType === 'pattern-stripes-anim') { el.style.backgroundColor = settings.bgEdgeColor; el.style.backgroundImage = `repeating-linear-gradient(45deg, ${settings.bgCenterColor} 0, ${settings.bgCenterColor} 2px, transparent 2px, transparent 50%)`; el.style.backgroundSize = '4cqw 4cqw'; el.style.animation = `moveStripesCP ${spd}s linear infinite`; }
-        });
-    }
-
-    function updateDesignLive() {
-        const bgType = document.getElementById('bg_type').value; 
-        const animSpeed = document.getElementById('anim_speed').value; const bgCenterColor = document.getElementById('bg_center_color').value;
-        const bgEdgeColor = document.getElementById('bg_edge_color').value; const animColor1 = document.getElementById('anim_color_1').value;
-        const animColor2 = document.getElementById('anim_color_2').value; const textColor = document.getElementById('text_color').value;
-        const fontFamily = document.getElementById('font_family').value; const shadowColor = document.getElementById('shadow_color').value;
-
-        const designSettings = { bgType, animSpeed, fontFamily, bgCenterColor, bgEdgeColor, animColor1, animColor2, textColor, shadowColor };
-        localStorage.setItem('live_design_settings', JSON.stringify(designSettings));
-        applyVirtualDesign(designSettings);
-    }
-
-    function loadSavedDesign() {
-        const saved = JSON.parse(localStorage.getItem('live_design_settings'));
-        if(saved) {
-            if(saved.fontFamily) document.getElementById('font_family').value = saved.fontFamily;
-            if(saved.bgCenterColor) document.getElementById('bg_center_color').value = saved.bgCenterColor;
-            if(saved.bgEdgeColor) document.getElementById('bg_edge_color').value = saved.bgEdgeColor;
-            if(saved.animColor1) document.getElementById('anim_color_1').value = saved.animColor1;
-            if(saved.animColor2) document.getElementById('anim_color_2').value = saved.animColor2;
-            if(saved.textColor) document.getElementById('text_color').value = saved.textColor;
-            if(saved.shadowColor) document.getElementById('shadow_color').value = saved.shadowColor;
-            if(saved.animSpeed) { document.getElementById('anim_speed').value = saved.animSpeed; updateSpeedIndicator(); }
-            if(saved.bgType) { document.getElementById('bg_type').value = saved.bgType; toggleBgSettings(); }
-        }
-    }
-
-    function changeSlideFont(step) {
-        let currentSize = customFonts[currentSlide] ? parseFloat(customFonts[currentSlide]) : 5.0; 
-        let newSize = (currentSize + step).toFixed(1);
-        if(newSize < 2.0) newSize = 2.0; if(newSize > 15.0) newSize = 15.0;
-        customFonts[currentSlide] = newSize; saveAndSyncFont();
-    }
-    function resetSlideFont() { delete customFonts[currentSlide]; saveAndSyncFont(); }
-    function saveAndSyncFont() { localStorage.setItem('custom_fonts_' + scheduleId, JSON.stringify(customFonts)); localStorage.setItem('font_sync_trigger', Date.now()); updateConsoleView(); }
-
-    function controlProjector(action, specificIndex = null) {
-        if(action === 'next') currentSlide++; else if(action === 'prev') currentSlide--; else if(action === 'jump') currentSlide = specificIndex;
-        if (currentSlide < 0) currentSlide = 0; if (currentSlide >= allSlidesData.length) currentSlide = allSlidesData.length - 1;
-        
-        localStorage.setItem('projector_command', JSON.stringify({ action: 'jump', index: currentSlide, time: Date.now() }));
-        localStorage.setItem('last_slide_index', currentSlide); 
-        
-        if(document.getElementById('slideGallery').classList.contains('expanded') && action === 'jump') {
-            toggleGallery(); 
-        }
-        
-        updateConsoleView();
-    }
-
-    function handleKeyboard(e) {
-        if (['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
-        if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); controlProjector('next'); }
-        if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); controlProjector('prev'); }
-    }
-
-    function updateConsoleView() {
-        clearTimeout(window.cpWartaInterval); 
-        clearTimeout(window.cpWartaNextInterval); 
-        
-        document.getElementById('virtual-render-current').innerHTML = renderVirtualSlide(allSlidesData[currentSlide], currentSlide);
-        document.getElementById('virtual-render-next').innerHTML = renderVirtualSlide(allSlidesData[currentSlide + 1], currentSlide + 1);
-        document.getElementById('slide-num').innerText = `Slide ${currentSlide + 1} dari ${allSlidesData.length}`;
-        
-        let isCurrentCam = allSlidesData[currentSlide] && (allSlidesData[currentSlide].use_camera == 1 || allSlidesData[currentSlide].use_camera === true || allSlidesData[currentSlide].use_camera === 'true');
-        let isNextCam = allSlidesData[currentSlide + 1] && (allSlidesData[currentSlide + 1].use_camera == 1 || allSlidesData[currentSlide + 1].use_camera === true || allSlidesData[currentSlide + 1].use_camera === 'true');
-        
-        document.getElementById('preview-cam-current').style.display = isCurrentCam ? 'block' : 'none';
-        document.getElementById('preview-cam-next').style.display = isNextCam ? 'block' : 'none';
-        
-        if (isCurrentCam || isNextCam) { initPreviewCamera(); }
-
-        const gallery = document.getElementById('slideGallery');
-        document.querySelectorAll('.mini-slide-thumb').forEach((thumb, i) => { 
-            thumb.classList.toggle('active', i === currentSlide); 
-        });
-
-        const fontIndicator = document.getElementById('slide-font-indicator');
-        if (customFonts[currentSlide]) { fontIndicator.innerText = customFonts[currentSlide] + 'vw'; fontIndicator.style.color = '#fcd34d'; } 
-        else { fontIndicator.innerText = 'Otomatis'; fontIndicator.style.color = '#cbd5e0'; }
-
-        let currentItems = document.getElementById('monitor-current').querySelectorAll(`.warta-item-cp-${currentSlide}`);
-        if(currentItems.length > 1) {
-            let cwIdx = 0;
-            const runNextCurrent = () => {
-                currentItems[cwIdx].style.opacity = 0; cwIdx = (cwIdx + 1) % currentItems.length; currentItems[cwIdx].style.opacity = 1;
-                window.cpWartaInterval = setTimeout(runNextCurrent, (parseInt(currentItems[cwIdx].dataset.duration) || 5) * 1000);
-            };
-            window.cpWartaInterval = setTimeout(runNextCurrent, (parseInt(currentItems[0].dataset.duration) || 5) * 1000);
-        }
-
-        let nextIndex = currentSlide + 1;
-        let nextItems = document.getElementById('monitor-next').querySelectorAll(`.warta-item-cp-${nextIndex}`);
-        if(nextItems.length > 1) {
-            let nwIdx = 0;
-            const runNextNext = () => {
-                nextItems[nwIdx].style.opacity = 0; nwIdx = (nwIdx + 1) % nextItems.length; nextItems[nwIdx].style.opacity = 1;
-                window.cpWartaNextInterval = setTimeout(runNextNext, (parseInt(nextItems[nwIdx].dataset.duration) || 5) * 1000);
-            };
-            window.cpWartaNextInterval = setTimeout(runNextNext, (parseInt(nextItems[0].dataset.duration) || 5) * 1000);
-        }
-
-        applyVirtualDesign(JSON.parse(localStorage.getItem('live_design_settings')));
-    }
-
-    function buildGallery() {
-        const gallery = document.getElementById('slideGallery'); 
-        gallery.innerHTML = '';
-        allSlidesData.forEach((slide, i) => {
-            const thumb = document.createElement('div'); 
-            thumb.className = 'mini-slide-thumb';
-            thumb.title = "Klik ganda (2x) untuk menampilkan slide ini"; 
-            
-            const badge = document.createElement('div');
-            badge.className = 'mini-thumb-badge';
-            badge.innerText = i + 1;
-            thumb.appendChild(badge);
-
-            const slideContent = document.createElement('div');
-            slideContent.style.width = '100%';
-            slideContent.style.height = '100%';
-            slideContent.innerHTML = renderVirtualSlide(slide, i);
-            
-            thumb.appendChild(slideContent);
-            thumb.ondblclick = () => { 
-                controlProjector('jump', i); 
-            }; 
-            gallery.appendChild(thumb);
-        });
-        
-        applyVirtualDesign(JSON.parse(localStorage.getItem('live_design_settings')));
-    }
-
-    function updateBaitName(inputElement, blockId) {
-        let newName = inputElement.value.trim(); if(newName === '') newName = 'Bait';
-        let hiddenInput = inputElement.closest('.bait-item').querySelector('.bait-hidden-key');
-        let formKey = newName;
-        
-        if(newName.toLowerCase() === 'reff') {
-            inputElement.classList.replace('bg-dark', 'bg-warning'); inputElement.classList.replace('text-secondary', 'text-dark');
-            let existingKey = hiddenInput ? hiddenInput.name.match(/\[bait\]\[(.*?)\]/) : null;
-            if (existingKey && existingKey[1].toLowerCase().includes('ref')) { formKey = existingKey[1]; } 
-            else { formKey = 'ref_' + Math.random().toString(36).substr(2, 5); }
-        } else {
-            inputElement.classList.replace('bg-warning', 'bg-dark'); inputElement.classList.replace('text-dark', 'text-secondary');
-        }
-        if(hiddenInput) { hiddenInput.name = `dynamic_content[${blockId}][bait][${formKey}]`; }
-        silentSyncLive(false);
-    }
-
-    function tambahBaitLagu(blockId) {
-        const container = document.getElementById(`bait-container-${blockId}`);
-        const baitNum = Date.now().toString().slice(-4);
-        const html = `
-            <div class="input-group mb-1 position-relative bait-item">
-                <div class="input-group-text bg-dark text-secondary p-0 overflow-hidden">
-                    <input type="text" class="bait-label-input bg-dark text-secondary" onchange="updateBaitName(this, '${blockId}')" value="${baitNum}">
-                </div>
-                <input type="hidden" class="bait-hidden-key" name="dynamic_content[${blockId}][bait][${baitNum}]" value="">
-                <textarea class="form-control" rows="2" oninput="this.previousElementSibling.value = this.value"></textarea>
-                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', html);
-    }
-
-    function tambahSlideKhusus(itemId) {
-        const container = document.getElementById('custom-slide-container-' + itemId); const slideId = Math.random().toString(36).substr(2, 9);
-        const html = `
-            <div class="custom-slide-box">
-                <input type="text" name="custom_slides[${itemId}][${slideId}][title]" class="form-control form-control-sm mb-1 fw-medium text-info" placeholder="Judul Sisipan">
-                <textarea name="custom_slides[${itemId}][${slideId}][content]" class="form-control form-control-sm" rows="1" placeholder="Isi teks..."></textarea>
-                <div class="d-flex justify-content-between align-items-center mt-1">
-                    <div class="form-check form-switch m-0">
-                        <input type="hidden" name="custom_slides[${itemId}][${slideId}][use_camera]" value="0">
-                        <input class="form-check-input" type="checkbox" name="custom_slides[${itemId}][${slideId}][use_camera]" value="1" id="cam-cus-${slideId}">
-                        <label class="form-check-label text-secondary" style="font-size: 0.65rem;" for="cam-cus-${slideId}">Kamera</label>
-                    </div>
-                    <button type="button" class="btn btn-sm text-danger p-0" style="font-size:0.7rem;" onclick="this.parentElement.parentElement.remove(); silentSyncLive(false);">Hapus</button>
-                </div>
-            </div>`;
-        container.insertAdjacentHTML('beforeend', html); 
-    }
-
-    function tarikLagu(itemId, event) {
-        const buku = document.getElementById(`buku-lagu-${itemId}`).value; const nomor = document.getElementById(`nomor-lagu-${itemId}`).value.trim();
-        const judulInput = document.querySelector(`input[name="dynamic_content[${itemId}][judul]"]`); const container = document.getElementById(`bait-container-${itemId}`);
-        const btn = event.currentTarget; if(!nomor) return alert('Ketik nomor nyanyian.');
-        const originalText = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
-        
-        fetch(`/api/fetch-lagu?buku=${buku}&nomor=${nomor}`).then(res => res.json()).then(data => {
-            if(data.success) {
-                judulInput.value = data.judul; container.innerHTML = ''; const baits = data.text.split('===SLIDE_BREAK==='); 
-                let verseCounter = 1;
-                baits.forEach((bait, idx) => {
-                    let baitRaw = bait.trim();
-                    if(baitRaw !== '') {
-                        let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
-                        let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
-                        let labelText = isReff ? 'Reff' : verseCounter;
-                        let uniqueKey = isReff ? 'ref_' + idx : verseCounter;
-                        let bgClass = isReff ? 'bg-warning text-dark' : 'bg-dark text-secondary';
-                        const html = `
-                            <div class="input-group mb-1 position-relative bait-item">
-                                <div class="input-group-text ${bgClass} p-0 overflow-hidden">
-                                    <input type="text" class="bait-label-input ${bgClass}" onchange="updateBaitName(this, '${itemId}')" value="${labelText}">
-                                </div>
-                                <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${uniqueKey}]" value="${isReff ? '[REFF]\\n' + cleanBait : cleanBait}">
-                                <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\\n' + cleanBait : cleanBait}</textarea>
-                                <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3" onclick="this.closest('.bait-item').remove(); silentSyncLive(false);" style="font-size: 14px;">&times;</button>
-                            </div>
-                        `;
-                        container.insertAdjacentHTML('beforeend', html); 
-                        if (!isReff) verseCounter++; 
-                    }
-                });
-                silentSyncLive(false); 
-            } else { alert(data.message); }
-        }).catch(err => alert('Data tidak ditemukan.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
-    }
-
-    function tarikAlkitab(itemId, event) {
-        const inputField = document.getElementById('input-alkitab-' + itemId); const textarea = document.getElementById('textarea-' + itemId);
-        const btn = event.currentTarget; const query = inputField.value.trim();
-        if(!query) return alert('Ketik referensi ayat.'); 
-        const originalText = btn.innerHTML; btn.innerHTML = '...'; btn.disabled = true;
-        fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`).then(res => res.json()).then(data => {
-            if(data.success) { 
-                textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text; 
-                silentSyncLive(false); 
-            } else alert(data.message);
-        }).catch(() => alert('Terjadi gangguan jaringan.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
-    }
-
-    window.addEventListener('storage', (e) => { 
-        if (e.key === 'last_slide_index') { currentSlide = parseInt(e.newValue); updateConsoleView(); }
-    });
-    
-    window.onload = () => { loadSavedDesign(); buildGallery(); updateConsoleView(); };
-</script>
+<dialog class="cp-dialog" id="help">
+    <h2>Tombol Pintas</h2>
+    <p class="cp-help-intro">Sebelum tayangan dimulai, klik slide hanya untuk melihat. Mulai tayang dengan <kbd>F5</kbd>. Saat tayang, klik sekali menyiapkan slide berikutnya, dan slide baru tampil setelah <kbd>→</kbd> atau <kbd>Spasi</kbd> ditekan.</p>
+    <table>
+        <tr><th colspan="2">Saat tayang</th></tr>
+        <tr><td><kbd>→</kbd> <kbd>↓</kbd> <kbd>Spasi</kbd> <kbd>Enter</kbd> <kbd>N</kbd> <kbd>PgDn</kbd></td><td>Tayangkan slide berikutnya (slide tersembunyi dilewati)</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>↑</kbd> <kbd>Backspace</kbd> <kbd>P</kbd> <kbd>PgUp</kbd></td><td>Slide sebelumnya</td></tr>
+        <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>Slide pertama / terakhir</td></tr>
+        <tr><td>Angka lalu <kbd>Enter</kbd></td><td>Langsung ke nomor slide</td></tr>
+        <tr><td>Klik / klik dua kali</td><td>Siapkan sebagai berikutnya / tayangkan sekarang</td></tr>
+        <tr><td><kbd>B</kbd> atau <kbd>.</kbd> · <kbd>W</kbd> atau <kbd>,</kbd></td><td>Layar hitam · layar putih (tekan lagi untuk kembali)</td></tr>
+        <tr><td><kbd>T</kbd></td><td>Sembunyikan teks (latar tetap tampil)</td></tr>
+        <tr><td><kbd>Esc</kbd> 2×</td><td>Akhiri tayangan (layar live kembali ke sampul)</td></tr>
+        <tr><th colspan="2">Kapan saja</th></tr>
+        <tr><td><kbd>F5</kbd> / <kbd>Shift</kbd>+<kbd>F5</kbd></td><td>Mulai tayang dari awal / dari slide yang dipilih</td></tr>
+        <tr><td><kbd>G</kbd> · <kbd>E</kbd> · <kbd>H</kbd></td><td>Semua slide · edit isi slide · sembunyikan slide</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>L</kbd> · <kbd>K</kbd></td><td>Cari slide · lagu dadakan · teks cepat di bawah layar</td></tr>
+        <tr><td>Klik kanan</td><td>Menu cepat (slide, thumbnail, semua slide)</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>Ctrl</kbd> <kbd>−</kbd> / <kbd>Ctrl</kbd> <kbd>0</kbd></td><td>Ukuran huruf slide ini: besar / kecil / otomatis</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd> · <kbd>Ctrl</kbd> <kbd>Z</kbd></td><td>Simpan isi sekarang · urungkan perubahan isi terakhir</td></tr>
+    </table>
+    <form method="dialog"><button class="cp-btn cp-btn-primary">Tutup</button></form>
+</dialog>
 </body>
 </html>

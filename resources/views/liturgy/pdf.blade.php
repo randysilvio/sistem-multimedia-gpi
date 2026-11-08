@@ -2,9 +2,10 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Export PDF Slide Ibadah - GPI Papua</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="{{ \App\Services\Branding::logoUrl() }}">
+    <title>Ekspor PDF Slide Ibadah · {{ \App\Services\Branding::churchName() }}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
         body, html { 
             margin: 0; padding: 0; width: 100%; 
@@ -95,7 +96,7 @@
     <div id="presentation-print">
         <div class="slide">
             <div class="welcome-wrapper">
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI Papua" style="height: 150px; margin: 0 auto 30px auto;">
+                <img src="{{ \App\Services\Branding::logoUrl() }}" alt="Logo GPI Papua" style="height: 150px; margin: 0 auto 30px auto;">
                 
                 <div class="welcome-title">{{ strtoupper($schedule->liturgy->name) }}</div>
                 <div class="welcome-sub" style="color: {{ $schedule->theme_color == '#ffffff' ? '#e2c050' : $schedule->theme_color }};">

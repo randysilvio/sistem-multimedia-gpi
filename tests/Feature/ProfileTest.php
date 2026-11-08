@@ -63,6 +63,7 @@ class ProfileTest extends TestCase
 
     public function test_user_can_delete_their_account(): void
     {
+        User::factory()->create(); // akun lain tetap ada
         $user = User::factory()->create();
 
         $response = $this
@@ -77,6 +78,17 @@ class ProfileTest extends TestCase
 
         $this->assertGuest();
         $this->assertNull($user->fresh());
+    }
+
+    public function test_last_account_cannot_be_deleted(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->delete('/profile', ['password' => 'password'])
+            ->assertRedirect('/profile')->assertSessionHas('error');
+
+        $this->assertAuthenticated();
+        $this->assertNotNull($user->fresh());
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

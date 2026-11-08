@@ -17,20 +17,21 @@ class AnnouncementController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi: Tambah format GIF, limit 100MB, dan kolom durasi
+        // Gambar JPG/PNG/WEBP/GIF maks. 20 MB (batas aman hosting); SVG ditolak (bisa berisi skrip).
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:102400', 
+            'image' => 'required|file|mimes:jpeg,png,jpg,gif,webp|mimetypes:image/jpeg,image/png,image/gif,image/webp|max:20480',
             'title' => 'nullable|string|max:255',
-            'order_num' => 'nullable|integer',
-            'duration' => 'nullable|integer|min:1' // Tambahan validasi durasi
-        ]);
+            'order_num' => 'nullable|integer|min:0|max:999',
+            'duration' => 'nullable|integer|min:1|max:600',
+        ], [], ['image' => 'gambar', 'title' => 'judul', 'order_num' => 'urutan', 'duration' => 'durasi']);
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             
             // PENTING: Bersihkan nama file dari spasi agar tidak error / broken image
             $cleanName = Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME));
-            $fileName = time() . '_' . $cleanName . '.' . $image->getClientOriginalExtension();
+            // Ekstensi dari ISI file (bukan nama kiriman pengguna): file "x.php" tidak mungkin tersimpan
+            $fileName = time() . '_' . ($cleanName ?: 'warta') . '.' . strtolower($image->extension());
             
             // Simpan menggunakan disk 'public' langsung ke folder sinode
             $path = $image->storeAs('sinode', $fileName, 'public'); 

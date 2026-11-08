@@ -1,36 +1,16 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buat Jadwal Ibadah - GPI Papua</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; padding-bottom: 120px; }
-        .navbar { background-color: #0f172a !important; }
-        .builder-container { max-width: 800px; margin: auto; margin-top: 30px; }
-        
-        .block-card { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
-        .block-card:focus-within { box-shadow: 0 4px 15px rgba(43, 108, 176, 0.15); border-color: #90cdf4; }
-        
-        .btn-delete-block { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #e2e8f0; color: #ef4444; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; line-height: 1; z-index: 10;}
-        .btn-delete-block:hover { background: #fee2e2; border-color: #fca5a5; transform: scale(1.05); }
+@extends('layouts.admin')
 
-        /* SOLID BOTTOM TOOLBAR PROFESIONAL */
-        .toolbar-menu { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); z-index: 900; }
-        
-        .btn-primary-custom { background-color: #0f172a; color: white; border: none; font-weight: 600; letter-spacing: 0.5px; padding: 10px 30px; border-radius: 6px; transition: 0.2s;}
-        .btn-primary-custom:hover { background-color: #1e293b; color: white; }
+@section('eyebrow', 'Jadwal & Presentasi')
+@section('title')
+Isi Jadwal Ibadah
+@endsection
 
-        /* Input khusus modifikasi nama bait */
-        .bait-label-input { width: 100%; border: none; font-size: 0.8rem; font-weight: 700; text-align: center; background: transparent; color: inherit; }
-        .bait-label-input:focus { outline: none; background: rgba(0,0,0,0.05); }
-    </style>
-</head>
-<body>
+@section('actions')
+<a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-secondary">Batal</a>
+@endsection
 
-    @php
+@section('content')
+@php
     if (!function_exists('cleanSlideTitle')) {
         function cleanSlideTitle($title) {
             if (!is_string($title)) return '';
@@ -43,15 +23,6 @@
     }
     @endphp
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3 mb-4">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand text-uppercase m-0 d-flex align-items-center" href="{{ route('liturgy.gallery') }}">
-                <img src="https://gpipapua.org/storage/logos/gKF2JZ5RvUZrE57otn9yjHep9ArI9dhVmtGYX3gq.png" alt="Logo GPI" height="32" class="me-3">
-                <span>Pengisian Jadwal Ibadah</span>
-            </a>
-            <a href="{{ route('liturgy.gallery') }}" class="btn btn-outline-light btn-sm fw-medium px-4">Batal & Kembali</a>
-        </div>
-    </nav>
 
     <div class="container builder-container">
         
@@ -115,7 +86,7 @@
                     $reqRule = $isOptional ? '' : 'required';
                     $val = $item->static_content ?? '';
                     
-                    // PENYEDERHANAAN LOGIKA: 3 JENIS KONTEN SAJA
+                    // Jenis isi: nyanyian, bacaan alkitab, atau teks
                     $titleLower = strtolower($item->title);
                     $cleanTitle = cleanSlideTitle($item->title);
 
@@ -127,7 +98,7 @@
                         $type = 'nyanyian'; 
                         $cardColor = '#2b6cb0'; 
                         $typeLabel = 'NYANYIAN JEMAAT'; 
-                    } elseif (str_contains($titleLower, 'alkitab') || str_contains($titleLower, 'bacaan')) { 
+                    } elseif (\App\Services\SlideBuilder::itemType($item->title) === 'alkitab') { 
                         $type = 'alkitab'; 
                         $cardColor = '#2c5282'; 
                         $typeLabel = 'BACAAN ALKITAB'; 
@@ -143,17 +114,20 @@
                     @if($item->is_dynamic)
                         
                         @if($type === 'nyanyian')
-                            <div class="row g-2 mb-2">
+                            <div class="row g-2 mb-2 song-ref">
                                 <div class="col-md-3">
                                     <select id="buku-lagu-{{ $item->id }}" class="form-select bg-light">
-                                        <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="BEBAS">Lainnya</option>
+                                        <option value="KJ">KJ</option><option value="NKB">NKB</option><option value="PKJ">PKJ</option><option value="NR">NR</option><option value="DSL">DSL</option><option value="GPM">GPM</option><option value="BEBAS">Lainnya</option>
                                     </select>
                                 </div>
-                                <div class="col-md-7">
+                                <div class="col-md-5">
                                     <input type="text" id="nomor-lagu-{{ $item->id }}" class="form-control bg-light" placeholder="No. Lagu">
                                 </div>
                                 <div class="col-md-2">
-                                    <button type="button" class="btn btn-secondary w-100" onclick="tarikLagu({{ $item->id }}, event)">Tarik</button>
+                                    <button type="button" class="btn btn-outline-primary w-100" data-song-picker title="Pilih dari lagu yang sudah ada di database">Pilih</button>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-secondary w-100" data-song-pull onclick="tarikLagu({{ $item->id }}, event)">Tarik</button>
                                 </div>
                             </div>
 
@@ -173,13 +147,14 @@
                             
                         @elseif($type === 'alkitab')
                             <div class="input-group mb-2">
-                                <input type="text" id="input-alkitab-{{ $item->id }}" class="form-control bg-light" placeholder="Cari Kitab (Cth: Yohanes 3:16)">
+                                <input type="text" id="input-alkitab-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][ref]" class="form-control bg-light" placeholder="Cth: Yoh 3:16-18 · Mzm 23 · Yes 45:1-8" value="{{ old('dynamic_content.'.$item->id.'.ref') }}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
                                 <button type="button" class="btn btn-secondary px-4" onclick="tarikAlkitab({{ $item->id }}, event)">Tarik</button>
                             </div>
-                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="4" placeholder="Teks ayat..." {{ $reqRule }}>{{ old('dynamic_content.'.$item->id.'.content', $val) }}</textarea>
+                                                        <div class="form-text mb-2">Alkitab Terjemahan Baru (TB). Kosongkan teks ayat bila layar cukup menampilkan referensinya saja.</div>
+                            <textarea id="textarea-{{ $item->id }}" name="dynamic_content[{{ $item->id }}][content]" class="form-control" rows="5" placeholder="16 Karena begitu besar kasih Allah ...">{{ old('dynamic_content.'.$item->id.'.content', $val) }}</textarea>
 
                         @else
-                            {{-- LOGIKA PINTAR TEKS BEBAS: Jika judul dihapus, otomatis tulisan akan ke tengah dan membesar di proyektor --}}
+                            {{-- Judul kosong = teks instruksi besar di tengah layar --}}
                             <label class="form-label small fw-bold text-secondary">Judul Sesi (Opsional)</label>
                             <input type="text" name="dynamic_content[{{ $item->id }}][custom_title]" class="form-control mb-2 fw-bold text-dark" placeholder="Kosongkan jika ingin teks di tengah layar (Utk Sikap Jemaat)" value="{{ $cleanTitle }}">
                             
@@ -209,13 +184,15 @@
 
             <div class="toolbar-menu">
                 <div class="container d-flex justify-content-end">
-                    <button type="submit" form="createForm" class="btn btn-primary-custom">SIMPAN JADWAL IBADAH</button>
+                    <button type="submit" form="createForm" class="btn btn-primary btn-primary-custom">Simpan jadwal ibadah</button>
                 </div>
             </div>
         </form>
     </div>
+@endsection
 
-    <script>
+@push('scripts')
+<script>
         function updateBaitName(inputElement, itemId) {
             let newName = inputElement.value.trim();
             if(newName === '') newName = 'Bait';
@@ -265,7 +242,7 @@
                     
                     <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" name="custom_slides[${itemId}][${slideId}][use_camera]" value="true" id="cam-custom-${slideId}">
-                        <label class="form-check-label small fw-bold text-muted" for="cam-custom-${slideId}">📽️ Latar Kamera (Lower Third)</label>
+                        <label class="form-check-label small fw-bold text-muted" for="cam-custom-${slideId}">Latar kamera (teks di bawah)</label>
                     </div>
                 </div>
             `;
@@ -300,7 +277,7 @@
                                 let isReff = baitRaw.toUpperCase().startsWith('[REFF]') || baitRaw.toLowerCase().startsWith('reff') || baitRaw.toLowerCase().startsWith('ref');
                                 let cleanBait = baitRaw.replace(/^\[?REFF\]?\s*/i, '');
                                 
-                                let labelText = isReff ? 'Reff' : verseCounter;
+                                let labelText = isReff ? 'Reff' : ((data.labels && data.labels[idx] && data.labels[idx] !== 'Reff') ? data.labels[idx] : verseCounter);
                                 let bgClass = isReff ? 'bg-warning text-dark' : 'bg-light text-secondary';
                                 
                                 const html = `
@@ -308,8 +285,8 @@
                                         <div class="input-group-text ${bgClass} p-0 overflow-hidden" style="width: 80px;">
                                             <input type="text" class="bait-label-input" onchange="updateBaitName(this, '${itemId}')" value="${labelText}">
                                         </div>
-                                        <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${labelText}]" value="${isReff ? '[REFF]\\n' + cleanBait : cleanBait}">
-                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${isReff ? '[REFF]\\n' + cleanBait : cleanBait}</textarea>
+                                        <input type="hidden" class="bait-hidden-key" name="dynamic_content[${itemId}][bait][${isReff ? 'ref_' + idx : labelText}]" value="${escHtml(isReff ? '[REFF]\n' + cleanBait : cleanBait)}">
+                                        <textarea class="form-control" rows="3" oninput="this.previousElementSibling.value = this.value">${escHtml(isReff ? '[REFF]\n' + cleanBait : cleanBait)}</textarea>
                                         <button type="button" class="btn btn-sm text-danger position-absolute top-0 end-0 m-1 z-3 rounded" onclick="this.closest('.bait-item').remove()" style="font-size: 14px; padding: 2px 6px;">&times;</button>
                                     </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
@@ -321,6 +298,9 @@
                 }).catch(err => alert('Gagal menarik data lagu.')).finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
         }
 
+        // Lirik dimasukkan ke HTML: tanda kutip/< > harus di-escape agar lirik tidak terpotong
+        function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
         function tarikAlkitab(itemId, event) {
             const inputField = document.getElementById('input-alkitab-' + itemId);
             const textarea = document.getElementById('textarea-' + itemId);
@@ -331,18 +311,18 @@
             
             const originalText = btn.innerHTML;
             btn.innerHTML = '...'; btn.disabled = true;
-            textarea.value = "Memuat data...";
             
-            fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`)
+            const before = textarea.value;
+            fetch(`/api/fetch-alkitab?q=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
                 .then(res => res.json())
                 .then(data => {
                     if(data.success) {
-                        textarea.value = query.toUpperCase() + "\n===SLIDE_BREAK===\n" + data.text;
-                    } else { alert(data.message); }
+                        inputField.value = data.reference;
+                        textarea.value = data.text;
+                    } else { textarea.value = before; alert(data.message); }
                 })
                 .catch(err => alert('Terjadi kesalahan koneksi.'))
                 .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
         }
     </script>
-</body>
-</html>
+@endpush

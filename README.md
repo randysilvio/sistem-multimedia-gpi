@@ -1,66 +1,45 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistem Multimedia GPI Papua
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web untuk pelayanan multimedia ibadah: susun tata ibadah, tarik lagu dan ayat Alkitab, lalu tayangkan ke layar jemaat dengan kontrol seperti PowerPoint.
 
-## About Laravel
+## Fitur
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Template tata ibadah:** Minggu I, II, III, Kunci Bulan, dan Minggu V. Isinya struktur dan kalimat liturgi lengkap dengan label PF/PNT/JEMAAT.
+- **Database lagu:** KJ, NKB, PKJ, NR, dan DSL, dengan nomor bait asli. Tombol **Tarik** mengisi lirik ke jadwal.
+- **Alkitab Terjemahan Baru (TB):** cukup ketik referensi bebas (`yoh 3:16-18`, `Mzm 23`, `Yes 45:1-8; Mat 5:1-12`). Pasal yang sudah ditarik disimpan, sehingga tetap bisa dipakai saat offline.
+- **Kontrol live mirip PowerPoint:** pratinjau slide saat ini dan berikutnya, thumbnail, pintasan keyboard, timer, layar hitam/putih, dan latar animasi ringan.
+- **Layar live:** area teks diukur dalam sentimeter (default TV 55"). Bisa dijalankan di 1 PC (2 monitor) atau 2 komputer lewat jaringan.
+- **Kontrol Live seperti PowerPoint:** mode persiapan & mode tayang (F5 / Shift+F5); klik satu kali tidak pernah mengganti layar live. Ada juga cari slide (Ctrl+F), lagu dadakan (L), teks cepat di bawah layar (K), sembunyikan slide (H), catatan operator, uji tayang, dan remote dari HP (QR).
+- **Persiapan cepat:** buat jadwal dari teks/PDF buletin (PDF booklet disusun ulang otomatis), duplikat jadwal, dan cek kesiapan ibadah di Dashboard.
+- **Cetak buletin:** tata ibadah dicetak sebagai booklet A4 dilipat atau halaman A5.
+- **Tampilan:** empat gaya slide lirik (Nomor Besar, Terang, Klasik, Rata Kiri) dengan nomor bait/REFF besar di pojok kiri, lirik nyanyian berwarna emas, sampul berlogo besar, preset warna masa raya gerejawi, latar video, dan peringatan kontras.
+- **Tetap tayang saat offline:** Kontrol Live dan Layar Live di satu komputer tetap jalan walau internet putus.
+- **Pengelolaan:** logo gereja, warta sinode (slideshow gambar), akun operator, dan cetak lirik.
+- **Riwayat:** siapa mengubah jadwal, lagu, template, pengguna, dan pengaturan.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Menjalankan di komputer lokal (XAMPP)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+composer install
+npm install && npm run build
+cp .env.example .env          # lalu ubah: APP_ENV=local, APP_DEBUG=true, APP_URL=http://localhost, DB_*
+php artisan key:generate
+php artisan migrate
+php artisan db:seed           # admin pertama + template + lagu (aman diulang)
+php artisan storage:link
+php artisan serve
+```
 
-## Learning Laravel
+Lupa kata sandi admin? Jalankan `php artisan admin:buat --email=alamat@email`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Deploy ke server online
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Lihat **[docs/DEPLOY.md](docs/DEPLOY.md)**: kebutuhan server, langkah VPS dan cPanel, isi `.env`, backup, dan daftar periksa keamanan.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Tes
 
-## Laravel Sponsors
+```bash
+php artisan test
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Tes memakai SQLite di memori, jadi database MySQL Anda tidak tersentuh.
